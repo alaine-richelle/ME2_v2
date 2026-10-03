@@ -1,0 +1,48 @@
+Evaluation report
+=================
+Accuracy: 0.5350
+Macro precision: 0.4538
+Macro recall: 0.4493
+Macro F1: 0.4062
+ROC-AUC: 0.9091
+
+Per-class performance (observed)
+alarm: support=423, precision=0.6929, recall=0.2293, f1=0.3446
+brightness: support=423, precision=0.8257, recall=0.8061, f1=0.8158
+call: support=141, precision=0.5130, recall=0.5603, f1=0.5356
+color: support=423, precision=0.6859, recall=0.5059, f1=0.5823
+create_reminder: support=423, precision=0.5640, recall=0.8960, f1=0.6922
+light_off: support=141, precision=0.2917, recall=0.0993, f1=0.1481
+light_on: support=141, precision=0.3922, recall=0.1418, f1=0.2083
+list_reminders: support=141, precision=0.2428, recall=0.5390, f1=0.3348
+message: support=137, precision=0.4713, recall=0.5401, f1=0.5034
+next: support=141, precision=0.3209, recall=0.6738, f1=0.4348
+out_of_scope: support=76, precision=0.1575, recall=0.2632, f1=0.1970
+pause: support=141, precision=0.3357, recall=0.6667, f1=0.4466
+play_music: support=141, precision=0.2872, recall=0.7801, f1=0.4198
+stop: support=141, precision=0.2273, recall=0.0355, f1=0.0613
+temperature: support=423, precision=0.7819, recall=0.9574, f1=0.8608
+time: support=141, precision=0.2667, recall=0.0284, f1=0.0513
+timer: support=423, precision=0.7656, recall=0.6099, f1=0.6789
+volume_down: support=141, precision=0.4583, recall=0.3901, f1=0.4215
+volume_up: support=141, precision=0.2963, recall=0.0567, f1=0.0952
+weather: support=141, precision=0.5000, recall=0.2057, f1=0.2915
+
+Most frequent confusions (gold -> predicted)
+color -> play_music: 98
+alarm -> list_reminders: 94
+alarm -> temperature: 67
+alarm -> create_reminder: 57
+light_off -> next: 54
+timer -> brightness: 43
+timer -> create_reminder: 42
+stop -> play_music: 42
+call -> pause: 41
+stop -> next: 36
+
+Model footprint (measured)
+Parameters: 8052
+Serialized model: 43001 bytes
+Input dimensions: [1, 40, 501]
+CPU inference mean/p95: 2.222/2.624 ms per example
+Process peak RSS: 1324810240 bytes (process-wide, not model-only)

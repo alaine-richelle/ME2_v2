@@ -1,0 +1,116 @@
+{
+  "class_names": [
+    "background",
+    "a",
+    "te",
+    "ko",
+    "ateko"
+  ],
+  "accuracy": 0.6923076923076923,
+  "precision_macro": 0.6595261181395635,
+  "recall_macro": 0.63125,
+  "f1_macro": 0.5488071107716948,
+  "confusion_matrix": [
+    [
+      67,
+      0,
+      2,
+      1,
+      26
+    ],
+    [
+      0,
+      2,
+      4,
+      6,
+      0
+    ],
+    [
+      0,
+      0,
+      11,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      7,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      23
+    ]
+  ],
+  "per_class": {
+    "background": {
+      "precision": 0.9852941176470589,
+      "recall": 0.6979166666666666,
+      "f1-score": 0.8170731707317073,
+      "support": 96.0
+    },
+    "a": {
+      "precision": 1.0,
+      "recall": 0.16666666666666666,
+      "f1-score": 0.2857142857142857,
+      "support": 12.0
+    },
+    "te": {
+      "precision": 0.4583333333333333,
+      "recall": 0.9166666666666666,
+      "f1-score": 0.6111111111111112,
+      "support": 12.0
+    },
+    "ko": {
+      "precision": 0.38461538461538464,
+      "recall": 0.4166666666666667,
+      "f1-score": 0.4,
+      "support": 12.0
+    },
+    "ateko": {
+      "precision": 0.46938775510204084,
+      "recall": 0.9583333333333334,
+      "f1-score": 0.6301369863013698,
+      "support": 24.0
+    },
+    "accuracy": 0.6923076923076923,
+    "macro avg": {
+      "precision": 0.6595261181395635,
+      "recall": 0.63125,
+      "f1-score": 0.5488071107716948,
+      "support": 156.0
+    },
+    "weighted avg": {
+      "precision": 0.8203136284099438,
+      "recall": 0.6923076923076923,
+      "f1-score": 0.6995142104062919,
+      "support": 156.0
+    }
+  },
+  "roc_auc_ovr_macro": 0.9630787037037036,
+  "split": "validation",
+  "wake_threshold": 0.7649452090263367,
+  "false_accepts": 3,
+  "false_accept_rate": 0.022727272727272728,
+  "false_rejects": 11,
+  "false_reject_rate": 0.4583333333333333,
+  "positive_count": 24,
+  "negative_count": 132,
+  "syllable_cues_counted_as_non_wake": 36,
+  "parameter_count": 3293,
+  "model_size_bytes": 23761,
+  "input_dimensions": [
+    1,
+    40,
+    151
+  ],
+  "cpu_inference_ms_mean": 1.1850951705127954,
+  "cpu_inference_ms_p95": 1.4589332509785886,
+  "process_peak_rss_bytes": 452902912,
+  "measurement_note": "CPU-only single-example inference; process RSS is process-wide, not model-only memory"
+}

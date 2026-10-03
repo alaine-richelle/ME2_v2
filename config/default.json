@@ -1,0 +1,45 @@
+{
+  "audio": {
+    "sample_rate": 16000,
+    "duration_seconds": 5.0,
+    "silence_threshold_db": -48.0,
+    "normalize_peak": true,
+    "n_fft": 400,
+    "hop_length": 160,
+    "n_mels": 40,
+    "f_min": 40,
+    "f_max": 7600
+  },
+  "training": {
+    "seed": 42,
+    "validation_fraction": 0.15,
+    "batch_size": 64,
+    "epochs": 30,
+    "patience": 6,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "num_workers": 0
+  },
+  "augmentation": {
+    "enabled": true,
+    "gain_db": 8.0,
+    "noise_snr_db_min": 8.0,
+    "noise_snr_db_max": 30.0,
+    "max_shift_ms": 100.0,
+    "speed_min": 0.92,
+    "speed_max": 1.08
+  },
+  "vcm": {
+    "dataset_id": "airimonda/ai231-me2-voice-commands",
+    "config": "default",
+    "validation_seed": 42
+  },
+  "wake_word": {
+    "sample_rate": 16000,
+    "duration_seconds": 1.5,
+    "positive_threshold": 0.7,
+    "max_false_accept_rate": 0.05,
+    "synthetic_engine": "say",
+    "phrases": ["a", "te", "ko", "a te ko", "ateko"]
+  }
+}

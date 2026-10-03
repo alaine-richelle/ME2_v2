@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "me2-v2"
+version = "0.1.0"
+description = "Small wake-word and voice-command models for Raspberry Pi 5"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "soundfile>=0.12",
+  "torch>=2.2",
+  "scikit-learn>=1.4",
+  "datasets>=3.0",
+  "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.4"]
+microphone = ["sounddevice>=0.4.6"]
+
+[project.scripts]
+me2 = "me2.app:main"
+me2-vcm-data = "me2.vcm.data:main"
+me2-vcm-train = "me2.vcm.train:main"
+me2-vcm-evaluate = "me2.vcm.evaluate:main"
+me2-wake-data = "me2.wake_word.data:main"
+me2-wake-train = "me2.wake_word.train:main"
+me2-wake-evaluate = "me2.wake_word.evaluate:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
