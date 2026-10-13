@@ -1,6 +1,7 @@
 import io
 import json
 import logging
+import subprocess
 import sys
 import threading
 import zipfile
@@ -19,7 +20,7 @@ from me2.app import (
 from me2.audio import AudioConfig, prepare_audio, prepare_audio_sequence
 from me2.bundle import load_bundle, predict_command, predict_waveform, save_bundle
 from me2.features import FeatureConfig
-from me2.health import inspect_artifact
+from me2.health import inspect_artifact, probe_input_devices
 from me2.io_utils import atomic_json, file_sha256
 from me2.logging_utils import (
     LogWriteError,
@@ -328,3 +329,17 @@ def test_log_sink_failure_is_fatal_not_retried_as_microphone_fault(monkeypatch):
         run_microphone_stream(pipeline, stop_event=stop, on_audio=fail_sink)
     assert closed == [True] and waits == []
     assert pipeline.state == PipelineState.STOPPED
+
+
+def test_device_probe_has_native_process_timeout_without_recording(monkeypatch):
+    calls = []
+    def hung(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+    monkeypatch.setattr(subprocess, "run", hung)
+    with pytest.raises(subprocess.TimeoutExpired):
+        probe_input_devices("private device", 16000)
+    command, options = calls[0]
+    assert options["timeout"] == 10 and options["capture_output"] and options["check"]
+    assert command[0][-2:] == ["private device", "16000"]
+    assert "InputStream" not in command[0][2]

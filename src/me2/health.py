@@ -105,6 +105,35 @@ def inspect_artifact(path: Path, *, expected_sha256=None, require_approved_wake=
     }
 
 
+def inspect_input_devices(device, sample_rate: int) -> dict:
+    """Native calls run only inside the bounded probe subprocess."""
+    import sounddevice as sd
+
+    devices = [
+        {"index": i, "channels": d["max_input_channels"],
+         "default_sample_rate": d["default_samplerate"]}
+        for i, d in enumerate(sd.query_devices()) if d["max_input_channels"] > 0
+    ]
+    if not devices:
+        return {"input_devices": [], "device_error": "no_input_devices"}
+    device = None if device == "" else int(device) if device.isdecimal() else device
+    sd.check_input_settings(device=device, channels=1, dtype="float32", samplerate=sample_rate)
+    return {"input_devices": devices, "device_format_check": "passed_no_capture"}
+
+
+def probe_input_devices(device=None, sample_rate=16000, *, timeout_seconds=10) -> dict:
+    """Contain native discovery hangs; no stream, recording, or audio file is created."""
+    integer("sample_rate", sample_rate, 1, 192_000)
+    child = subprocess.run(
+        [sys.executable, "-c",
+         ("import json,sys; from me2.health import inspect_input_devices; "
+          "print(json.dumps(inspect_input_devices(sys.argv[1], int(sys.argv[2]))))"),
+         "" if device is None else str(device), str(sample_rate)],
+        capture_output=True, text=True, timeout=timeout_seconds, check=True,
+    )
+    return json.loads(child.stdout)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", type=Path, action="append", default=[])
@@ -143,21 +172,9 @@ def main() -> None:
                 require_approved_wake=args.require_approved_wake,
             ))
         if args.devices:
-            import sounddevice as sd
-
-            report["input_devices"] = [
-                {"index": i, "channels": d["max_input_channels"],
-                 "default_sample_rate": d["default_samplerate"]}
-                for i, d in enumerate(sd.query_devices()) if d["max_input_channels"] > 0
-            ]
-            if not report["input_devices"]:
-                raise RuntimeError("no_input_devices")
-            device = args.input_device
-            if device and device.isdecimal():
-                device = int(device)
-            sd.check_input_settings(device=device, channels=1, dtype="float32",
-                                    samplerate=args.sample_rate)
-            report["device_format_check"] = "passed_no_capture"
+            report.update(probe_input_devices(args.input_device, args.sample_rate))
+            if report.get("device_error"):
+                raise RuntimeError(report["device_error"])
         report["rss_bytes"] = psutil.Process().memory_info().rss
         report["status"] = "passed_operator_health_not_deployment_approval"
     except Exception as error:  # noqa: BLE001 -- CLI boundary records failure and exits nonzero.
@@ -168,6 +185,10 @@ def main() -> None:
             "checksum_requires_exactly_one_artifact",
         }
         report["error_code"] = str(error) if str(error) in safe_reasons else "validation_failed"
+        if isinstance(error, subprocess.TimeoutExpired):
+            report["error_code"] = "device_probe_timeout"
+        elif isinstance(error, subprocess.CalledProcessError) and args.devices:
+            report["error_code"] = "device_probe_failed"
         # Do not persist exception messages, which can contain private filenames/device names.
         report["next_action"] = "check_schema_hash_permissions_runtime_and_target"
         if args.devices:
