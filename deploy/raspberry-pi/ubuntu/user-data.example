@@ -1,0 +1,17 @@
+#cloud-config
+# Replace the PUBLIC key below before first boot.
+# Creates the bootstrap administrator used by the ME2 setup guide.
+hostname: ateko-pi
+manage_etc_hosts: true
+timezone: Asia/Manila
+disable_root: true
+ssh_pwauth: false
+users:
+  - name: me2
+    gecos: ME2 administrator
+    shell: /bin/bash
+    groups: [adm, sudo, audio]
+    lock_passwd: true
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    ssh_authorized_keys:
+      - "REPLACE_WITH_YOUR_COMPLETE_SSH_PUBLIC_KEY"

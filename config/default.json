@@ -29,17 +29,60 @@
     "speed_min": 0.92,
     "speed_max": 1.08
   },
+  "wake_augmentation": {
+    "enabled": true,
+    "gain_db": 6.0,
+    "noise_snr_db_min": 10.0,
+    "noise_snr_db_max": 30.0,
+    "max_shift_ms": 60.0,
+    "speed_min": 0.96,
+    "speed_max": 1.04
+  },
   "vcm": {
     "dataset_id": "airimonda/ai231-me2-voice-commands",
+    "dataset_revision": "bfca0bbebfe17e00d6a685d1da573615d29ecdce",
     "config": "default",
-    "validation_seed": 42
+    "validation_seed": 42,
+    "validation_fraction": 0.15,
+    "calibration_fraction": 0.1
+  },
+  "ctc": {
+    "architecture": "CompactCTCModel",
+    "width": 48,
+    "projection_size": 128,
+    "hidden_size": 96,
+    "charset": "abcdefghijklmnopqrstuvwxyz0123456789 ",
+    "blank_id": 37,
+    "beam_width": 16,
+    "target_out_of_scope_false_accept_rate": 0.05,
+    "text_normalizer_version": "nfkd-ascii-alnum-space-v1",
+    "decoder_version": "ctc-prefix-logsumexp-v1"
+  },
+  "streaming": {
+    "chunk_ms": 100,
+    "wake_hop_ms": 250,
+    "pre_roll_ms": 250,
+    "onset_timeout_ms": 1000,
+    "minimum_speech_ms": 250,
+    "endpoint_silence_ms": 500,
+    "cooldown_ms": 1000,
+    "speech_rms_threshold": 0.008,
+    "queue_chunks": 32
   },
   "wake_word": {
     "sample_rate": 16000,
-    "duration_seconds": 1.5,
+    "duration_seconds": 2.0,
+    "canonical_label": "ateko",
+    "pronunciation_guide": "a-teh-ko",
+    "canonical_synthesis_text": "a teh ko",
+    "synthesis_recipe_version": "connected-a-teh-ko-v1",
+    "dataset_version": "wake-v3-connected-a-teh-ko",
+    "class_mapping_version": "wake-five-class-te-means-teh-v2",
     "positive_threshold": 0.7,
     "max_false_accept_rate": 0.05,
+    "smoothing_window": 3,
+    "required_hits": 2,
     "synthetic_engine": "say",
-    "phrases": ["a", "te", "ko", "a te ko", "ateko"]
+    "phrases": ["a", "teh", "ko", "a teh ko"]
   }
 }

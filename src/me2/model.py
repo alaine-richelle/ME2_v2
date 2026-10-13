@@ -26,8 +26,15 @@ class SeparableBlock(nn.Module):
 
 
 class TinyAudioCNN(nn.Module):
-    def __init__(self, num_classes: int, width: int = 16) -> None:
+    def __init__(
+        self,
+        num_classes: int,
+        width: int = 16,
+        dropout: float = 0.0,
+    ) -> None:
         super().__init__()
+        if not 0.0 <= dropout < 1.0:
+            raise ValueError("dropout must be in [0, 1)")
         self.features = nn.Sequential(
             nn.Conv2d(1, width, 3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(width),
@@ -37,10 +44,11 @@ class TinyAudioCNN(nn.Module):
             SeparableBlock(width * 2, width * 3, stride=2),
             nn.AdaptiveAvgPool2d((1, 4)),
         )
+        self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(width * 3 * 4, num_classes)
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return self.classifier(self.features(inputs).flatten(1))
+        return self.classifier(self.dropout(self.features(inputs).flatten(1)))
 
 
 def parameter_count(model: nn.Module) -> int:

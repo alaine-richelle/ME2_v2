@@ -1,0 +1,13 @@
+# Replace both Wi-Fi placeholders before first boot.
+version: 2
+ethernets:
+  eth0:
+    dhcp4: true
+    optional: true
+wifis:
+  wlan0:
+    dhcp4: true
+    optional: false
+    access-points:
+      "REPLACE_WITH_WIFI_SSID":
+        password: "REPLACE_WITH_WIFI_PASSWORD"

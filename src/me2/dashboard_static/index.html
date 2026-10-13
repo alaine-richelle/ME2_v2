@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ateko · Voice control</title>
+  <link rel="stylesheet" href="/dashboard.css">
+  <script src="/dashboard.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#overview"><span class="brand-icon">a</span>ateko<span class="brand-dot">.</span></a>
+    <p class="eyebrow sidebar-label">EDGE VOICE CONSOLE</p>
+    <nav aria-label="Dashboard sections">
+      <a href="#overview"><span>01</span> Overview</a>
+      <a href="#mapping"><span>02</span> Command mapping</a>
+      <a href="#runtime"><span>03</span> Runtime &amp; models</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <span class="small-dot"></span> Local processing
+      <p>Wake word → voice command<br>ME2 · Raspberry Pi workflow</p>
+    </div>
+  </aside>
+  <main>
+    <header id="overview">
+      <div><p class="eyebrow">WORKSPACE / VOICE CONTROL</p><h1>Wake. Listen. Respond.</h1>
+        <p class="subtitle">One continuous pipeline, from “a-teh-ko” to a mapped action.</p></div>
+      <div class="connection"><span id="mode" class="badge">CONNECTING</span><span id="connection">Connecting…</span></div>
+    </header>
+    <div class="notice" id="notice">Connecting to the local inference service…</div>
+    <div class="error" id="error" role="alert" hidden></div>
+    <section class="overview-grid" aria-label="Live pipeline">
+      <article class="pipeline card">
+        <div class="card-heading"><h2>Voice pipeline</h2><span class="live-label" id="live-label">MIC OFF</span></div>
+        <div class="state-display"><span class="orbit" aria-hidden="true">◉</span><div>
+          <p class="eyebrow">CURRENT STATE</p><h3 id="state" aria-live="polite">Stopped</h3>
+          <p id="state-detail">Start listening when you’re ready.</p></div></div>
+        <ol class="stages" aria-label="Pipeline stages">
+          <li data-state="LISTENING_FOR_WAKE"><span>01</span>Wake</li>
+          <li data-state="CAPTURING_COMMAND"><span>02</span>Capture</li>
+          <li data-state="DECODING"><span>03</span>Decode</li>
+          <li data-state="ACCEPTED_OR_REJECTED"><span>04</span>Result</li>
+          <li data-state="COOLDOWN"><span>05</span>Cooldown</li>
+        </ol>
+        <div class="audio-row"><label for="level">Input level</label><progress id="level" max="0.2" value="0"></progress><span id="rms">0.000 RMS</span></div>
+        <div class="controls"><button id="start" type="button">Start listening <span>↗</span></button><button id="stop" class="secondary" type="button" disabled>Stop</button></div>
+      </article>
+      <article class="card result-card">
+        <div class="card-heading"><h2>Latest command</h2><span id="result-badge" class="badge neutral">WAITING</span></div>
+        <p id="transcript" class="transcript">Your next command<br>will appear here.</p>
+        <dl class="result-data">
+          <div><dt>Intent</dt><dd id="intent">—</dd></div>
+          <div><dt>Supported slots</dt><dd id="slots">—</dd></div>
+          <div><dt>Action</dt><dd id="action">—</dd></div>
+          <div><dt>Rejection reason</dt><dd id="rejection">—</dd></div>
+        </dl>
+        <details><summary>Decoder diagnostics</summary><pre id="decoder">No result yet.</pre><p class="fine">Candidate posterior is relative to grammar candidates, not calibrated correctness.</p></details>
+      </article>
+    </section>
+    <section class="stats" aria-label="Session metrics">
+      <article class="card"><p class="eyebrow">WAKE SCORE</p><div class="stat-value" id="wake-score">—</div><p id="wake-detail">Waiting for a window</p></article>
+      <article class="card"><p class="eyebrow">WAKE EVENTS</p><div class="stat-value" id="wake-count">0</div><p>Since server start</p></article>
+      <article class="card"><p class="eyebrow">ACCEPTED / REJECTED</p><div class="stat-value" id="result-counts">0 <span>/ 0</span></div><p>Recognition decisions</p></article>
+      <article class="card"><p class="eyebrow">PROCESS MEMORY</p><div class="stat-value" id="memory">—</div><p id="system-detail">Reading runtime metrics</p></article>
+    </section>
+    <section class="card demo-panel" id="demo-panel" hidden>
+      <div><h2>Try the pipeline</h2><p>Send a synthetic wake + command. These examples exercise the state flow and mappings; they do not measure recognition quality.</p></div>
+      <div class="demo-controls"><label class="sr-only" for="demo-intent">Example intent</label><select id="demo-intent"></select><button id="demo-send" type="button">Send example</button><button id="demo-reject" type="button" class="light">Try rejection</button></div>
+    </section>
+    <section class="card devices-panel" aria-label="Simulated devices">
+      <div><p class="eyebrow">ACTION PREVIEW</p><h2>Simulated devices</h2><p>Mapped actions update these widgets. No physical device or external service is connected.</p></div>
+      <div class="device-widgets"><div><span class="lamp" id="lamp" aria-hidden="true">◉</span><strong id="light-state">Light off</strong></div><div><span class="music" aria-hidden="true">♫</span><strong id="player-state">Stopped · track 1</strong><span id="volume-state">Volume 50%</span></div></div>
+    </section>
+    <section class="card" id="mapping">
+      <div class="card-heading"><div><p class="eyebrow">INTENT → ACTION</p><h2>Command mapping</h2></div><button id="save-mappings" type="button" class="light">Save mappings</button></div>
+      <p class="section-description">Choose an allowlisted action for each accepted intent. Rejected commands never dispatch an action. Changes apply after saving.</p>
+      <p id="mapping-feedback" role="status" class="fine">Loading mappings…</p>
+      <div class="table-scroll"><table><thead><tr><th scope="col">Enabled</th><th scope="col">Recognized intent</th><th scope="col">Mapped action</th><th scope="col">Model support</th></tr></thead><tbody id="mapping-rows"></tbody></table></div>
+    </section>
+    <section class="runtime-grid" id="runtime">
+      <article class="card"><div class="card-heading"><h2>Event timeline</h2><span class="badge neutral">LATEST 80</span></div><ol id="events" class="events"><li>No events yet.</li></ol></article>
+      <article class="card"><div class="card-heading"><h2>Runtime &amp; models</h2><span class="badge neutral">CPU</span></div><dl class="result-data"><div><dt>Audio device</dt><dd id="input-device">Not selected</dd></div><div><dt>Temperature</dt><dd id="temperature">Unavailable on this host</dd></div></dl><p class="fine">Model paths, hashes, thresholds, and grammar provenance are read from the loaded bundles. Configure them in config/dashboard.json, then restart the server.</p><pre id="models">Models load when microphone listening starts.</pre><details><summary>Supported command phrases &amp; slots</summary><pre id="grammar">No live grammar loaded.</pre></details></article>
+    </section>
+    <footer>ateko / ME2 <span>Inference stays on the host. Audio is not sent to this browser.</span></footer>
+  </main>
+</body>
+</html>

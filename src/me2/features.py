@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 
 import numpy as np
 import torch
@@ -45,9 +46,31 @@ def mel_filterbank(config: FeatureConfig, device: torch.device, dtype: torch.dty
     return torch.minimum(lower, upper).clamp_min(0.0)
 
 
+@lru_cache(maxsize=16)
+def _cached_frontend_tensors(
+    config: FeatureConfig,
+    device_type: str,
+    device_index: int | None,
+    dtype: torch.dtype,
+) -> tuple[Tensor, Tensor]:
+    device = torch.device(device_type, device_index)
+    window = torch.hann_window(config.n_fft, device=device, dtype=dtype)
+    filters = mel_filterbank(config, device, dtype)
+    return window, filters
+
+
 class LogMel:
     def __init__(self, config: FeatureConfig) -> None:
+        if config.sample_rate <= 0 or config.n_fft <= 0 or config.hop_length <= 0:
+            raise ValueError("Feature sample rate, FFT size, and hop length must be positive")
+        if config.n_mels <= 0 or not 0 <= config.f_min < config.f_max <= config.sample_rate / 2:
+            raise ValueError("Invalid Mel filterbank bounds")
         self.config = config
+
+    def frame_lengths(self, sample_lengths: Tensor) -> Tensor:
+        """Return STFT frame counts for center=True."""
+
+        return torch.div(sample_lengths, self.config.hop_length, rounding_mode="floor") + 1
 
     def __call__(self, waveform: np.ndarray | Tensor) -> Tensor:
         tensor = torch.as_tensor(waveform, dtype=torch.float32)
@@ -55,7 +78,12 @@ class LogMel:
             tensor = tensor.unsqueeze(0)
         if tensor.ndim != 2:
             raise ValueError(f"Expected [batch, samples], got {tuple(tensor.shape)}")
-        window = torch.hann_window(self.config.n_fft, device=tensor.device)
+        window, filters = _cached_frontend_tensors(
+            self.config,
+            tensor.device.type,
+            tensor.device.index,
+            tensor.dtype,
+        )
         spectrum = torch.stft(
             tensor,
             n_fft=self.config.n_fft,
@@ -65,6 +93,5 @@ class LogMel:
             center=True,
             return_complex=True,
         ).abs().pow(2)
-        filters = mel_filterbank(self.config, tensor.device, tensor.dtype)
         mel_power = torch.matmul(filters.unsqueeze(0), spectrum)
         return torch.log(mel_power.clamp_min(1e-8)).unsqueeze(1)

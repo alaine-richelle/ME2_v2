@@ -19,3 +19,4 @@ wake-word/data/generated/
 logs/*.log
 results/tmp/
 .DS_Store
+dashboard-state/

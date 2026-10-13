@@ -1,0 +1,196 @@
+{
+  "version": "hf-bfca0bbe-official-test-93-v1",
+  "dataset": "airimonda/ai231-me2-voice-commands",
+  "dataset_revision": "bfca0bbebfe17e00d6a685d1da573615d29ecdce",
+  "provenance": "Non-empty intent/variation pairs observed in the pinned official test and holdout splits. Five empty variation labels present only in train are excluded.",
+  "intents": [
+    "alarm",
+    "brightness",
+    "call",
+    "color",
+    "create_reminder",
+    "light_off",
+    "light_on",
+    "list_reminders",
+    "message",
+    "next",
+    "pause",
+    "play_music",
+    "stop",
+    "temperature",
+    "time",
+    "timer",
+    "volume_down",
+    "volume_up",
+    "weather"
+  ],
+  "intent_aliases": {
+    "out_of_scope": "REJECT",
+    "oos": "REJECT"
+  },
+  "variations": {
+    "alarm": [
+      "Alarm 6:00 AM",
+      "Alarm 8:00 AM",
+      "Alarm 9:00 PM",
+      "Set an alarm for 6:00 AM",
+      "Set an alarm for 8:00 AM",
+      "Set an alarm for 9:00 PM",
+      "Wake me up at 6:00 AM",
+      "Wake me up at 8:00 AM",
+      "Wake me up at 9:00 PM"
+    ],
+    "brightness": [
+      "Adjust brightness to 100 percent",
+      "Adjust brightness to 20 percent",
+      "Adjust brightness to 60 percent",
+      "Brightness 100 percent",
+      "Brightness 20 percent",
+      "Brightness 60 percent",
+      "Brightness level 100 percent",
+      "Brightness level 20 percent",
+      "Brightness level 60 percent"
+    ],
+    "call": [
+      "Call",
+      "Make a call",
+      "Make a phone call"
+    ],
+    "color": [
+      "Change color to Blue",
+      "Change color to Green",
+      "Change color to Red",
+      "Set color to Blue",
+      "Set color to Green",
+      "Set color to Red",
+      "Switch color to Blue",
+      "Switch color to Green",
+      "Switch color to Red"
+    ],
+    "create_reminder": [
+      "Create a reminder to Drink water",
+      "Create a reminder to Exercise",
+      "Create a reminder to Study",
+      "Remind me to Drink water",
+      "Remind me to Exercise",
+      "Remind me to Study",
+      "Reminder Drink water",
+      "Reminder Exercise",
+      "Reminder Study"
+    ],
+    "light_off": [
+      "Kill the lights",
+      "Lights out",
+      "Shut off the lights"
+    ],
+    "light_on": [
+      "Lights on",
+      "Power on the lights",
+      "Turn on the lights"
+    ],
+    "list_reminders": [
+      "List my reminders",
+      "Reminders",
+      "Show my reminders"
+    ],
+    "message": [
+      "Message",
+      "Send a message",
+      "Send my message"
+    ],
+    "next": [
+      "Next song",
+      "Play next song",
+      "Skip song"
+    ],
+    "pause": [
+      "Pause",
+      "Pause audio",
+      "Pause song"
+    ],
+    "play_music": [
+      "Play music",
+      "Play some music",
+      "Start music"
+    ],
+    "stop": [
+      "End playback",
+      "Stop",
+      "Stop playing"
+    ],
+    "temperature": [
+      "Change the temperature to 18 degrees",
+      "Change the temperature to 22 degrees",
+      "Change the temperature to 26 degrees",
+      "Set the temperature to 18 degrees",
+      "Set the temperature to 22 degrees",
+      "Set the temperature to 26 degrees",
+      "Temperature 18 degrees",
+      "Temperature 22 degrees",
+      "Temperature 26 degrees"
+    ],
+    "time": [
+      "Tell me the time",
+      "Time",
+      "What time is it?"
+    ],
+    "timer": [
+      "Countdown for 1 minute",
+      "Countdown for 10 seconds",
+      "Countdown for 30 seconds",
+      "Start a timer for 1 minute",
+      "Start a timer for 10 seconds",
+      "Start a timer for 30 seconds",
+      "Timer 1 minute",
+      "Timer 10 seconds",
+      "Timer 30 seconds"
+    ],
+    "volume_down": [
+      "Lower the volume",
+      "Turn the volume down",
+      "Volume down"
+    ],
+    "volume_up": [
+      "Increase the volume",
+      "Turn the volume up",
+      "Volume up"
+    ],
+    "weather": [
+      "Tell me the weather",
+      "Weather",
+      "What's the weather?"
+    ]
+  },
+  "slots": {
+    "alarm": {
+      "required": ["value"],
+      "numeric_kind": "clock_minutes",
+      "unit": "minutes since midnight; circular error over 24 hours"
+    },
+    "brightness": {
+      "required": ["value"],
+      "numeric_kind": "percent",
+      "unit": "percent"
+    },
+    "color": {
+      "required": ["value"],
+      "numeric_kind": null,
+      "unit": null
+    },
+    "create_reminder": {
+      "required": ["value"],
+      "numeric_kind": null,
+      "unit": null
+    },
+    "temperature": {
+      "required": ["value"],
+      "numeric_kind": "degrees",
+      "unit": "degrees; dataset scale retained"
+    },
+    "timer": {
+      "required": ["value"],
+      "numeric_kind": "seconds",
+      "unit": "seconds"
+    }
+  }
+}

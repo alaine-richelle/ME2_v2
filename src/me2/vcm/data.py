@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import logging
 import math
 import random
 import re
 from collections import Counter
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -17,10 +19,11 @@ import torch
 from datasets import Audio, DatasetDict, load_dataset
 from torch.utils.data import Dataset
 
-from me2.audio import AudioConfig, prepare_audio
+from me2.audio import AudioConfig, prepare_audio, prepare_audio_sequence
 
 LOGGER = logging.getLogger(__name__)
 DATASET_ID = "airimonda/ai231-me2-voice-commands"
+DATASET_REVISION = "bfca0bbebfe17e00d6a685d1da573615d29ecdce"
 REQUIRED_SPLITS = ("train", "test", "holdout")
 
 
@@ -37,12 +40,15 @@ def command_from_row(row: dict[str, Any]) -> str:
     return label_name(row.get("command", "out_of_scope"))
 
 
-def load_hf_splits(dataset_id: str = DATASET_ID) -> DatasetDict:
+def load_hf_splits(
+    dataset_id: str = DATASET_ID,
+    revision: str = DATASET_REVISION,
+) -> DatasetDict:
     LOGGER.info("Discovering required splits from Hugging Face dataset %s", dataset_id)
     # Load named splits individually so the default config's 66k-row numerals set is not fetched.
     splits = {}
     for name in REQUIRED_SPLITS:
-        split = load_dataset(dataset_id, split=name)
+        split = load_dataset(dataset_id, split=name, revision=revision)
         split = split.cast_column("audio", Audio(decode=False))
         splits[name] = split
     dataset = DatasetDict(splits)
@@ -116,19 +122,160 @@ def split_train_validation(
     return train_indices, validation_indices
 
 
-def valid_audio_indices(split, config: AudioConfig, name: str) -> list[int]:
+def split_train_validation_calibration(
+    train_split,
+    validation_fraction: float = 0.15,
+    calibration_fraction: float = 0.10,
+    seed: int = 42,
+) -> dict[str, list[int]]:
+    """Create speaker-disjoint train, validation, and rejection-calibration rows."""
+
+    if validation_fraction <= 0 or calibration_fraction <= 0:
+        raise ValueError("Validation and calibration fractions must be positive")
+    if validation_fraction + calibration_fraction >= 1:
+        raise ValueError("Validation and calibration fractions must leave training speakers")
+    if "speaker_id" not in train_split.column_names:
+        raise ValueError("Speaker-disjoint partitions require speaker_id")
+    speaker_ids = [str(value or "").strip() for value in train_split["speaker_id"]]
+    missing = [index for index, speaker in enumerate(speaker_ids) if not speaker]
+    unsafe_missing = [
+        index
+        for index in missing
+        if command_from_row(train_split[index]) != "out_of_scope"
+        or str(train_split[index].get("transcript") or "").strip()
+    ]
+    if unsafe_missing:
+        raise ValueError(
+            f"Cannot safely partition {len(unsafe_missing)} speech rows with missing "
+            "speaker identities"
+        )
+    speakers = sorted({speaker for speaker in speaker_ids if speaker})
+    if len(speakers) < 3:
+        raise ValueError("At least three speakers are required for train/validation/calibration")
+    shuffled = speakers.copy()
+    random.Random(seed).shuffle(shuffled)
+    validation_count = max(1, math.ceil(len(speakers) * validation_fraction))
+    calibration_count = max(1, math.ceil(len(speakers) * calibration_fraction))
+    if validation_count + calibration_count >= len(speakers):
+        raise ValueError("Partition fractions leave no training speakers")
+    validation_speakers = set(shuffled[:validation_count])
+    calibration_speakers = set(
+        shuffled[validation_count : validation_count + calibration_count]
+    )
+    partitions = {
+        "train": [],
+        "validation": [],
+        "calibration": [],
+        "quarantine": missing,
+    }
+    for index, speaker in enumerate(speaker_ids):
+        if not speaker:
+            continue
+        if speaker in validation_speakers:
+            partitions["validation"].append(index)
+        elif speaker in calibration_speakers:
+            partitions["calibration"].append(index)
+        else:
+            partitions["train"].append(index)
+    partition_speakers = {
+        name: {speaker_ids[index] for index in indices}
+        for name, indices in partitions.items()
+    }
+    for left, right in (
+        ("train", "validation"),
+        ("train", "calibration"),
+        ("validation", "calibration"),
+    ):
+        if partition_speakers[left] & partition_speakers[right]:
+            raise AssertionError(f"Speaker leakage between {left} and {right}")
+    return partitions
+
+
+def save_partition_manifest(
+    path: str | Path,
+    train_split,
+    partitions: dict[str, list[int]],
+    *,
+    seed: int,
+    validation_fraction: float,
+    calibration_fraction: float,
+) -> None:
+    """Persist source indices and speaker assignments for exact reproduction."""
+
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    speaker_ids = [str(value) for value in train_split["speaker_id"]]
+    payload = {
+        "schema_version": 1,
+        "dataset_id": DATASET_ID,
+        "dataset_revision": DATASET_REVISION,
+        "seed": seed,
+        "validation_fraction": validation_fraction,
+        "calibration_fraction": calibration_fraction,
+        "partitions": {
+            name: {
+                "indices": indices,
+                "speakers": sorted({speaker_ids[index] for index in indices}),
+            }
+            for name, indices in partitions.items()
+        },
+    }
+    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    temporary.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(destination)
+
+
+def valid_audio_indices(
+    split,
+    config: AudioConfig,
+    name: str,
+    indices: list[int] | None = None,
+    *,
+    sequence_mode: bool = False,
+) -> list[int]:
+    valid, _ = audit_audio_indices(
+        split,
+        config,
+        name,
+        indices,
+        sequence_mode=sequence_mode,
+    )
+    return valid
+
+
+def audit_audio_indices(
+    split,
+    config: AudioConfig,
+    name: str,
+    indices: list[int] | None = None,
+    *,
+    sequence_mode: bool = False,
+) -> tuple[list[int], list[dict[str, Any]]]:
     valid: list[int] = []
-    for index in range(len(split)):
+    issues: list[dict[str, Any]] = []
+    candidates = range(len(split)) if indices is None else indices
+    for index in candidates:
         row_id = split["file"][index] if "file" in split.column_names else index
         try:
             audio = split[index]["audio"]
             samples, sample_rate = decode_audio(audio)
-            prepare_audio(samples, sample_rate, config)
+            if sequence_mode:
+                prepare_audio_sequence(samples, sample_rate, config)
+            else:
+                prepare_audio(samples, sample_rate, config)
             valid.append(index)
         except (OSError, RuntimeError, TypeError, ValueError) as error:
             LOGGER.warning("Skipping corrupted audio split=%s item=%s error=%s", name, row_id, error)
-    LOGGER.info("Audio inspection split=%s usable=%d/%d", name, len(valid), len(split))
-    return valid
+            issues.append(
+                {"index": index, "item": str(row_id), "reason": str(error)}
+            )
+    LOGGER.info(
+        "Audio inspection split=%s usable=%d/%d",
+        name,
+        len(valid),
+        len(candidates),
+    )
+    return valid, issues
 
 
 class HFAudioDataset(Dataset):
@@ -188,7 +335,7 @@ def main() -> None:
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     dataset = load_hf_splits(args.dataset_id)
-    print(__import__("json").dumps(describe_split(dataset), indent=2))
+    print(json.dumps(describe_split(dataset), indent=2))
 
 
 if __name__ == "__main__":

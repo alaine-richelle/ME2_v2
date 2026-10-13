@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import random
+import time
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import torch
 from torch import Tensor, nn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 from me2.features import FeatureConfig, LogMel
 
@@ -127,6 +128,8 @@ def fit_classifier(
     log_path: str | Path,
     augmentation: dict[str, Any] | None = None,
     class_weights: list[float] | None = None,
+    sample_weights: list[float] | None = None,
+    track_clean_train: bool = False,
 ) -> dict[str, Any]:
     seed_everything(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -134,13 +137,35 @@ def fit_classifier(
     frontend = LogMel(feature_config)
     train_generator = torch.Generator().manual_seed(seed)
     loader_generator = torch.Generator().manual_seed(seed)
+    sampler = None
+    if sample_weights is not None:
+        if len(sample_weights) != len(train_dataset):
+            raise ValueError("sample_weights must match the training dataset")
+        sampler = WeightedRandomSampler(
+            sample_weights,
+            num_samples=len(sample_weights),
+            replacement=True,
+            generator=loader_generator,
+        )
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=sampler is None,
+        sampler=sampler,
         num_workers=num_workers,
-        generator=loader_generator,
+        generator=loader_generator if sampler is None else None,
         pin_memory=device.type == "cuda",
+    )
+    clean_train_loader = (
+        DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            pin_memory=device.type == "cuda",
+        )
+        if track_clean_train
+        else None
     )
     validation_loader = DataLoader(
         validation_dataset,
@@ -157,10 +182,15 @@ def fit_classifier(
     history_path.parent.mkdir(parents=True, exist_ok=True)
     best_loss = float("inf")
     best_state: dict[str, Tensor] | None = None
+    best_epoch = 0
+    epochs_completed = 0
+    stopping_reason = "maximum_epochs_reached"
     epochs_without_improvement = 0
+    started = time.perf_counter()
 
     with history_path.open("w", encoding="utf-8") as history:
         for epoch in range(1, epochs + 1):
+            epochs_completed = epoch
             model.train()
             total_loss = 0.0
             correct = 0
@@ -172,8 +202,17 @@ def fit_classifier(
                 labels = labels.to(device, non_blocking=True)
                 optimizer.zero_grad(set_to_none=True)
                 logits = model(frontend(waveforms))
+                if not torch.isfinite(logits).all():
+                    raise FloatingPointError("Classifier produced non-finite logits")
                 loss = criterion(logits, labels)
+                if not torch.isfinite(loss):
+                    raise FloatingPointError("Classifier loss is non-finite")
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(
+                    model.parameters(),
+                    max_norm=5.0,
+                    error_if_nonfinite=True,
+                )
                 optimizer.step()
                 total_loss += float(loss.detach()) * labels.size(0)
                 correct += int((logits.detach().argmax(dim=1) == labels).sum())
@@ -184,6 +223,16 @@ def fit_classifier(
             validation_loss, validation_accuracy = _evaluate_loss(
                 model, validation_loader, frontend, criterion, device
             )
+            clean_train_loss = None
+            clean_train_accuracy = None
+            if clean_train_loader is not None:
+                clean_train_loss, clean_train_accuracy = _evaluate_loss(
+                    model,
+                    clean_train_loader,
+                    frontend,
+                    criterion,
+                    device,
+                )
             scheduler.step(validation_loss)
             record = {
                 "epoch": epoch,
@@ -191,6 +240,8 @@ def fit_classifier(
                 "train_accuracy": train_accuracy,
                 "validation_loss": validation_loss,
                 "validation_accuracy": validation_accuracy,
+                "clean_train_loss": clean_train_loss,
+                "clean_train_accuracy": clean_train_accuracy,
                 "learning_rate": optimizer.param_groups[0]["lr"],
             }
             history.write(json.dumps(record) + "\n")
@@ -205,15 +256,25 @@ def fit_classifier(
             )
             if validation_loss < best_loss:
                 best_loss = validation_loss
+                best_epoch = epoch
                 best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
                 epochs_without_improvement = 0
             else:
                 epochs_without_improvement += 1
                 if epochs_without_improvement >= patience:
                     LOGGER.info("Early stopping after %d epochs", epoch)
+                    stopping_reason = "early_stopping"
                     break
 
     if best_state is None:
         raise RuntimeError("Training produced no valid model state")
     model.load_state_dict(best_state)
-    return {"state_dict": best_state, "best_validation_loss": best_loss, "device": str(device)}
+    return {
+        "state_dict": best_state,
+        "best_validation_loss": best_loss,
+        "best_epoch": best_epoch,
+        "epochs_completed": epochs_completed,
+        "stopping_reason": stopping_reason,
+        "elapsed_seconds": time.perf_counter() - started,
+        "device": str(device),
+    }

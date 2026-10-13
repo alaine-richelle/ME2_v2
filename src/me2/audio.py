@@ -45,6 +45,49 @@ def resample_audio(samples: np.ndarray, source_rate: int, target_rate: int) -> n
 
 def prepare_audio(samples: np.ndarray, source_rate: int, config: AudioConfig) -> np.ndarray:
     """Convert audio to fixed-duration mono float32 and trim surrounding silence."""
+    waveform = _trim_and_normalize(samples, source_rate, config)
+    target = config.sample_count
+    if waveform.size > target:
+        start = (waveform.size - target) // 2
+        waveform = waveform[start : start + target]
+    elif waveform.size < target:
+        left = (target - waveform.size) // 2
+        waveform = np.pad(waveform, (left, target - waveform.size - left))
+    return np.clip(waveform, -1.0, 1.0).astype(np.float32, copy=False)
+
+
+def prepare_audio_sequence(
+    samples: np.ndarray,
+    source_rate: int,
+    config: AudioConfig,
+) -> tuple[np.ndarray, int]:
+    """Prepare right-padded CTC audio and return its usable sample length.
+
+    Unlike ``prepare_audio``, this function never silently crops a long command.
+    """
+
+    waveform = _trim_and_normalize(samples, source_rate, config)
+    target = config.sample_count
+    if waveform.size > target:
+        raise ValueError(
+            f"Audio has {waveform.size} samples after trimming, exceeding the "
+            f"configured maximum of {target}"
+        )
+    usable_samples = int(waveform.size)
+    waveform = np.pad(waveform, (0, target - waveform.size))
+    return (
+        np.clip(waveform, -1.0, 1.0).astype(np.float32, copy=False),
+        usable_samples,
+    )
+
+
+def _trim_and_normalize(
+    samples: np.ndarray,
+    source_rate: int,
+    config: AudioConfig,
+) -> np.ndarray:
+    if config.sample_rate <= 0 or config.duration_seconds <= 0:
+        raise ValueError("Audio sample rate and duration must be positive")
     waveform = resample_audio(samples, source_rate, config.sample_rate)
     if waveform.size == 0 or not np.isfinite(waveform).all():
         raise ValueError("Audio is empty or contains non-finite samples")
@@ -58,15 +101,7 @@ def prepare_audio(samples: np.ndarray, source_rate: int, config: AudioConfig) ->
         rms = float(np.sqrt(np.mean(np.square(waveform))))
         if config.normalize_peak and rms >= 1e-3:
             waveform = waveform / max(float(np.max(np.abs(waveform))), 1e-8)
-
-    target = config.sample_count
-    if waveform.size > target:
-        start = (waveform.size - target) // 2
-        waveform = waveform[start : start + target]
-    elif waveform.size < target:
-        left = (target - waveform.size) // 2
-        waveform = np.pad(waveform, (left, target - waveform.size - left))
-    return np.clip(waveform, -1.0, 1.0).astype(np.float32, copy=False)
+    return waveform.astype(np.float32, copy=False)
 
 
 def load_wav(path: str | Path, config: AudioConfig) -> np.ndarray:
@@ -76,6 +111,18 @@ def load_wav(path: str | Path, config: AudioConfig) -> np.ndarray:
         return prepare_audio(samples, sample_rate, config)
     except Exception:
         LOGGER.exception("Failed to read audio file %s", path)
+        raise
+
+
+def load_wav_sequence(path: str | Path, config: AudioConfig) -> tuple[np.ndarray, int]:
+    """Load a CTC utterance without silently cropping a command ending."""
+
+    path = Path(path)
+    try:
+        samples, sample_rate = sf.read(path, dtype="float32", always_2d=True)
+        return prepare_audio_sequence(samples, sample_rate, config)
+    except Exception:
+        LOGGER.exception("Failed to read CTC audio file %s", path)
         raise
 
 

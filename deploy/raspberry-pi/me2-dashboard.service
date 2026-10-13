@@ -1,0 +1,25 @@
+[Unit]
+Description=ME2 wake word and voice command dashboard
+After=sound.target network.target
+
+[Service]
+Type=simple
+User=me2
+Group=me2
+SupplementaryGroups=audio
+WorkingDirectory=/home/me2/ME2_v2
+Environment=PYTHONUNBUFFERED=1
+Environment=OMP_NUM_THREADS=2
+Environment=OPENBLAS_NUM_THREADS=2
+ExecStart=/home/me2/ME2_v2/.venv/bin/python -m me2.dashboard --config /home/me2/ME2_v2/config/dashboard.json --autostart --threads 2
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/me2/ME2_v2/logs /home/me2/ME2_v2/dashboard-state
+
+[Install]
+WantedBy=multi-user.target

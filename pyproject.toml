@@ -12,26 +12,36 @@ dependencies = [
   "scipy>=1.11",
   "soundfile>=0.12",
   "torch>=2.2",
-  "scikit-learn>=1.4",
-  "datasets>=3.0",
   "psutil>=5.9",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.4"]
+train = ["datasets>=3.0", "scikit-learn>=1.4"]
+dev = ["pytest>=8", "ruff>=0.4", "datasets>=3.0", "scikit-learn>=1.4"]
 microphone = ["sounddevice>=0.4.6"]
 
 [project.scripts]
 me2 = "me2.app:main"
+me2-dashboard = "me2.dashboard:main"
 me2-vcm-data = "me2.vcm.data:main"
+me2-vcm-audit = "me2.vcm.audit:main"
+me2-benchmark = "me2.benchmark:main"
+me2-pi-report = "me2.pi_report:main"
 me2-vcm-train = "me2.vcm.train:main"
 me2-vcm-evaluate = "me2.vcm.evaluate:main"
+me2-vcm-analyze = "me2.vcm.analyze:main"
+me2-vcm-calibrate = "me2.vcm.calibrate:main"
 me2-wake-data = "me2.wake_word.data:main"
+me2-wake-record = "me2.wake_word.record:main"
 me2-wake-train = "me2.wake_word.train:main"
+me2-wake-calibrate = "me2.wake_word.calibrate:main"
 me2-wake-evaluate = "me2.wake_word.evaluate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+me2 = ["dashboard_static/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
