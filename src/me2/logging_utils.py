@@ -25,6 +25,26 @@ _FIELDS = {
 _TOKEN = re.compile(r"^[A-Za-z0-9_.:+-]{1,160}$")
 
 
+class LogWriteError(OSError):
+    """A mandatory diagnostic sink failed; callers must stop safely."""
+
+
+class _PrivateErrorHandler:
+    def handleError(self, record):
+        # The stdlib fallback prints unformatted msg/args, defeating redaction.
+        logging.getLogger().removeHandler(self)
+        self.close()
+        raise LogWriteError("structured_log_write_failed") from None
+
+
+class _PrivateStreamHandler(_PrivateErrorHandler, logging.StreamHandler):
+    pass
+
+
+class _PrivateRotatingFileHandler(_PrivateErrorHandler, RotatingFileHandler):
+    pass
+
+
 def _safe(value):
     if value is None or isinstance(value, (bool, int)):
         return value
@@ -99,12 +119,12 @@ def configure_logging(
         **{k: _safe(v) for k, v in (context or {}).items() if k in _FIELDS},
     }
     formatter = _JsonLogFormatter(debug_sensitive=debug_sensitive)
-    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    handlers: list[logging.Handler] = [_PrivateStreamHandler()]
     try:
         if log_path is not None:
             path = Path(log_path)
             path.parent.mkdir(parents=True, exist_ok=True)
-            handlers.append(RotatingFileHandler(
+            handlers.append(_PrivateRotatingFileHandler(
                 path, maxBytes=2 * 1024 * 1024, backupCount=3, encoding="utf-8",
             ))
         for handler in handlers:

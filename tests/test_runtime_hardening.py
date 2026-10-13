@@ -21,7 +21,12 @@ from me2.bundle import load_bundle, predict_command, predict_waveform, save_bund
 from me2.features import FeatureConfig
 from me2.health import inspect_artifact
 from me2.io_utils import atomic_json, file_sha256
-from me2.logging_utils import _JsonLogFormatter, log_event
+from me2.logging_utils import (
+    LogWriteError,
+    _JsonLogFormatter,
+    _PrivateRotatingFileHandler,
+    log_event,
+)
 from me2.model import TinyAudioCNN
 from me2.runtime_config import RuntimeSettings
 from me2.streaming import PipelineState, StreamingConfig, StreamingPipeline, run_microphone_stream
@@ -284,3 +289,42 @@ def test_single_component_capture_stops_on_interrupt(monkeypatch):
     with pytest.raises(KeyboardInterrupt):
         _capture(1, 16000)
     assert stopped == [True]
+
+
+def test_disk_full_logging_failure_never_prints_original_private_message(tmp_path, capsys):
+    class FullDisk(io.StringIO):
+        def write(self, text):
+            raise OSError("disk full at /Users/private/path")
+
+    handler = _PrivateRotatingFileHandler(tmp_path / "runtime.jsonl", maxBytes=100)
+    handler.stream.close()
+    handler.stream = FullDisk()
+    handler.setFormatter(_JsonLogFormatter())
+    record = logging.LogRecord("test", logging.ERROR, "", 1,
+                               "call Alice at /Users/private/audio.wav", (), None)
+    with pytest.raises(LogWriteError, match="structured_log_write_failed"):
+        handler.handle(record)
+    assert capsys.readouterr().err == ""
+
+
+def test_log_sink_failure_is_fatal_not_retried_as_microphone_fault(monkeypatch):
+    closed = []
+    waits = []
+    class InputStream:
+        active = True
+        def __init__(self, **kwargs):
+            self.callback = kwargs["callback"]
+        def __enter__(self):
+            self.callback(np.zeros((1600, 1)), 1600, None, False)
+            return self
+        def __exit__(self, *args):
+            closed.append(True)
+    monkeypatch.setitem(sys.modules, "sounddevice", SimpleNamespace(InputStream=InputStream))
+    stop = SimpleNamespace(is_set=lambda: False, wait=lambda delay: waits.append(delay))
+    pipeline = StreamingPipeline(StreamingConfig(), lambda _: False, lambda _: None)
+    def fail_sink(_):
+        raise LogWriteError("structured_log_write_failed")
+    with pytest.raises(LogWriteError):
+        run_microphone_stream(pipeline, stop_event=stop, on_audio=fail_sink)
+    assert closed == [True] and waits == []
+    assert pipeline.state == PipelineState.STOPPED

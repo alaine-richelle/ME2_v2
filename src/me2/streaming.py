@@ -14,7 +14,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from me2.contracts import finite, integer
-from me2.logging_utils import log_event
+from me2.logging_utils import LogWriteError, log_event
 from me2.vcm.ctc import CommandResult
 
 LOGGER = logging.getLogger(__name__)
@@ -368,6 +368,9 @@ def _run_microphone_stream(
         except KeyboardInterrupt:
             pipeline.stop()
             return
+        except LogWriteError:
+            # Disk/diagnostic failure is not a recoverable microphone disconnect.
+            raise
         except Exception as error:
             if stop_event.is_set():
                 return
