@@ -16,13 +16,32 @@ import torch
 from torch import Tensor, nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
+from me2.contracts import finite, integer
+
 LEGACY_CHARSET = "abcdefghijklmnopqrstuvwxyz "
 CHARSET = "abcdefghijklmnopqrstuvwxyz0123456789 "
 TEXT_NORMALIZER_VERSION = "nfkd-ascii-alnum-space-v1"
 GRAMMAR_SCHEMA_VERSION = 1
 DECODER_VERSION = "ctc-prefix-logsumexp-v1"
+DECODER_RUNTIME_VERSION = "bounded-prefix-runtime-v2"
 BLANK_ID = len(CHARSET)
 CHAR_TO_ID = {character: index for index, character in enumerate(CHARSET)}
+
+
+class DecoderBudgetError(RuntimeError):
+    """System resource failure, never a terminal command or ordinary OOS."""
+
+
+@dataclass(frozen=True)
+class DecoderLimits:
+    max_frames: int = 2048
+    max_expansions: int = 250_000
+    max_grammar_characters: int = 100_000
+
+    def __post_init__(self) -> None:
+        integer("max_frames", self.max_frames, 1, 4096)
+        integer("max_expansions", self.max_expansions, 1, 2_000_000)
+        integer("max_grammar_characters", self.max_grammar_characters, 1, 100_000)
 
 
 @dataclass(frozen=True)
@@ -62,17 +81,28 @@ class AcceptancePolicy:
     min_candidate_posterior: float = 0.0
     version: str = "uncalibrated-v1"
 
+    def __post_init__(self) -> None:
+        finite("min_normalized_log_score", self.min_normalized_log_score, -1e30, 1e30)
+        finite("min_margin", self.min_margin, -1e30, 1e30)
+        finite("min_candidate_posterior", self.min_candidate_posterior, 0.0, 1.0)
+        if not isinstance(self.version, str) or not self.version.strip():
+            raise ValueError("Acceptance policy requires a non-empty version")
+
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any] | None) -> AcceptancePolicy:
         if value is None:
             return cls()
+        if not isinstance(value, Mapping):
+            raise TypeError("Acceptance policy must be an object")
+        if set(value) - set(cls.__dataclass_fields__):
+            raise ValueError("Unknown acceptance policy field")
         return cls(
-            min_normalized_log_score=float(
+            min_normalized_log_score=(
                 value.get("min_normalized_log_score", -1.0e30)
             ),
-            min_margin=float(value.get("min_margin", -1.0e30)),
-            min_candidate_posterior=float(value.get("min_candidate_posterior", 0.0)),
-            version=str(value.get("version", "uncalibrated-v1")),
+            min_margin=value.get("min_margin", -1.0e30),
+            min_candidate_posterior=value.get("min_candidate_posterior", 0.0),
+            version=value.get("version", "uncalibrated-v1"),
         )
 
 
@@ -99,10 +129,12 @@ class CommandResult:
     model_version: str = ""
     grammar_version: str = ""
     stage_timings_ms: Mapping[str, float] = field(default_factory=dict)
+    candidate_count: int = 0
+    system_error: str | None = None
 
     @property
     def actionable_intent(self) -> str | None:
-        return self.intent if self.accepted else None
+        return self.intent if self.accepted and self.system_error is None else None
 
 
 class CharacterAudioCNN(nn.Module):
@@ -409,18 +441,22 @@ def prefix_beam_search(
     beam_width: int = 16,
     input_length: int | None = None,
     top_k: int = 8,
+    limits: DecoderLimits | None = None,
 ) -> list[DecodeCandidate]:
     """Run full-utterance CTC prefix beam search constrained to a trie."""
 
-    if beam_width < 1:
-        raise ValueError("beam_width must be positive")
-    if top_k < 1:
-        raise ValueError("top_k must be positive")
+    limits = limits or DecoderLimits()
+    integer("beam_width", beam_width, 1, 256)
+    integer("top_k", top_k, 1, 256)
+    if not charset or len(set(charset)) != len(charset):
+        raise ValueError("CTC charset must contain unique characters")
     blank_id = len(charset) if blank_id is None else blank_id
     if blank_id != len(charset):
         raise ValueError("CTC blank must immediately follow the character vocabulary")
     character_to_id = {character: index for index, character in enumerate(charset)}
     serialized = _serialized_grammar(entries)
+    if sum(len(entry[0]) for entry in serialized) > limits.max_grammar_characters:
+        raise DecoderBudgetError("decoder_grammar_budget_exhausted")
     children, terminals = _compile_grammar(serialized)
     unsupported = sorted(
         {
@@ -442,13 +478,15 @@ def prefix_beam_search(
             f"Expected frame logits shaped [time, {expected_symbols}], got "
             f"{tuple(frame_logits.shape)}"
         )
-    usable_length = frame_logits.shape[0] if input_length is None else int(input_length)
-    if usable_length < 1 or usable_length > frame_logits.shape[0]:
-        raise ValueError("input_length must select at least one available CTC frame")
+    usable_length = frame_logits.shape[0] if input_length is None else input_length
+    integer("input_length", usable_length, 1, frame_logits.shape[0])
+    if usable_length > limits.max_frames:
+        raise DecoderBudgetError("decoder_frame_budget_exhausted")
     frame_logits = frame_logits[:usable_length]
 
     negative_infinity = float("-inf")
     beams: dict[str, tuple[float, float]] = {"": (0.0, negative_infinity)}
+    expansions = 0
     for raw_frame in frame_logits:
         frame = _log_softmax(raw_frame.astype(np.float64, copy=False))
         next_beams: dict[str, list[float]] = {}
@@ -469,6 +507,9 @@ def prefix_beam_search(
                 scores[1] = _log_add(scores[1], nonblank_score)
 
         for prefix, (blank_score, nonblank_score) in beams.items():
+            expansions += 1 + bool(prefix) + len(children[prefix])
+            if expansions > limits.max_expansions:
+                raise DecoderBudgetError("decoder_work_budget_exhausted")
             total_score = _log_add(blank_score, nonblank_score)
             add(prefix, blank_score=total_score + frame[blank_id])
 
@@ -494,7 +535,7 @@ def prefix_beam_search(
     terminal_scores: list[tuple[float, str, GrammarEntry]] = []
     for prefix, (blank_score, nonblank_score) in beams.items():
         terminal = terminals.get(prefix)
-        if terminal is not None:
+        if terminal is not None and math.isfinite(_log_add(blank_score, nonblank_score)):
             terminal_scores.append(
                 (_log_add(blank_score, nonblank_score), prefix, terminal)
             )
@@ -533,6 +574,7 @@ def decode_command(
     acceptance_policy: AcceptancePolicy | Mapping[str, Any] | None = None,
     model_version: str = "",
     grammar_version: str = "",
+    limits: DecoderLimits | None = None,
 ) -> CommandResult:
     policy = (
         acceptance_policy
@@ -547,6 +589,7 @@ def decode_command(
         beam_width=beam_width,
         input_length=input_length,
         top_k=max(beam_width, 2),
+        limits=limits,
     )
     if not candidates:
         return CommandResult(
@@ -595,6 +638,7 @@ def decode_command(
         rejection_reason=rejection_reason,
         model_version=model_version,
         grammar_version=grammar_version,
+        candidate_count=len(candidates),
     )
 
 

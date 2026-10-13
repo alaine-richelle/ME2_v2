@@ -4,10 +4,15 @@ from __future__ import annotations
 
 import argparse
 import logging
+import signal
+import sys
 import time
+import uuid
+from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from me2.audio import (
     AudioConfig,
@@ -17,7 +22,9 @@ from me2.audio import (
     prepare_audio_sequence,
 )
 from me2.bundle import load_bundle, predict_command, predict_waveform
-from me2.logging_utils import configure_logging
+from me2.io_utils import file_sha256
+from me2.logging_utils import config_hash, configure_logging, log_event
+from me2.runtime_config import RuntimeSettings, load_runtime_defaults
 from me2.streaming import (
     PipelineEvent,
     PipelineState,
@@ -25,6 +32,7 @@ from me2.streaming import (
     StreamingPipeline,
     run_microphone_stream,
 )
+from me2.vcm.ctc import DECODER_RUNTIME_VERSION
 from me2.wake_word.detector import WakeEventDetector, WakeSmoothingPolicy
 
 LOGGER = logging.getLogger("me2")
@@ -40,6 +48,20 @@ def _model(path: Path, expected_task: str):
             f"Model task mismatch for {path}: expected {expected_task!r}, "
             f"found {bundle.get('task')!r}"
         )
+    # Used for diagnostics only, never written into the retained artifact.
+    bundle["runtime_artifact_sha256"] = file_sha256(path)
+    log_event(
+        LOGGER, "model_ready", task=expected_task,
+        architecture=bundle.get("architecture", "TinyAudioCNN"),
+        model_version=bundle.get("model_version", "unknown"),
+        grammar_version=bundle.get("grammar_version", "not_applicable"),
+        artifact_sha256=bundle["runtime_artifact_sha256"],
+        config_sha256=config_hash({k: v for k, v in bundle.items() if k != "state_dict"}),
+        decoder_version=DECODER_RUNTIME_VERSION,
+        parameters=sum(p.numel() for p in model.parameters()),
+        artifact_bytes=path.stat().st_size,
+        deployment_ready=bundle.get("deployment_ready"),
+    )
     return model, bundle
 
 
@@ -48,18 +70,18 @@ def _require_live_wake_readiness(
     *,
     allow_unverified: bool,
 ) -> None:
-    if bundle.get("deployment_ready") is not False:
+    if bundle.get("deployment_ready") is True:
         return
     reason = (
-        "Wake artifact is explicitly marked deployment_ready=false because "
-        "pronunciation review and/or real-speaker validation are incomplete."
+        "Wake artifact has deployment_ready=false or missing approval; pronunciation "
+        "review and/or real-speaker validation are incomplete."
     )
     if not allow_unverified:
         raise ValueError(
             f"{reason} Use --allow-unverified-wake-model only for a controlled "
             "engineering replay or microphone experiment."
         )
-    LOGGER.warning("%s Proceeding because an explicit override was supplied.", reason)
+    log_event(LOGGER, "unverified_wake_override", level=logging.WARNING)
 
 
 def _wake_result(model, bundle: dict, waveform: np.ndarray) -> tuple[bool, str, float, float]:
@@ -92,7 +114,9 @@ def _capture(duration_seconds: float, sample_rate: int, input_device: str | int 
         sd.wait()
     except Exception as error:
         raise RuntimeError(f"Microphone capture failed: {error}") from error
-    return prepare_audio(recording[:, 0], sample_rate, AudioConfig(sample_rate, duration_seconds))
+    finally:
+        sd.stop()
+    return recording[:, 0]
 
 
 def _predict_vcm(
@@ -107,11 +131,31 @@ def _predict_vcm(
     return result, (time.perf_counter() - started) * 1000.0
 
 
+def _log_command(result, bundle: dict, *, utterance_id: str | None = None, total_ms=None):
+    log_event(
+        LOGGER, "command_result", utterance_id=utterance_id or uuid.uuid4().hex,
+        accepted=result.accepted, reason=result.rejection_reason,
+        system_error=result.system_error, candidate_count=result.candidate_count,
+        score=result.normalized_log_score, stage_timings_ms=dict(result.stage_timings_ms),
+        total_ms=total_ms, model_version=result.model_version,
+        grammar_version=result.grammar_version or "not_applicable",
+        decoder_version=DECODER_RUNTIME_VERSION,
+        artifact_sha256=bundle.get("runtime_artifact_sha256", bundle.get("weights_sha256")),
+    )
+
+
 def _load_vcm_wav(bundle: dict, path: Path) -> tuple[np.ndarray, int | None]:
     audio_config = AudioConfig(**bundle["audio"])
     if bundle.get("architecture") in {"CharacterAudioCNN", "CompactCTCModel"}:
         return load_wav_sequence(path, audio_config)
     return load_wav(path, audio_config), None
+
+
+def _prepare_vcm_audio(bundle: dict, samples, sample_rate):
+    config = AudioConfig(**bundle["audio"])
+    if bundle.get("architecture") in {"CharacterAudioCNN", "CompactCTCModel"}:
+        return prepare_audio_sequence(samples, sample_rate, config)
+    return prepare_audio(samples, sample_rate, config), None
 
 
 def _run_wake(args: argparse.Namespace) -> None:
@@ -121,7 +165,8 @@ def _run_wake(args: argparse.Namespace) -> None:
         detected, label, score, elapsed = _wake_result(model, bundle, waveform)
         print(f"Wake class: {label}; wake confidence: {score:.3f}; inference: {elapsed:.1f} ms")
         print("Wake word detected!" if detected else "Wake word not detected.")
-        LOGGER.info("Wake file=%s detected=%s class=%s confidence=%.4f", args.audio, detected, label, score)
+        log_event(LOGGER, "wake_result", utterance_id=uuid.uuid4().hex,
+                  wake_detected=detected, score=score, total_ms=elapsed)
         return
     _require_live_wake_readiness(
         bundle,
@@ -132,8 +177,9 @@ def _run_wake(args: argparse.Namespace) -> None:
     rate = int(bundle["audio"]["sample_rate"])
     while True:
         waveform = _capture(duration, rate, args.input_device)
+        waveform = prepare_audio(waveform, rate, AudioConfig(**bundle["audio"]))
         detected, label, score, elapsed = _wake_result(model, bundle, waveform)
-        LOGGER.info("Wake window class=%s confidence=%.4f inference_ms=%.2f", label, score, elapsed)
+        log_event(LOGGER, "wake_result", wake_detected=detected, score=score, total_ms=elapsed)
         if detected:
             print('[WAKE WORD] "ateko" detected')
             return
@@ -151,20 +197,13 @@ def _run_vcm(args: argparse.Namespace) -> None:
             int(bundle["audio"]["sample_rate"]),
             args.input_device,
         )
+        waveform, sample_length = _prepare_vcm_audio(
+            bundle, waveform, int(bundle["audio"]["sample_rate"])
+        )
     result, elapsed = _predict_vcm(model, bundle, waveform, sample_length=sample_length)
-    _print_vcm_result(result)
-    LOGGER.info(
-        "VCM audio=%s accepted=%s intent=%s text=%s rejection=%s "
-        "score=%.4f margin=%.4f inference_ms=%.2f",
-        args.audio,
-        result.accepted,
-        result.actionable_intent,
-        result.decoded_text,
-        result.rejection_reason,
-        result.normalized_log_score,
-        result.margin,
-        elapsed,
-    )
+    _print_vcm_result(result, debug_sensitive=args.debug_sensitive)
+    _log_command(result, bundle, total_ms=elapsed)
+    LOGGER.debug("Decoded text=%s input=%s", result.decoded_text, args.audio)
 
 
 def _run_interactive(args: argparse.Namespace) -> None:
@@ -193,15 +232,14 @@ def _run_interactive(args: argparse.Namespace) -> None:
                 int(wake_bundle["audio"]["sample_rate"]),
                 args.input_device,
             )
-        detected, label, wake_score, wake_ms = _wake_result(wake_model, wake_bundle, wake_waveform)
-        LOGGER.info(
-            "Wake input=%s detected=%s class=%s confidence=%.4f inference_ms=%.2f",
-            args.wake_audio or "microphone",
-            detected,
-            label,
-            wake_score,
-            wake_ms,
-        )
+            wake_waveform = prepare_audio(
+                wake_waveform, int(wake_bundle["audio"]["sample_rate"]),
+                AudioConfig(**wake_bundle["audio"]),
+            )
+        detected, _, wake_score, wake_ms = _wake_result(wake_model, wake_bundle, wake_waveform)
+        utterance_id = uuid.uuid4().hex
+        log_event(LOGGER, "wake_result", utterance_id=utterance_id,
+                  wake_detected=detected, score=wake_score, total_ms=wake_ms)
         if not detected:
             print("[STATUS] Wake word not detected; remaining in wake listening.")
             if args.wake_audio:
@@ -222,6 +260,9 @@ def _run_interactive(args: argparse.Namespace) -> None:
                 int(vcm_bundle["audio"]["sample_rate"]),
                 args.input_device,
             )
+            command_waveform, command_sample_length = _prepare_vcm_audio(
+                vcm_bundle, command_waveform, int(vcm_bundle["audio"]["sample_rate"])
+            )
         print("[DECODING] Decoding captured command...")
         result, inference_ms = _predict_vcm(
             vcm_model,
@@ -229,22 +270,11 @@ def _run_interactive(args: argparse.Namespace) -> None:
             command_waveform,
             sample_length=command_sample_length,
         )
-        _print_vcm_result(result)
-        LOGGER.info(
-            "VCM accepted=%s intent=%s text=%s slots=%s rejection=%s "
-            "score=%.4f margin=%.4f inference_ms=%.2f",
-            result.accepted,
-            result.actionable_intent,
-            result.decoded_text,
-            dict(result.slots),
-            result.rejection_reason,
-            result.normalized_log_score,
-            result.margin,
-            inference_ms,
-        )
+        _print_vcm_result(result, debug_sensitive=args.debug_sensitive)
+        _log_command(result, vcm_bundle, utterance_id=utterance_id, total_ms=inference_ms)
         print("[COOLDOWN] Interaction complete.")
         print("[STATUS] Returning to wake-word detection...")
-        LOGGER.info("Returning to wake-word listening")
+        log_event(LOGGER, "listening_resumed", utterance_id=utterance_id)
         if args.wake_audio:
             return
 
@@ -263,7 +293,7 @@ def _run_continuous_interactive(
         elif event.state == PipelineState.DECODING:
             print("[DECODING] Endpoint detected.")
         elif event.state == PipelineState.ACCEPTED_OR_REJECTED and event.result:
-            _print_vcm_result(event.result)
+            _print_vcm_result(event.result, debug_sensitive=args.debug_sensitive)
         elif event.state == PipelineState.COOLDOWN:
             print("[COOLDOWN] Suppressing duplicate triggers.")
         elif event.state == PipelineState.LISTENING_FOR_WAKE:
@@ -310,6 +340,7 @@ def build_streaming_pipeline(
         maximum_command_samples=maximum_command_samples,
         cooldown_samples=round(sample_rate * args.cooldown_ms / 1000.0),
         speech_rms_threshold=args.speech_rms_threshold,
+        queue_chunks=args.queue_chunks,
     )
     wake_streaming = wake_bundle.get("streaming_policy", {})
     wake_event_detector = WakeEventDetector(
@@ -321,10 +352,11 @@ def build_streaming_pipeline(
     )
 
     def wake_predictor(window: np.ndarray) -> bool:
+        window = prepare_audio(window, sample_rate, AudioConfig(**wake_bundle["audio"]))
         detected, label, score, elapsed = _wake_result(
             wake_model, wake_bundle, window
         )
-        LOGGER.info(
+        LOGGER.debug(
             "Wake stream class=%s confidence=%.4f detected=%s inference_ms=%.2f",
             label,
             score,
@@ -336,12 +368,8 @@ def build_streaming_pipeline(
             on_wake(label, score, elapsed, smoothed)
         return smoothed
 
-    command_audio_config = AudioConfig(**vcm_bundle["audio"])
-
     def command_predictor(captured: np.ndarray):
-        waveform, usable_samples = prepare_audio_sequence(
-            captured, sample_rate, command_audio_config
-        )
+        waveform, usable_samples = _prepare_vcm_audio(vcm_bundle, captured, sample_rate)
         return predict_command(
             vcm_model,
             vcm_bundle,
@@ -350,6 +378,8 @@ def build_streaming_pipeline(
         )
 
     def publish(event: PipelineEvent) -> None:
+        if event.result is not None:
+            _log_command(event.result, vcm_bundle, utterance_id=event.utterance_id)
         if event.message in {"stream_recovered", "stopped", "cooldown_complete"}:
             wake_event_detector.reset()
         if on_event is not None:
@@ -370,6 +400,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wake-audio", type=Path, help="Wake-word WAV for full-pipeline testing")
     parser.add_argument("--command-audio", type=Path, help="Command WAV after a successful wake gate")
     parser.add_argument("--input-device", help="Microphone device name or index (default: system input)")
+    parser.add_argument("--config", type=Path, help="Versioned runtime JSON; explicit CLI flags win")
+    parser.add_argument("--threads", type=int, default=RuntimeSettings().threads)
+    parser.add_argument("--queue-chunks", type=int, default=RuntimeSettings().queue_chunks)
+    parser.add_argument("--debug-sensitive", action="store_true",
+                        help="Opt in to transcript/path diagnostics; do not share these logs")
     parser.add_argument("--stream-chunk-ms", type=float, default=100.0)
     parser.add_argument("--wake-hop-ms", type=float, default=250.0)
     parser.add_argument("--pre-roll-ms", type=float, default=250.0)
@@ -394,18 +429,20 @@ def build_parser() -> argparse.ArgumentParser:
         default=ROOT / "vcm/models/vcm_ctc_model.me2",
     )
     parser.add_argument("--log-file", type=Path, default=ROOT / "logs/app.log")
+    parser.set_defaults(**asdict(RuntimeSettings()))
     return parser
 
 
-def _print_vcm_result(result) -> None:
+def _print_vcm_result(result, *, debug_sensitive=False) -> None:
     if result.accepted:
         print(f"[ACCEPTED] Intent: {result.actionable_intent}")
-        print(f"[VCM] Decoded text: {result.decoded_text}")
-        if result.slots:
+        if debug_sensitive:
+            print(f"[VCM] Decoded text: {result.decoded_text}")
+        if result.slots and debug_sensitive:
             print(f"[VCM] Supported slots: {dict(result.slots)}")
     else:
         print(f"[REJECTED] Reason: {result.rejection_reason}")
-        if result.decoded_text:
+        if result.decoded_text and debug_sensitive:
             print(f"[VCM] Diagnostic candidate: {result.decoded_text}")
     print(
         "[VCM] Decoder score: "
@@ -413,9 +450,21 @@ def _print_vcm_result(result) -> None:
     )
 
 
-def main() -> None:
+def parse_args(argv=None):
     parser = build_parser()
-    args = parser.parse_args()
+    early = argparse.ArgumentParser(add_help=False)
+    early.add_argument("--config", type=Path)
+    config_args, _ = early.parse_known_args(argv)
+    if config_args.config is not None:
+        try:
+            parser.set_defaults(**load_runtime_defaults(config_args.config))
+        except (OSError, ValueError, TypeError):
+            parser.error("Invalid runtime configuration; check schema, types and file permissions")
+    args = parser.parse_args(argv)
+    try:
+        RuntimeSettings.from_namespace(args)
+    except (ValueError, TypeError) as error:
+        parser.error(str(error))
     if args.audio and args.interactive:
         parser.error("Use --wake-audio and optionally --command-audio for combined WAV testing")
     if args.wake_audio and not args.interactive:
@@ -424,8 +473,26 @@ def main() -> None:
         parser.error("--command-audio is only valid with --interactive")
     if args.input_device and args.input_device.isdecimal():
         args.input_device = int(args.input_device)
-    configure_logging(args.log_file)
+    return args
+
+
+def main() -> None:
+    args = parse_args()
+    previous_sigterm = signal.getsignal(signal.SIGTERM)
+    logging_ready = False
+    def terminate(signum, frame):
+        raise KeyboardInterrupt
+
     try:
+        configure_logging(
+            args.log_file, logging.DEBUG if args.debug_sensitive else logging.INFO,
+            debug_sensitive=args.debug_sensitive,
+            context={"config_sha256": config_hash(vars(args)),
+                     "decoder_version": DECODER_RUNTIME_VERSION, "threads": args.threads},
+        )
+        logging_ready = True
+        signal.signal(signal.SIGTERM, terminate)
+        torch.set_num_threads(args.threads)
         if args.wake_word:
             _run_wake(args)
         elif args.vcm:
@@ -435,8 +502,16 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\n[STATUS] Stopped.")
     except Exception as error:
-        LOGGER.exception("Inference failed")
+        if logging_ready:
+            LOGGER.exception("Inference failed")
+        print(f"Inference failed ({type(error).__name__}); inspect safe logs and run me2-health.",
+              file=sys.stderr)
         raise SystemExit(1) from error
+    finally:
+        signal.signal(signal.SIGTERM, previous_sigterm)
+        if logging_ready:
+            log_event(LOGGER, "run_stopped")
+            logging.shutdown()
 
 
 if __name__ == "__main__":

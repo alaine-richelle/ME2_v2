@@ -9,6 +9,8 @@ import numpy as np
 import torch
 from torch import Tensor
 
+from me2.contracts import finite, integer
+
 
 @dataclass(frozen=True)
 class FeatureConfig:
@@ -18,6 +20,16 @@ class FeatureConfig:
     n_mels: int = 40
     f_min: float = 40.0
     f_max: float = 7_600.0
+
+    def __post_init__(self) -> None:
+        integer("feature sample_rate", self.sample_rate, 1, 192_000)
+        integer("n_fft", self.n_fft, 4, 8192)
+        integer("hop_length", self.hop_length, 1, self.n_fft)
+        integer("n_mels", self.n_mels, 1, 256)
+        finite("f_min", self.f_min, 0.0, self.sample_rate / 2)
+        finite("f_max", self.f_max, 0.0, self.sample_rate / 2)
+        if self.f_min >= self.f_max:
+            raise ValueError("Invalid Mel filterbank bounds")
 
 
 def _hz_to_mel(value: Tensor) -> Tensor:
@@ -78,6 +90,10 @@ class LogMel:
             tensor = tensor.unsqueeze(0)
         if tensor.ndim != 2:
             raise ValueError(f"Expected [batch, samples], got {tuple(tensor.shape)}")
+        if tensor.shape[0] < 1 or tensor.shape[1] <= self.config.n_fft // 2:
+            raise ValueError("Audio must exceed half the FFT size for reflected STFT padding")
+        if not torch.isfinite(tensor).all():
+            raise ValueError("Audio contains non-finite samples")
         window, filters = _cached_frontend_tensors(
             self.config,
             tensor.device.type,

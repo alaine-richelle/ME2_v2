@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 
+from me2.contracts import finite, integer
+
 
 @dataclass(frozen=True)
 class WakeSmoothingPolicy:
@@ -13,12 +15,9 @@ class WakeSmoothingPolicy:
     required_hits: int = 2
 
     def __post_init__(self) -> None:
-        if not 0.0 <= self.threshold <= 1.0:
-            raise ValueError("Wake threshold must be in [0, 1]")
-        if self.smoothing_window < 1:
-            raise ValueError("smoothing_window must be positive")
-        if not 1 <= self.required_hits <= self.smoothing_window:
-            raise ValueError("required_hits must be within smoothing_window")
+        finite("Wake threshold", self.threshold, 0.0, 1.0)
+        integer("smoothing_window", self.smoothing_window, 1, 128)
+        integer("required_hits", self.required_hits, 1, self.smoothing_window)
 
 
 class WakeEventDetector:

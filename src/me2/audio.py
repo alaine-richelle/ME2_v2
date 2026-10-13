@@ -10,6 +10,8 @@ import numpy as np
 import soundfile as sf
 from scipy.signal import resample_poly
 
+from me2.contracts import finite, integer
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -19,6 +21,13 @@ class AudioConfig:
     duration_seconds: float = 4.0
     silence_threshold_db: float = -48.0
     normalize_peak: bool = True
+
+    def __post_init__(self) -> None:
+        integer("sample_rate", self.sample_rate, 1, 192_000)
+        finite("duration_seconds", self.duration_seconds, 0.01, 60.0)
+        finite("silence_threshold_db", self.silence_threshold_db, -160.0, 0.0)
+        if not isinstance(self.normalize_peak, bool):
+            raise TypeError("normalize_peak must be boolean")
 
     @property
     def sample_count(self) -> int:
@@ -35,8 +44,10 @@ def _mono(samples: np.ndarray) -> np.ndarray:
 
 def resample_audio(samples: np.ndarray, source_rate: int, target_rate: int) -> np.ndarray:
     samples = _mono(samples)
-    if source_rate <= 0 or target_rate <= 0:
-        raise ValueError("Sample rates must be positive")
+    integer("source_rate", source_rate, 1, 192_000)
+    integer("target_rate", target_rate, 1, 192_000)
+    if samples.size == 0 or not np.isfinite(samples).all():
+        raise ValueError("Audio is empty or contains non-finite samples")
     if source_rate == target_rate:
         return samples
     divisor = int(np.gcd(source_rate, target_rate))

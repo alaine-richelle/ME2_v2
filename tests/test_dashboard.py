@@ -203,7 +203,8 @@ def test_microphone_recovery_discards_queued_audio_and_stop_releases_stream(monk
     assert len(opened) == len(closed) == 2
     assert len(received) == 1
     assert np.count_nonzero(received[0]) == 0
-    assert [event.message for event in events] == ["stream_recovered"]
+    assert [event.message for event in events] == ["stream_recovered", "stopped"]
+    assert pipeline.state == PipelineState.STOPPED
 
 
 def test_microphone_retry_exhaustion_stops_with_actionable_error(monkeypatch):

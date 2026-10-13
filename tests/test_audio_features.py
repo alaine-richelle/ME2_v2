@@ -132,7 +132,7 @@ def test_bundle_atomic_failure_removes_temporary_file(tmp_path, monkeypatch):
     original_replace = Path.replace
 
     def fail_replace(path, target):
-        if path.name == "model.me2.tmp":
+        if target == destination:
             raise OSError("injected replace failure")
         return original_replace(path, target)
 
@@ -152,7 +152,7 @@ def test_bundle_atomic_failure_removes_temporary_file(tmp_path, monkeypatch):
             },
         )
     assert not destination.exists()
-    assert not destination.with_suffix(".me2.tmp").exists()
+    assert not list(tmp_path.glob("model.me2.*.tmp"))
 
 
 def test_benchmark_supports_wake_artifacts(tmp_path):

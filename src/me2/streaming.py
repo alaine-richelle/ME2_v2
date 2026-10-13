@@ -6,12 +6,15 @@ import enum
 import logging
 import queue
 import threading
+import uuid
 from collections import deque
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 import numpy as np
 
+from me2.contracts import finite, integer
+from me2.logging_utils import log_event
 from me2.vcm.ctc import CommandResult
 
 LOGGER = logging.getLogger(__name__)
@@ -54,14 +57,14 @@ class StreamingConfig:
             self.cooldown_samples,
             self.queue_chunks,
         )
-        if any(value <= 0 for value in positive):
-            raise ValueError("Streaming sample counts and queue size must be positive")
-        if self.pre_roll_samples < 0:
-            raise ValueError("pre_roll_samples cannot be negative")
+        for value in positive:
+            integer("stream sample count", value, 1, 12_000_000)
+        integer("queue_chunks", self.queue_chunks, 1, 128)
+        integer("pre_roll_samples", self.pre_roll_samples, 0,
+                min(self.wake_window_samples, self.maximum_command_samples - 1))
         if self.minimum_command_samples >= self.maximum_command_samples:
             raise ValueError("minimum command duration must be below maximum duration")
-        if self.speech_rms_threshold < 0:
-            raise ValueError("speech_rms_threshold cannot be negative")
+        finite("speech_rms_threshold", self.speech_rms_threshold, 1e-6, 1.0)
 
 
 @dataclass(frozen=True)
@@ -70,6 +73,7 @@ class PipelineEvent:
     sample_index: int
     message: str
     result: CommandResult | None = None
+    utterance_id: str | None = None
 
 
 WakePredictor = Callable[[np.ndarray], bool]
@@ -100,11 +104,14 @@ class StreamingPipeline:
         self._speech_seen = False
         self._trailing_silence = 0
         self._cooldown_remaining = 0
+        self.utterance_id: str | None = None
 
     def feed(self, chunk: np.ndarray) -> list[PipelineEvent]:
-        samples = np.asarray(chunk, dtype=np.float32).reshape(-1)
-        if samples.size == 0 or not np.isfinite(samples).all():
-            raise ValueError("Streaming chunk is empty or non-finite")
+        if self.state == PipelineState.STOPPED:
+            return []
+        samples = np.asarray(chunk, dtype=np.float32)
+        if samples.ndim != 1 or samples.size == 0 or not np.isfinite(samples).all():
+            raise ValueError("Streaming chunk must be finite non-empty mono audio")
         events: list[PipelineEvent] = []
         self.sample_index += samples.size
 
@@ -131,6 +138,7 @@ class StreamingPipeline:
                 self._since_wake_check = 0
                 window = np.fromiter(self._wake_buffer, dtype=np.float32)
                 if self.wake_predictor(window):
+                    self.utterance_id = uuid.uuid4().hex
                     pre_roll = window[-self.config.pre_roll_samples :] if self.config.pre_roll_samples else np.empty(0, dtype=np.float32)
                     self.state = PipelineState.CAPTURING_COMMAND
                     self._command_chunks = [pre_roll] if pre_roll.size else []
@@ -182,7 +190,13 @@ class StreamingPipeline:
         message: str,
         result: CommandResult | None = None,
     ) -> PipelineEvent:
-        event = PipelineEvent(state, sample_index, message, result)
+        event = PipelineEvent(state, sample_index, message, result, self.utterance_id)
+        log_event(
+            LOGGER, "pipeline_state", state=state.value, reason=message,
+            sample_index=sample_index, utterance_id=self.utterance_id,
+            sample_rate=self.config.sample_rate,
+            system_error=result.system_error if result else None,
+        )
         if self.on_event is not None:
             self.on_event(event)
         return event
@@ -206,7 +220,7 @@ class StreamingPipeline:
         waveform = np.concatenate(self._command_chunks)
         try:
             result = self.command_predictor(waveform)
-        except Exception:
+        except Exception as error:
             LOGGER.exception("Command decoding failed; rejecting the captured utterance")
             result = CommandResult(
                 decoded_text="",
@@ -219,6 +233,7 @@ class StreamingPipeline:
                 margin=float("-inf"),
                 accepted=False,
                 rejection_reason="command_decoder_error",
+                system_error=type(error).__name__,
             )
         self.state = PipelineState.ACCEPTED_OR_REJECTED
         outcome = self._event(
@@ -276,6 +291,22 @@ def run_microphone_stream(
     on_audio: Callable[[np.ndarray], None] | None = None,
 ) -> None:
     """Run one bounded continuous InputStream until interrupted."""
+    try:
+        _run_microphone_stream(
+            pipeline, input_device=input_device, on_event=on_event,
+            stop_event=stop_event, on_audio=on_audio,
+        )
+    finally:
+        if pipeline.state != PipelineState.STOPPED:
+            stopped = pipeline.stop()
+            if on_event is not None:
+                on_event(stopped)
+
+
+def _run_microphone_stream(
+    pipeline: StreamingPipeline, *, input_device=None, on_event=None,
+    stop_event=None, on_audio=None,
+) -> None:
 
     try:
         import sounddevice as sd
@@ -357,7 +388,9 @@ def run_microphone_stream(
             if on_event is not None:
                 on_event(recovery)
             delay = min(2 ** (retries - 1), 4)
-            LOGGER.warning(
-                "Recoverable microphone fault (%s); retrying in %ss", error, delay
+            log_event(
+                LOGGER, "microphone_retry", level=logging.WARNING,
+                retry=retries, backoff_seconds=delay, error_type=type(error).__name__,
+                utterance_id=pipeline.utterance_id,
             )
             stop_event.wait(delay)

@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import pickle
+import tempfile
 import time
 import zipfile
 from functools import lru_cache
@@ -17,13 +18,18 @@ import numpy as np
 import torch
 from torch import nn
 
+from me2.audio import AudioConfig
+from me2.contracts import finite, integer
+from me2.features import FeatureConfig
 from me2.model import TinyAudioCNN
 from me2.vcm.ctc import (
     CHARSET,
     LEGACY_CHARSET,
+    AcceptancePolicy,
     CharacterAudioCNN,
     CommandResult,
     CompactCTCModel,
+    DecoderLimits,
     coerce_grammar_entries,
     decode_command,
 )
@@ -32,6 +38,44 @@ BUNDLE_SCHEMA_VERSION = 2
 METADATA_MEMBER = "metadata.json"
 WEIGHTS_MEMBER = "weights.npz"
 ALLOWED_MEMBERS = {METADATA_MEMBER, WEIGHTS_MEMBER}
+MAX_METADATA_BYTES = 8 * 1024 * 1024
+MAX_WEIGHTS_BYTES = 128 * 1024 * 1024
+MAX_EXPANDED_WEIGHTS_BYTES = 256 * 1024 * 1024
+
+
+def _json_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate JSON metadata key")
+        result[key] = value
+    return result
+
+
+def _validate_weight_archive(weights_bytes: bytes) -> None:
+    """Bound the inner NPZ, including declared NPY dimensions, before allocation."""
+    with zipfile.ZipFile(io.BytesIO(weights_bytes)) as archive:
+        items = archive.infolist()
+        if not items or len(items) > 4096 or len({i.filename for i in items}) != len(items):
+            raise ValueError("Invalid or duplicate tensor archive members")
+        if sum(i.file_size for i in items) > MAX_EXPANDED_WEIGHTS_BYTES:
+            raise ValueError("Expanded tensor archive exceeds runtime budget")
+        for item in items:
+            with archive.open(item) as stream:
+                version = np.lib.format.read_magic(stream)
+                if version == (1, 0):
+                    shape, _, dtype = np.lib.format.read_array_header_1_0(stream)
+                elif version == (2, 0):
+                    shape, _, dtype = np.lib.format.read_array_header_2_0(stream)
+                else:
+                    raise ValueError("Unsupported tensor array format")
+                if dtype.kind not in "fiub" or len(shape) > 8:
+                    raise ValueError("Tensor must have bounded numeric dimensions")
+                count = 1
+                for dimension in shape:
+                    count *= integer("tensor dimension", dimension, 0, MAX_EXPANDED_WEIGHTS_BYTES)
+                if count * dtype.itemsize > item.file_size:
+                    raise ValueError("Tensor dimensions exceed stored payload")
 
 
 def save_bundle(path: str | Path, bundle: dict[str, Any]) -> None:
@@ -57,6 +101,8 @@ def save_bundle(path: str | Path, bundle: dict[str, Any]) -> None:
     }
     if len(arrays) != len(state_dict):
         raise TypeError("state_dict may contain only torch.Tensor values")
+    if any(not np.isfinite(array).all() for array in arrays.values()):
+        raise ValueError("Artifact tensors contain non-finite values")
     weights_buffer = io.BytesIO()
     np.savez_compressed(weights_buffer, **arrays)
     weights_bytes = weights_buffer.getvalue()
@@ -66,7 +112,11 @@ def save_bundle(path: str | Path, bundle: dict[str, Any]) -> None:
     ).encode("utf-8")
 
     destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    # A unique sibling avoids concurrent writes sharing or deleting one temp file.
+    with tempfile.NamedTemporaryFile(
+        dir=destination.parent, prefix=destination.name + ".", suffix=".tmp", delete=False
+    ) as stream:
+        temporary = Path(stream.name)
     try:
         with zipfile.ZipFile(
             temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6
@@ -74,9 +124,8 @@ def save_bundle(path: str | Path, bundle: dict[str, Any]) -> None:
             archive.writestr(METADATA_MEMBER, metadata_bytes)
             archive.writestr(WEIGHTS_MEMBER, weights_bytes)
         temporary.replace(destination)
-    except Exception:
+    finally:
         temporary.unlink(missing_ok=True)
-        raise
 
 
 @lru_cache(maxsize=16)
@@ -102,28 +151,36 @@ def load_bundle(path: str | Path) -> tuple[nn.Module, dict[str, Any]]:
         )
     try:
         with zipfile.ZipFile(source) as archive:
+            items = archive.infolist()
             members = set(archive.namelist())
-            if members != ALLOWED_MEMBERS:
+            if members != ALLOWED_MEMBERS or len(items) != len(ALLOWED_MEMBERS):
                 raise ValueError(
-                    f"Unexpected artifact members: {sorted(members - ALLOWED_MEMBERS)}"
+                    "Unexpected, missing, or duplicate artifact members"
                 )
+            if archive.getinfo(METADATA_MEMBER).file_size > MAX_METADATA_BYTES:
+                raise ValueError("Artifact metadata exceeds runtime budget")
+            if archive.getinfo(WEIGHTS_MEMBER).file_size > MAX_WEIGHTS_BYTES:
+                raise ValueError("Artifact weights exceed runtime budget")
             metadata_bytes = archive.read(METADATA_MEMBER)
             weights_bytes = archive.read(WEIGHTS_MEMBER)
     except (OSError, zipfile.BadZipFile, KeyError) as error:
         raise ValueError(f"Invalid ME2 model artifact {source}: {error}") from error
     try:
-        metadata = json.loads(metadata_bytes)
+        metadata = json.loads(metadata_bytes, object_pairs_hook=_json_object)
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValueError("Artifact metadata is not valid UTF-8 JSON") from error
     _validate_metadata(metadata)
     observed_hash = hashlib.sha256(weights_bytes).hexdigest()
     if observed_hash != metadata.get("weights_sha256"):
         raise ValueError("Artifact weight hash mismatch")
+    _validate_weight_archive(weights_bytes)
     with np.load(io.BytesIO(weights_bytes), allow_pickle=False) as arrays:
         state_dict = {
             name: torch.from_numpy(np.array(arrays[name], copy=True))
             for name in arrays.files
         }
+    if any(not torch.isfinite(tensor).all() for tensor in state_dict.values()):
+        raise ValueError("Artifact tensors contain non-finite values")
     model = _build_model(metadata)
     try:
         model.load_state_dict(state_dict, strict=True)
@@ -188,6 +245,7 @@ def predict_command(
     sample_length: int | None = None,
 ) -> CommandResult:
     started = time.perf_counter()
+    _validate_waveform(waveform, bundle, sample_length)
     frontend = _bundle_frontend(bundle)
     with torch.inference_mode():
         features = frontend(waveform)
@@ -219,6 +277,7 @@ def predict_command(
                 acceptance_policy=bundle.get("acceptance_policy"),
                 model_version=str(bundle.get("model_version", "")),
                 grammar_version=str(bundle.get("grammar_version", "")),
+                limits=DecoderLimits(**bundle.get("decoder_limits", {})),
             )
             decode_ms = (time.perf_counter() - decode_started) * 1000.0
             return CommandResult(
@@ -233,7 +292,9 @@ def predict_command(
             )
 
         model_started = time.perf_counter()
-        probabilities = torch.softmax(model(features), dim=1)[0]
+        logits = model(features)
+        _validate_classifier_logits(logits, bundle)
+        probabilities = torch.softmax(logits, dim=1)[0]
         model_ms = (time.perf_counter() - model_started) * 1000.0
     index = int(probabilities.argmax())
     label = bundle["labels"][index]
@@ -279,14 +340,34 @@ def predict_waveform(
         probabilities = [value / total for value in probabilities]
         return label, max(probabilities), probabilities
 
+    _validate_waveform(waveform, bundle, None)
     with torch.inference_mode():
-        probabilities = torch.softmax(model(_bundle_frontend(bundle)(waveform)), dim=1)[0]
+        logits = model(_bundle_frontend(bundle)(waveform))
+        _validate_classifier_logits(logits, bundle)
+        probabilities = torch.softmax(logits, dim=1)[0]
     index = int(probabilities.argmax())
     return (
         bundle["labels"][index],
         float(probabilities[index]),
         probabilities.tolist(),
     )
+
+
+def _validate_waveform(waveform, bundle, sample_length) -> None:
+    tensor = torch.as_tensor(waveform)
+    if tensor.ndim != 1:
+        raise ValueError("Prediction requires one mono [samples] waveform")
+    maximum = round(bundle["audio"]["sample_rate"] * bundle["audio"]["duration_seconds"])
+    integer("waveform samples", tensor.numel(), bundle["features"]["n_fft"] // 2 + 1, maximum)
+    if sample_length is not None:
+        integer("sample_length", sample_length, 1, tensor.numel())
+    if not torch.isfinite(tensor).all():
+        raise ValueError("Prediction audio contains non-finite values")
+
+
+def _validate_classifier_logits(logits, bundle) -> None:
+    if logits.shape != (1, len(bundle["labels"])) or not torch.isfinite(logits).all():
+        raise ValueError("Classifier logits have invalid shape or non-finite values")
 
 
 def _build_model(metadata: dict[str, Any]) -> nn.Module:
@@ -317,30 +398,77 @@ def _build_model(metadata: dict[str, Any]) -> nn.Module:
 
 
 def _validate_metadata(metadata: dict[str, Any]) -> None:
-    schema_version = int(metadata.get("schema_version", BUNDLE_SCHEMA_VERSION))
+    if not isinstance(metadata, dict):
+        raise TypeError("Artifact metadata must be an object")
+    schema_version = metadata.get("schema_version")
+    integer("schema_version", schema_version, BUNDLE_SCHEMA_VERSION, BUNDLE_SCHEMA_VERSION)
     if schema_version != BUNDLE_SCHEMA_VERSION:
         raise ValueError(
             f"Unsupported bundle schema {schema_version}; expected {BUNDLE_SCHEMA_VERSION}"
         )
-    if metadata.get("task") not in {"vcm", "wake_word", None}:
+    if metadata.get("task") not in {"vcm", "wake_word"}:
         raise ValueError(f"Unsupported bundle task {metadata.get('task')!r}")
     labels = metadata.get("labels")
-    if not isinstance(labels, list) or not labels or len(set(labels)) != len(labels):
+    if (not isinstance(labels, list) or not 1 <= len(labels) <= 256
+            or any(not isinstance(label, str) or not label.strip() for label in labels)
+            or len(set(labels)) != len(labels)):
         raise ValueError("Bundle labels must be a non-empty unique list")
     for section in ("audio", "features"):
         if not isinstance(metadata.get(section), dict):
             raise TypeError(f"Bundle requires {section} configuration")
+    audio = AudioConfig(**metadata["audio"])
+    features = FeatureConfig(**metadata["features"])
+    if audio.sample_rate != features.sample_rate:
+        raise ValueError("Audio/frontend sample rates must match")
+    if audio.sample_count <= features.n_fft // 2:
+        raise ValueError("Artifact duration is too short for the frontend")
+    feature_frames = audio.sample_count // features.hop_length + 1
+    if feature_frames > 4096 or feature_frames * features.n_fft > 8_388_608:
+        raise ValueError("Artifact frontend exceeds runtime budget")
     architecture = metadata.get("architecture", "TinyAudioCNN")
+    if architecture not in {"TinyAudioCNN", "CharacterAudioCNN", "CompactCTCModel"}:
+        raise ValueError("Unsupported model architecture")
+    if metadata["task"] == "wake_word":
+        if architecture != "TinyAudioCNN" or "ateko" not in labels:
+            raise ValueError("Wake artifacts require a classifier and the complete ateko label")
+        finite("wake threshold", metadata.get("threshold", 0.7), 0.0, 1.0)
+        from me2.wake_word.detector import WakeSmoothingPolicy
+
+        WakeSmoothingPolicy(
+            threshold=metadata.get("threshold", 0.7),
+            smoothing_window=metadata.get("streaming_policy", {}).get("smoothing_window", 1),
+            required_hits=metadata.get("streaming_policy", {}).get("required_hits", 1),
+        )
+        if "deployment_ready" in metadata and not isinstance(metadata["deployment_ready"], bool):
+            raise ValueError("deployment_ready must be boolean")
+    integer("model_width", metadata.get("model_width", 16), 1, 128)
+    finite("dropout", metadata.get("dropout", 0.0), 0.0, 0.9)
+    integer("hidden_size", metadata.get("hidden_size", 256), 1, 512)
+    model_config = metadata.get("model_config", {})
+    if not isinstance(model_config, dict) or set(model_config) - {"width", "projection_size", "hidden_size"}:
+        raise ValueError("Invalid compact model configuration")
+    for name, default in (("width", 48), ("projection_size", 128), ("hidden_size", 96)):
+        integer(name, model_config.get(name, default), 1, 512)
     if architecture in {"CharacterAudioCNN", "CompactCTCModel"}:
-        charset = str(metadata.get("charset", LEGACY_CHARSET))
-        blank_id = int(metadata.get("blank_id", len(charset)))
+        charset = metadata.get("charset")
+        if not isinstance(charset, str) or not charset or len(set(charset)) != len(charset):
+            raise ValueError("Bundle charset must contain unique characters")
+        blank_id = metadata.get("blank_id")
+        integer("blank_id", blank_id, 1, 256)
         if blank_id != len(charset):
             raise ValueError("Bundle blank_id must immediately follow charset")
         if architecture == "CompactCTCModel" and charset != CHARSET:
             raise ValueError("CompactCTCModel requires the versioned digit-preserving charset")
-        coerce_grammar_entries(metadata.get("grammar", []))
+        entries = coerce_grammar_entries(metadata.get("grammar", []))
+        if len(entries) > 10_000 or sum(len(entry.text) for entry in entries) > 100_000:
+            raise ValueError("Grammar exceeds runtime budget")
+        if any(set(entry.text) - set(charset) or entry.intent not in labels for entry in entries):
+            raise ValueError("Grammar contains unsupported characters or intents")
+        integer("beam_width", metadata.get("beam_width", 16), 1, 256)
+        DecoderLimits(**metadata.get("decoder_limits", {}))
         if "acceptance_policy" not in metadata:
             raise ValueError("CTC bundle requires an explicit acceptance policy")
+        AcceptancePolicy.from_mapping(metadata["acceptance_policy"])
 
 
 def main() -> None:
