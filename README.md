@@ -1,6 +1,22 @@
 # ME2_v2
 
-Small-footprint wake-word and voice-command recognition, trained with PyTorch and designed for CPU inference on a Raspberry Pi 5.
+Wake-word and voice-command recognition with PyTorch CPU inference.
+Raspberry Pi 5 is a deployment target, not yet a measured/approved deployment.
+
+## Current validation status — 2026-10-13
+
+The retained legacy CTC weights remain the selected command fixture; no wake
+artifact is deployment-approved. Runtime hardening passes 105 regression tests
+and preserves all decisions in the fixed 100-row development check. Recognition
+accuracy did not improve in this cycle. Live microphone validation is blocked
+by native device discovery; no actual Pi measurements are available.
+
+See the [measured hardening report](docs/HARDENING_2026-10-13.md) and
+[runtime validation, logging, rollback and Pi runbook](docs/RUNTIME_VALIDATION.md).
+`python -m me2.health` is an offline operator/artifact check, not acoustic
+approval. Use explicit model/config paths for installed-package execution.
+The legacy selected grammar has no supported-slot metadata; the richer slot
+contract described below belongs to the development pipeline.
 
 ## Layout
 
