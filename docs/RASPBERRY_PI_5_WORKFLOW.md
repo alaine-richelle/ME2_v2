@@ -350,36 +350,55 @@ diagnostics, not calibrated correctness probabilities.
 ## 10. Map command intents to UI actions
 
 All 19 dataset intents appear in the table. The “Model support” column is
-derived from the loaded grammar/labels. Saved mappings live in
-`dashboard-state/mappings.json`; this is an atomic update and survives a
-server restart. Device preview state and event history reset with the server.
+derived from the loaded grammar/labels. Saved enable/disable settings live in
+`dashboard-state/mappings.json`; writes are atomic and survive a server
+restart. Each intent has one fixed canonical dashboard action. Historical
+`display` entries are upgraded in memory; the file changes only after save.
 
 | Recognized intent | Default dashboard action |
 | --- | --- |
-| `light_on`, `light_off` | Set simulated light on/off |
-| `play_music`, `pause`, `stop`, `next` | Update simulated player/track |
-| `volume_up`, `volume_down` | Adjust simulated volume, bounded to 0–100 |
-| `weather`, `time`, `temperature` | Display recognized command |
-| `call`, `message` | Display recognized command |
-| `timer`, `alarm`, `list_reminders`, `create_reminder` | Display recognized command |
-| `brightness`, `color` | Display recognized command and returned slots |
+| `light_on`, `light_off` | Set in-memory demo light state |
+| `play_music`, `pause`, `stop`, `next`, `volume_up`, `volume_down` | Control an original generated sample track and dashboard player state; volume is bounded to 0–100 |
+| `weather` | Fetch a current observation for the configured city; show loading, cached/stale data, or an error |
+| `time` | Display current host-local time |
+| `call`, `message` | Show a simulated ringtone/message status; never place a call or send a message |
+| `list_reminders`, `create_reminder`, `timer`, `alarm` | Update local demonstration lists only |
+| `brightness`, `color`, `temperature` | Update local brightness, color, and thermostat preview state |
 
-The UI allows selecting any listed action for an intent or disabling it.
-Rejected commands use `actionable_intent=None` and cannot dispatch, even
-if the decoder retains a diagnostic candidate intent. Stopping also
-suppresses actions from an inference that finishes during shutdown.
+The UI allows disabling an intent. Rejected results, system errors, unknown
+intents, disabled mappings, duplicate utterance IDs, and invalid or unsupported
+slots cannot mutate action state. Stopping also suppresses an inference that
+finishes during shutdown. Synthetic dashboard results are labeled as such and
+are not speech-recognition evidence.
 
-The selected legacy grammar often has no semantic slots. The dashboard does
-not invent missing color, number, contact, or time values, and does not
-promise arbitrary free-text recognition. Inspect the loaded grammar panel
-for actual supported phrases and slots.
+The retained legacy CTC grammar does not carry semantic slot mappings. The
+dashboard therefore fails closed for slot-dependent live actions when no
+supported value is supplied; it does not infer a color, number, contact, or
+time from the transcript. The synthetic dashboard uses fixed sample slots for
+UI demonstration only. Inspect the loaded grammar panel before using a
+slot-dependent action.
 
-**Implemented action scope:** widgets only. Music playback, weather
-retrieval, actual timers, calling/messaging, GPIO relays and other physical
-integrations require separate handlers. Add explicit allowlisted handlers
-at `Dashboard.dispatch`, validate required slots, handle failures, and
-report action success separately from recognition acceptance. Do not turn
-recognized text into shell commands.
+Weather is optional network functionality; speech inference remains local and
+does not download a model or dataset. The configured default city is Manila;
+change `weather.city` in `config/dashboard.json` for your deployment. The
+service uses public geocoding/current-observation endpoints with a bounded
+timeout and in-memory cache. No credential is stored. Network failure shows
+a safe error or stale cached reading. Configure `music.playback_enabled` and,
+if needed, `music.output_device`; output opens only after an accepted action.
+The sample melody and simulated call ringtone are generated locally. The
+synthetic dashboard demo does not play audio.
+
+Timers, alarms, messages, calls, lighting, brightness, color, and thermostat
+changes are UI demonstrations, not real communications, GPIO, or appliance
+control. Do not connect physical actions without a separately reviewed,
+allowlisted backend and safety tests.
+
+The natural-pause candidate at `config/dashboard.natural-pause.json` uses the
+same artifacts and decoder/rejection policy as `config/dashboard.json`; its
+only streaming change is onset timeout 1000→3000 ms. The CLI counterpart is
+`config/runtime.onset-3s.json`. Neither is promoted by configuration alone:
+the combined endpoint/max-duration experiment previously produced an OOS
+false accept in development replay.
 
 ## 11. Start the dashboard on boot
 
@@ -404,6 +423,10 @@ no readiness override. With the supplied unapproved wake model, the server
 stays available to display the readiness error and the microphone remains
 closed. Automatic process restart does not resolve a model-readiness or
 microphone-worker error; inspect the dashboard/logs and correct the cause.
+Before live Pi trials, first run the synthetic UI demo and file-based pipeline
+check. Obtain operator approval before each microphone or speaker trial, state
+the exact phrase and “GO” cue, and use local/mock actions only. Current wake
+artifacts remain unapproved and do not meet the production readiness gate.
 
 `Restart=on-failure` restarts the process after an abnormal process exit;
 systemd sends the process its termination signal when stopping. [S6]

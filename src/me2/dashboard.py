@@ -10,6 +10,7 @@ import json
 import logging
 import math
 import queue
+import re
 import secrets
 import signal
 import threading
@@ -29,7 +30,8 @@ from me2.app import (
     build_streaming_pipeline,
 )
 from me2.app import build_parser as inference_parser
-from me2.logging_utils import configure_logging
+from me2.dashboard_audio import DashboardAudioPlayer
+from me2.logging_utils import configure_logging, log_event
 from me2.streaming import (
     PipelineEvent,
     PipelineState,
@@ -38,6 +40,7 @@ from me2.streaming import (
     run_microphone_stream,
 )
 from me2.vcm.ctc import CommandResult, coerce_grammar_entries
+from me2.weather import fetch_current_weather
 
 LOGGER = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,18 +50,41 @@ INTENTS = (
     "next", "volume_up", "volume_down", "call", "message", "list_reminders",
     "timer", "alarm", "temperature", "brightness", "color", "create_reminder",
 )
-# Every handler acts only on the dashboard's in-memory demonstration devices.
-ACTIONS = {
-    "display": "Display recognized command",
-    "light_on": "Demo light · on",
-    "light_off": "Demo light · off",
-    "play_music": "Demo player · play",
-    "pause": "Demo player · pause",
-    "stop": "Demo player · stop",
-    "next": "Demo player · next track",
-    "volume_up": "Demo volume · +10",
-    "volume_down": "Demo volume · −10",
+ACTION_LABELS = {
+    "play_music": "Play sample music",
+    "weather": "Show configured-city weather",
+    "time": "Show current local time",
+    "light_on": "Set demo light on",
+    "light_off": "Set demo light off",
+    "pause": "Pause sample music",
+    "stop": "Stop sample music",
+    "next": "Advance sample track",
+    "volume_up": "Raise demo volume",
+    "volume_down": "Lower demo volume",
+    "call": "Show simulated call ringtone",
+    "message": "Show demo message (not sent)",
+    "list_reminders": "Show demo reminders",
+    "timer": "Create demo timer",
+    "alarm": "Create demo alarm",
+    "temperature": "Set demo thermostat",
+    "brightness": "Set demo brightness",
+    "color": "Set demo light color",
+    "create_reminder": "Create demo reminder",
 }
+ACTIONS = {intent: ACTION_LABELS[intent] for intent in INTENTS}
+DEFAULT_ACTION_BY_INTENT = {intent: intent for intent in INTENTS}
+
+# These are display-only examples for the synthetic dashboard demo. Live
+# dispatch instead requires semantic values supplied by the loaded grammar.
+DEMO_SLOTS = {
+    "brightness": {"value": "60"},
+    "color": {"value": "Blue"},
+    "temperature": {"value": "22"},
+    "timer": {"value": "10 seconds"},
+    "alarm": {"value": "8:00 AM"},
+    "create_reminder": {"value": "Drink water"},
+}
+SLOT_REQUIRED = frozenset(DEMO_SLOTS)
 
 
 def clean_json(value):
@@ -76,11 +102,81 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _duration_seconds(value: str | None) -> int:
+    if not value:
+        raise ValueError("required supported timer value is missing")
+    match = re.fullmatch(
+        r"\s*(\d+)\s*(seconds?|secs?|s|minutes?|mins?|m)?\s*",
+        value,
+        re.IGNORECASE,
+    )
+    if match is None:
+        raise ValueError("timer value is not a supported duration")
+    amount = int(match.group(1))
+    unit = (match.group(2) or "seconds").casefold()
+    seconds = amount * (60 if unit.startswith(("m",)) else 1)
+    if not 1 <= seconds <= 86_400:
+        raise ValueError("timer duration must be between 1 second and 24 hours")
+    return seconds
+
+
+def _clock_label(value: str | None) -> str:
+    if not value:
+        raise ValueError("required supported alarm time is missing")
+    numeric = re.fullmatch(r"\d{1,4}", value.strip())
+    if numeric:
+        amount = int(value)
+        if 24 <= amount <= 1_439:
+            return f"{amount // 60:02d}:{amount % 60:02d}"
+    match = re.fullmatch(
+        r"\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*", value, re.IGNORECASE
+    )
+    if match is None:
+        raise ValueError("alarm value is not a supported clock time")
+    hour, minute = int(match.group(1)), int(match.group(2) or 0)
+    suffix = (match.group(3) or "").upper()
+    if minute > 59 or (suffix and not 1 <= hour <= 12) or (not suffix and hour > 23):
+        raise ValueError("alarm time is outside the supported clock range")
+    if suffix:
+        hour = (hour % 12) + (12 if suffix == "PM" else 0)
+    return f"{hour:02d}:{minute:02d}"
+
+
 def load_settings(path: Path) -> dict:
     config = json.loads(path.read_text(encoding="utf-8"))
     for key in ("wake_model", "vcm_model", "mappings_file"):
         value = Path(config[key]).expanduser()
         config[key] = value if value.is_absolute() else (path.parent / value).resolve()
+    config.setdefault("weather", {})
+    config.setdefault("music", {})
+    if not isinstance(config["weather"], dict) or not isinstance(config["music"], dict):
+        raise TypeError("weather and music settings must be JSON objects")
+    city = config["weather"].get("city", "Manila")
+    if not isinstance(city, str) or not city.strip() or len(city) > 120:
+        raise ValueError("weather.city must be a non-empty city name")
+    config["weather"]["city"] = city.strip()
+    timeout = config["weather"].get("timeout_seconds", 4.0)
+    cache_ttl = config["weather"].get("cache_ttl_seconds", 900)
+    if type(timeout) not in (int, float) or not 0.2 <= timeout <= 15:
+        raise ValueError("weather.timeout_seconds must be in [0.2, 15]")
+    if type(cache_ttl) is not int or not 0 <= cache_ttl <= 86_400:
+        raise ValueError("weather.cache_ttl_seconds must be in [0, 86400]")
+    config["weather"]["timeout_seconds"] = float(timeout)
+    config["weather"]["cache_ttl_seconds"] = cache_ttl
+    if "playback_enabled" in config["music"] and type(
+        config["music"]["playback_enabled"]
+    ) is not bool:
+        raise ValueError("music.playback_enabled must be boolean")
+    if "sample_rate" in config["music"] and (
+        type(config["music"]["sample_rate"]) is not int
+        or not 8_000 <= config["music"]["sample_rate"] <= 48_000
+    ):
+        raise ValueError("music.sample_rate must be an integer in [8000, 48000]")
+    output_device = config["music"].get("output_device")
+    if output_device is not None and not isinstance(output_device, (int, str)):
+        raise TypeError("music.output_device must be a device index, name, or null")
+    if isinstance(output_device, str) and output_device.isdecimal():
+        config["music"]["output_device"] = int(output_device)
     device = config.get("input_device")
     if isinstance(device, str) and device.isdecimal():
         device = int(device)
@@ -101,14 +197,36 @@ class Dashboard:
         self.events: deque[dict] = deque(maxlen=80)
         self.sequence = 0
         self.mappings = {
-            intent: {"enabled": True, "action": intent if intent in ACTIONS else "display"}
+            intent: {"enabled": True, "action": DEFAULT_ACTION_BY_INTENT[intent]}
             for intent in INTENTS
         }
         mappings_file = settings["mappings_file"]
         if mappings_file.exists():
-            self.mappings = self.validate_mappings(
-                json.loads(mappings_file.read_text(encoding="utf-8"))
-            )
+            loaded_mappings = json.loads(mappings_file.read_text(encoding="utf-8"))
+            # The old dashboard used "display" for most commands. Upgrade only
+            # that legacy default in memory; preserve enable/disable choices and
+            # leave the user's file untouched until they explicitly save.
+            if isinstance(loaded_mappings, dict):
+                for intent, mapping in loaded_mappings.items():
+                    if (
+                        intent in DEFAULT_ACTION_BY_INTENT
+                        and isinstance(mapping, dict)
+                        and mapping.get("action") == "display"
+                    ):
+                        mapping["action"] = DEFAULT_ACTION_BY_INTENT[intent]
+            self.mappings = self.validate_mappings(loaded_mappings)
+        self.supported_slot_values = {
+            intent: {values["value"].casefold(): values["value"]}
+            for intent, values in DEMO_SLOTS.items()
+        } if demo else {}
+        self.audio_player = DashboardAudioPlayer(
+            sample_rate=settings.get("music", {}).get("sample_rate", 22_050),
+            output_device=settings.get("music", {}).get("output_device"),
+        )
+        self.weather_settings = settings.get("weather", {"city": "Manila"})
+        self._weather_thread: threading.Thread | None = None
+        self._seen_utterance_ids: deque[str] = deque(maxlen=256)
+        self._seen_utterance_set: set[str] = set()
         self.data = {
             "mode": "demo" if demo else "microphone",
             "state": "STOPPED",
@@ -125,8 +243,18 @@ class Dashboard:
             "models": {},
             "last_result": None,
             "last_action": None,
-            "counts": {"wake": 0, "accepted": 0, "rejected": 0},
-            "devices": {"light": False, "player": "stopped", "volume": 50, "track": 1},
+            "last_action_status": None,
+            "counts": {"wake": 0, "accepted": 0, "rejected": 0, "duplicates": 0},
+            "devices": {
+                "light": False, "player": "stopped", "volume": 50, "track": 1,
+                "brightness": 60, "color": None, "thermostat_c": 22,
+                "time": None, "call_demo": None, "message_demo": None,
+                "reminders": [], "timers": [], "alarms": [],
+                "weather": {
+                    "status": "idle", "city": self.weather_settings.get("city", "Manila"),
+                    "current": None, "cached_at": None, "error": None,
+                },
+            },
             "supported_intents": list(INTENTS) if demo else [],
         }
         self.process = psutil.Process()
@@ -138,11 +266,17 @@ class Dashboard:
     def validate_mappings(mappings: dict) -> dict:
         if not isinstance(mappings, dict) or set(mappings) != set(INTENTS):
             raise ValueError("Mappings must contain exactly the 19 supported intent names")
-        for value in mappings.values():
+        for intent, value in mappings.items():
             if not isinstance(value, dict) or set(value) != {"enabled", "action"}:
                 raise ValueError("Each mapping requires enabled and action")
-            if type(value["enabled"]) is not bool or value["action"] not in ACTIONS:
-                raise ValueError("Mapping requires a boolean and a listed action")
+            if (
+                type(value["enabled"]) is not bool
+                or value["action"] != DEFAULT_ACTION_BY_INTENT[intent]
+            ):
+                raise ValueError(
+                    f"{intent} must use its canonical dashboard action "
+                    f"{DEFAULT_ACTION_BY_INTENT[intent]!r}"
+                )
         return copy.deepcopy(mappings)
 
     def save_mappings(self, mappings: dict) -> None:
@@ -206,6 +340,12 @@ class Dashboard:
         self.stop()
         if self.worker:
             self.worker.join(timeout=8)
+        try:
+            self.audio_player.stop()
+        except (OSError, RuntimeError, ValueError) as error:
+            LOGGER.warning(
+                "Could not close dashboard audio: error_type=%s", type(error).__name__
+            )
 
     def demo_command(self, intent: str, accepted: bool) -> None:
         with self.lock:
@@ -237,7 +377,7 @@ class Dashboard:
             record = {
                 "id": self.sequence, "at": now(), "state": event.state.value,
                 "message": event.message, "sample_index": event.sample_index,
-                "intent": None, "action": None,
+                "intent": None, "action": None, "action_status": None,
             }
             if not self.stop_requested.is_set():
                 self.data["state"] = event.state.value
@@ -248,38 +388,248 @@ class Dashboard:
                 self.data["last_result"] = {
                     **dataclasses.asdict(result), "actionable_intent": result.actionable_intent,
                 }
-                key = "accepted" if result.accepted else "rejected"
-                self.data["counts"][key] += 1
-                action = self.dispatch(result)
+                utterance_id = event.utterance_id
+                duplicate = bool(
+                    utterance_id and utterance_id in self._seen_utterance_set
+                )
+                if duplicate:
+                    self.data["counts"]["duplicates"] += 1
+                    action = "Skipped · duplicate utterance event"
+                    self.data["last_action_status"] = "duplicate"
+                    log_event(
+                        LOGGER, "dashboard_action_suppressed",
+                        utterance_id=utterance_id, reason="duplicate_utterance",
+                    )
+                else:
+                    if utterance_id:
+                        if len(self._seen_utterance_ids) == self._seen_utterance_ids.maxlen:
+                            expired = self._seen_utterance_ids.popleft()
+                            self._seen_utterance_set.discard(expired)
+                        self._seen_utterance_ids.append(utterance_id)
+                        self._seen_utterance_set.add(utterance_id)
+                    key = "accepted" if result.accepted else "rejected"
+                    self.data["counts"][key] += 1
+                    action = self.dispatch(result)
                 self.data["last_action"] = action
-                record.update(intent=result.actionable_intent, action=action)
+                record.update(
+                    intent=result.actionable_intent, action=action,
+                    action_status=self.data["last_action_status"],
+                )
             self.events.appendleft(record)
             LOGGER.info("pipeline_event=%s", json.dumps(clean_json(record), allow_nan=False))
 
     def dispatch(self, result: CommandResult) -> str:
-        """Dispatch only an accepted, mapped intent to an allowlisted demo action."""
+        """Apply the one canonical local action for an accepted intent."""
         if self.stop_requested.is_set():
-            return "Skipped · pipeline stopping"
+            return self._action_outcome("skipped", "Skipped · pipeline stopping")
         intent = result.actionable_intent
         if intent is None:
-            return "Skipped · command rejected"
+            reason = "system error" if result.system_error else "command rejected"
+            return self._action_outcome("skipped", f"Skipped · {reason}")
+        if intent not in DEFAULT_ACTION_BY_INTENT:
+            return self._action_outcome("failed", "Failed · unknown intent")
         mapping = self.mappings.get(intent)
         if mapping is None or not mapping["enabled"]:
-            return "Skipped · mapping disabled or unavailable"
-        action = mapping["action"]
+            return self._action_outcome(
+                "skipped", "Skipped · mapping disabled or unavailable", intent
+            )
+        if mapping["action"] != DEFAULT_ACTION_BY_INTENT[intent]:
+            return self._action_outcome("failed", "Failed · mapping contract mismatch", intent)
+
+        try:
+            slot_value = self._validated_slot(intent, result.slots)
+            label = self._apply_action(intent, slot_value)
+        except ValueError as error:
+            LOGGER.warning(
+                "Dashboard action failed: intent=%s error_type=%s",
+                intent, type(error).__name__,
+            )
+            return self._action_outcome(
+                "failed", f"Failed · {error}", intent
+            )
+        except (ImportError, OSError, RuntimeError, TypeError) as error:
+            LOGGER.warning(
+                "Dashboard action failed: intent=%s error_type=%s",
+                intent, type(error).__name__,
+            )
+            return self._action_outcome(
+                "failed",
+                "Failed · local action unavailable; check the configured device or service.",
+                intent,
+            )
+        if intent == "weather":
+            # The asynchronous lookup owns the eventual success/failure state.
+            return label
+        return self._action_outcome("success", label, intent)
+
+    def _action_outcome(self, status: str, message: str, intent: str | None = None) -> str:
+        self.data["last_action_status"] = status
+        log_event(
+            LOGGER,
+            "dashboard_action",
+            level=logging.WARNING if status == "failed" else logging.INFO,
+            accepted_intent=intent,
+            reason=status,
+        )
+        return message
+
+    def _validated_slot(self, intent: str, slots) -> str | None:
+        if not isinstance(slots, dict):
+            raise TypeError("invalid slot payload")
+        if intent not in SLOT_REQUIRED:
+            return None
+        if set(slots) != {"value"} or not isinstance(slots.get("value"), str):
+            raise ValueError("required supported slot is missing")
+        value = slots["value"].strip()
+        if not value:
+            raise ValueError("required supported slot is empty")
+        allowed = self.supported_slot_values.get(intent, {})
+        normalized = value.casefold()
+        if not allowed or normalized not in allowed:
+            raise ValueError(
+                f"unsupported or unavailable {intent} slot; "
+                "use a value explicitly supported by the loaded grammar"
+            )
+        return allowed[normalized]
+
+    def _apply_action(self, intent: str, slot_value: str | None) -> str:
         devices = self.data["devices"]
-        if action in {"light_on", "light_off"}:
-            devices["light"] = action == "light_on"
-        elif action in {"play_music", "pause", "stop"}:
-            devices["player"] = {"play_music": "playing", "pause": "paused", "stop": "stopped"}[
-                action
-            ]
-        elif action == "next":
+        if intent == "play_music":
+            if not self.demo and self.settings.get("music", {}).get(
+                "playback_enabled", False
+            ):
+                self.audio_player.play()
+            devices["player"] = "playing"
+        elif intent == "pause":
+            if not self.demo and devices["player"] == "playing":
+                self.audio_player.pause()
+            devices["player"] = "paused"
+        elif intent == "stop":
+            if not self.demo:
+                self.audio_player.stop()
+            devices["player"] = "stopped"
+        elif intent == "next":
             devices["track"] += 1
-        elif action in {"volume_up", "volume_down"}:
-            delta = 10 if action == "volume_up" else -10
-            devices["volume"] = min(100, max(0, devices["volume"] + delta))
-        return ACTIONS[action]
+            if not self.demo and devices["player"] == "playing":
+                self.audio_player.next_track()
+        elif intent in {"volume_up", "volume_down"}:
+            delta = 10 if intent == "volume_up" else -10
+            updated = min(100, max(0, devices["volume"] + delta))
+            if not self.demo and self.settings.get("music", {}).get(
+                "playback_enabled", False
+            ):
+                self.audio_player.set_volume(updated / 100)
+            devices["volume"] = updated
+        elif intent in {"light_on", "light_off"}:
+            devices["light"] = intent == "light_on"
+        elif intent == "brightness":
+            devices["brightness"] = int(
+                slot_value.removesuffix(" percent").removesuffix("%")
+            )
+        elif intent == "color":
+            devices["color"] = slot_value
+        elif intent == "temperature":
+            devices["thermostat_c"] = int(slot_value.removesuffix(" degrees"))
+        elif intent == "time":
+            devices["time"] = datetime.now().astimezone().isoformat()
+        elif intent == "weather":
+            self._start_weather_lookup()
+        elif intent == "call":
+            if not self.demo and self.settings.get("music", {}).get(
+                "playback_enabled", False
+            ):
+                self.audio_player.play_ringtone()
+            devices["call_demo"] = {
+                "message": "Simulated call ringtone · no call was placed",
+                "at": now(),
+            }
+        elif intent == "message":
+            devices["message_demo"] = {
+                "message": "Demo message prepared · not sent",
+                "at": now(),
+            }
+        elif intent == "list_reminders":
+            devices["reminders_viewed_at"] = now()
+        elif intent == "create_reminder":
+            devices["reminders"].append({"text": slot_value, "created_at": now()})
+        elif intent == "timer":
+            seconds = _duration_seconds(slot_value)
+            devices["timers"].append({
+                "seconds": seconds, "ends_at": datetime.now(timezone.utc).timestamp() + seconds,
+                "label": f"Demo timer · {slot_value}",
+            })
+        elif intent == "alarm":
+            alarm_time = _clock_label(slot_value)
+            devices["alarms"].append({"time": alarm_time, "label": "Demo alarm"})
+        else:
+            raise ValueError("unsupported dashboard action")
+        return ACTION_LABELS[intent]
+
+    def _start_weather_lookup(self) -> None:
+        weather = self.data["devices"]["weather"]
+        if weather["status"] == "loading":
+            raise RuntimeError("weather lookup is already in progress")
+        ttl = self.weather_settings.get("cache_ttl_seconds", 900)
+        if weather.get("current") and weather.get("cached_at") and ttl > 0:
+            try:
+                age = (
+                    datetime.now(timezone.utc)
+                    - datetime.fromisoformat(weather["cached_at"])
+                ).total_seconds()
+            except (TypeError, ValueError):
+                age = ttl + 1
+            if 0 <= age < ttl:
+                weather.update(status="cached", error=None)
+                self.data["last_action_status"] = "success"
+                self.data["last_action"] = "Showing recent weather observation"
+                return
+        previous = copy.deepcopy(weather)
+        weather.update(
+            status="loading", city=self.weather_settings["city"], error=None,
+        )
+        self.data["last_action_status"] = "loading"
+        self.data["last_action"] = "Weather lookup started"
+
+        def lookup():
+            try:
+                current = fetch_current_weather(
+                    self.weather_settings["city"],
+                    timeout_seconds=self.weather_settings.get("timeout_seconds", 4.0),
+                )
+            except Exception as error:  # noqa: BLE001 - external service failure becomes UI state
+                with self.lock:
+                    cached = previous.get("current")
+                    weather.update(
+                        status="stale" if cached else "error",
+                        current=cached,
+                        cached_at=previous.get("cached_at"),
+                        error=(
+                            "Weather service unavailable; showing cached observation."
+                            if cached else "Weather service unavailable; check network and city settings."
+                        ),
+                    )
+                    self.data["last_action_status"] = "stale" if cached else "failed"
+                    self.data["last_action"] = weather["error"]
+                LOGGER.warning(
+                    "Weather lookup failed: error_type=%s", type(error).__name__
+                )
+                return
+            with self.lock:
+                weather.update(
+                    status="ready", city=current["city"], current=current,
+                    cached_at=now(), error=None,
+                )
+                self.data["last_action_status"] = "success"
+                self.data["last_action"] = ACTION_LABELS["weather"]
+
+        self._weather_thread = threading.Thread(
+            target=lookup, name="me2-weather", daemon=True
+        )
+        try:
+            self._weather_thread.start()
+        except RuntimeError:
+            self.data["devices"]["weather"] = previous
+            raise
 
     def _run(self) -> None:
         pipeline = None
@@ -293,7 +643,7 @@ class Dashboard:
                 if not hasattr(args, key) or key not in {
                     "stream_chunk_ms", "wake_hop_ms", "pre_roll_ms", "onset_timeout_ms",
                     "minimum_speech_ms", "endpoint_silence_ms", "cooldown_ms",
-                    "speech_rms_threshold",
+                    "speech_rms_threshold", "maximum_command_ms", "queue_chunks",
                 }:
                     raise ValueError(f"Unknown streaming setting: {key}")
                 setattr(args, key, value)
@@ -304,6 +654,12 @@ class Dashboard:
                 grammar = coerce_grammar_entries(vcm_bundle["grammar"])
                 intents = sorted({entry.intent for entry in grammar})
                 examples = [dataclasses.asdict(entry) for entry in grammar]
+                slot_values: dict[str, dict[str, str]] = {}
+                for entry in grammar:
+                    for name, value in entry.slots.items():
+                        slot_values.setdefault(entry.intent, {})[value.casefold()] = value
+                with self.lock:
+                    self.supported_slot_values = slot_values
             else:
                 intents = [label for label in vcm_bundle["labels"] if label != "out_of_scope"]
                 examples = []
@@ -380,7 +736,8 @@ class Dashboard:
             return CommandResult(
                 decoded_text=active["intent"].replace("_", " ") if accepted else "unknown request",
                 intent=active["intent"] if accepted else None,
-                slots={}, variation="", raw_log_score=-1.0, normalized_log_score=-0.1,
+                slots=DEMO_SLOTS.get(active["intent"], {}) if accepted else {},
+                variation="", raw_log_score=-1.0, normalized_log_score=-0.1,
                 candidate_posterior=0.94, margin=0.4, accepted=accepted,
                 rejection_reason=None if accepted else "demo_out_of_scope",
                 model_version="synthetic-demo",
@@ -461,7 +818,9 @@ def make_server(dashboard: Dashboard, port: int = 8765) -> ThreadingHTTPServer:
                 except Exception as error:
                     LOGGER.exception("Could not enumerate audio input devices")
                     self.reply(503, {"error": str(error)})
-            elif self.path in {"/", "/dashboard.css", "/dashboard.js"}:
+            elif self.path in {
+                "/", "/dashboard.css", "/dashboard-actions.css", "/dashboard.js"
+            }:
                 name = "index.html" if self.path == "/" else self.path[1:]
                 kind = {"html": "text/html", "css": "text/css", "js": "text/javascript"}[
                     name.rsplit(".", 1)[1]

@@ -1,0 +1,4 @@
+.action-grid{margin:20px 0}
+.action-grid article>p{margin:7px 0;color:var(--muted);font-size:12px;line-height:1.7}
+.action-list{margin:10px 0;padding:0;list-style:none;color:var(--muted);font-size:11px;line-height:1.8}
+.device-widgets>div{min-width:120px}

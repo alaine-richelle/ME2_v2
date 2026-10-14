@@ -3,6 +3,16 @@
   "vcm_model": "../vcm/models/vcm_ctc_model.me2",
   "mappings_file": "../dashboard-state/mappings.json",
   "input_device": null,
+  "weather": {
+    "city": "Manila",
+    "timeout_seconds": 4.0,
+    "cache_ttl_seconds": 900
+  },
+  "music": {
+    "playback_enabled": true,
+    "sample_rate": 22050,
+    "output_device": null
+  },
   "streaming": {
     "stream_chunk_ms": 100,
     "wake_hop_ms": 250,
@@ -10,7 +20,9 @@
     "onset_timeout_ms": 1000,
     "minimum_speech_ms": 250,
     "endpoint_silence_ms": 500,
+    "maximum_command_ms": 0,
     "cooldown_ms": 1000,
-    "speech_rms_threshold": 0.008
+    "speech_rms_threshold": 0.008,
+    "queue_chunks": 32
   }
 }

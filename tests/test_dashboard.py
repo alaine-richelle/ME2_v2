@@ -10,7 +10,15 @@ from urllib.request import Request, urlopen
 import numpy as np
 import pytest
 
-from me2.dashboard import Dashboard, load_settings, make_server
+from me2.dashboard import (
+    ACTIONS,
+    DEFAULT_ACTION_BY_INTENT,
+    DEMO_SLOTS,
+    INTENTS,
+    Dashboard,
+    load_settings,
+    make_server,
+)
 from me2.streaming import (
     PipelineEvent,
     PipelineState,
@@ -50,6 +58,65 @@ def test_rejected_diagnostic_intent_never_dispatches(dashboard):
     json.dumps(data, allow_nan=False)
 
 
+@pytest.mark.parametrize("intent", INTENTS)
+def test_every_canonical_intent_has_one_accepted_local_action(dashboard, intent, monkeypatch):
+    monkeypatch.setattr(dashboard, "_start_weather_lookup", lambda: None)
+    command = result(intent=intent, slots=DEMO_SLOTS.get(intent, {}))
+    action = dashboard.dispatch(command)
+    assert action == ACTIONS[intent]
+    assert dashboard.data["last_action_status"] == ("success" if intent != "weather" else None)
+    assert dashboard.mappings[intent]["action"] == DEFAULT_ACTION_BY_INTENT[intent]
+
+
+def test_slot_dependent_action_rejects_missing_or_unsupported_value_without_mutation(dashboard):
+    before = dict(dashboard.data["devices"])
+    missing = dashboard.dispatch(result(intent="color", slots={}))
+    assert "required supported slot is missing" in missing
+    assert dashboard.data["devices"] == before
+    unsupported = dashboard.dispatch(result(intent="color", slots={"value": "Purple"}))
+    assert "unsupported or unavailable color slot" in unsupported
+    assert dashboard.data["devices"] == before
+    assert dashboard.data["last_action_status"] == "failed"
+
+
+def test_legacy_display_mappings_upgrade_in_memory_but_do_not_rewrite_user_file(tmp_path):
+    path = tmp_path / "mappings.json"
+    mappings = {
+        intent: {"enabled": intent != "weather", "action": "display"}
+        for intent in INTENTS
+    }
+    path.write_text(json.dumps(mappings), encoding="utf-8")
+    dashboard = Dashboard({"mappings_file": path}, demo=True)
+    assert dashboard.mappings["weather"] == {"enabled": False, "action": "weather"}
+    assert json.loads(path.read_text()) == mappings
+
+
+def test_unknown_accepted_intent_fails_closed(dashboard):
+    action = dashboard.dispatch(result(intent="unknown_future_intent"))
+    assert action == "Failed · unknown intent"
+    assert dashboard.data["devices"]["light"] is False
+    assert dashboard.data["last_action_status"] == "failed"
+
+
+def test_live_music_device_failure_does_not_change_dashboard_state(tmp_path):
+    dashboard = Dashboard(
+        {
+            "mappings_file": tmp_path / "mappings.json",
+            "music": {"playback_enabled": True, "sample_rate": 22_050},
+        },
+        demo=False,
+    )
+    dashboard.audio_player.play = lambda: (_ for _ in ()).throw(OSError("device unavailable"))
+    before = dict(dashboard.data["devices"])
+    try:
+        outcome = dashboard.dispatch(result(intent="play_music"))
+        assert "action unavailable" in outcome
+        assert dashboard.data["devices"] == before
+        assert dashboard.data["last_action_status"] == "failed"
+    finally:
+        dashboard.close()
+
+
 def test_mapping_changes_persist_and_disabled_mapping_does_not_act(dashboard):
     mappings = dataclasses.asdict(result())  # Unrelated payload must not replace mappings.
     with pytest.raises(ValueError):
@@ -74,6 +141,89 @@ def test_mappings_reject_unlisted_actions_and_bad_types(dashboard, bad):
     with pytest.raises(ValueError):
         dashboard.save_mappings(mappings)
     assert not dashboard.settings["mappings_file"].exists()
+
+
+def test_mapping_cannot_redirect_intent_to_another_allowlisted_action(dashboard):
+    mappings = json.loads(json.dumps(dashboard.mappings))
+    mappings["light_on"] = {"enabled": True, "action": "light_off"}
+    with pytest.raises(ValueError, match="canonical dashboard action"):
+        dashboard.save_mappings(mappings)
+
+
+def test_duplicate_utterance_id_is_dispatched_once(dashboard):
+    first = PipelineEvent(
+        PipelineState.ACCEPTED_OR_REJECTED, 10, "accepted", result(intent="next"),
+        utterance_id="same-interaction",
+    )
+    dashboard.on_event(first)
+    dashboard.on_event(first)
+    snapshot = dashboard.snapshot()
+    assert snapshot["devices"]["track"] == 2
+    assert snapshot["counts"]["accepted"] == 1
+    assert snapshot["counts"]["duplicates"] == 1
+    assert snapshot["last_action_status"] == "duplicate"
+
+
+def test_weather_success_and_failure_are_visible_and_never_break_dispatch(dashboard, monkeypatch):
+    import me2.dashboard as module
+
+    expected = {
+        "city": "Manila", "condition": "Cloudy", "temperature": 29,
+        "temperature_unit": "°C", "apparent_temperature": 34,
+        "relative_humidity_percent": 78, "observation_time": "2026-10-14T12:00",
+        "timezone": "Asia/Manila", "precipitation": 0.0,
+        "precipitation_unit": "mm", "wind_speed": 4.0, "wind_speed_unit": "km/h",
+        "weather_code": 2, "region": None, "country": "Philippines",
+    }
+    monkeypatch.setattr(module, "fetch_current_weather", lambda city, timeout_seconds: expected)
+    assert "weather" in dashboard.dispatch(result(intent="weather"))
+    await_condition(lambda: dashboard.snapshot()["devices"]["weather"]["status"] == "ready")
+    assert dashboard.snapshot()["devices"]["weather"]["current"] == expected
+    previous = dashboard.snapshot()["devices"]["weather"]["current"]
+
+    dashboard.weather_settings["cache_ttl_seconds"] = 0
+    monkeypatch.setattr(
+        module, "fetch_current_weather",
+        lambda city, timeout_seconds: (_ for _ in ()).throw(RuntimeError("private detail")),
+    )
+    assert "weather" in dashboard.dispatch(result(intent="weather"))
+    await_condition(lambda: dashboard.snapshot()["devices"]["weather"]["status"] == "stale")
+    weather = dashboard.snapshot()["devices"]["weather"]
+    assert weather["current"] == previous
+    assert "cached observation" in weather["error"]
+    assert "private detail" not in json.dumps(weather)
+
+
+def test_weather_failure_without_cache_is_structured_and_nonfatal(dashboard, monkeypatch):
+    import me2.dashboard as module
+
+    monkeypatch.setattr(
+        module, "fetch_current_weather",
+        lambda city, timeout_seconds: (_ for _ in ()).throw(TimeoutError("raw detail")),
+    )
+    dashboard.dispatch(result(intent="weather"))
+    await_condition(lambda: dashboard.snapshot()["devices"]["weather"]["status"] == "error")
+    snapshot = dashboard.snapshot()
+    assert snapshot["last_action_status"] == "failed"
+    assert "check network and city settings" in snapshot["last_action"]
+    assert "raw detail" not in json.dumps(snapshot)
+
+
+def test_local_dashboard_actions_apply_supported_slot_values(dashboard, monkeypatch):
+    monkeypatch.setattr(dashboard, "_start_weather_lookup", lambda: None)
+    dashboard.dispatch(result(intent="brightness", slots={"value": "60"}))
+    dashboard.dispatch(result(intent="color", slots={"value": "Blue"}))
+    dashboard.dispatch(result(intent="temperature", slots={"value": "22"}))
+    dashboard.dispatch(result(intent="timer", slots={"value": "10 seconds"}))
+    dashboard.dispatch(result(intent="alarm", slots={"value": "8:00 AM"}))
+    dashboard.dispatch(result(intent="create_reminder", slots={"value": "Drink water"}))
+    devices = dashboard.snapshot()["devices"]
+    assert devices["brightness"] == 60
+    assert devices["color"] == "Blue"
+    assert devices["thermostat_c"] == 22
+    assert devices["timers"][0]["seconds"] == 10
+    assert devices["alarms"][0]["time"] == "08:00"
+    assert devices["reminders"][0]["text"] == "Drink water"
 
 
 def test_stop_suppresses_a_command_finishing_during_shutdown(dashboard):
@@ -261,8 +411,12 @@ def test_http_assets_and_control_require_local_host_and_token(dashboard):
     base = f"http://127.0.0.1:{server.server_port}"
     try:
         with urlopen(base + "/") as response:
-            assert b"Voice pipeline" in response.read()
+            page = response.read()
+            assert b"Voice pipeline" in page
+            assert b"Atecco" in page
             assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
+        with urlopen(base + "/dashboard-actions.css") as response:
+            assert b".action-grid" in response.read()
         with urlopen(base + "/api/status") as response:
             token = json.load(response)["token"]
         for headers in (

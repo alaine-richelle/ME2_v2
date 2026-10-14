@@ -41,15 +41,7 @@ function renderMappings() {
     enabledCell.append(enabled);
     const name = document.createElement("td"); name.textContent = intent;
     const actionCell = document.createElement("td");
-    const select = document.createElement("select");
-    select.setAttribute("aria-label", `Action for ${intent}`);
-    for (const [id, label] of Object.entries(actions)) {
-      const option = document.createElement("option");
-      option.value = id; option.textContent = label; select.append(option);
-    }
-    select.value = mapping.action;
-    select.addEventListener("change", () => { mapping.action = select.value; text("mapping-feedback", "Unsaved changes"); });
-    actionCell.append(select);
+    actionCell.textContent = actions[mapping.action] || "Unavailable";
     const support = document.createElement("td");
     support.className = "support"; support.dataset.intent = intent;
     row.append(enabledCell, name, actionCell, support); rows.append(row);
@@ -95,7 +87,7 @@ function render(data) {
     text("transcript", result.decoded_text || (result.accepted ? "Intent classifier result" : "No command captured"));
     text("intent", result.actionable_intent || "—");
     text("slots", Object.keys(result.slots).length ? JSON.stringify(result.slots) : "None returned");
-    text("action", data.last_action || "—");
+  text("action", data.last_action ? `${data.last_action_status || "result"} · ${data.last_action}` : "—");
     text("rejection", result.rejection_reason || "—");
     text("decoder", JSON.stringify({
       normalized_log_score: result.normalized_log_score, candidate_posterior: result.candidate_posterior,
@@ -111,6 +103,51 @@ function render(data) {
   text("light-state", data.devices.light ? "Light on" : "Light off");
   text("player-state", `${data.devices.player} · track ${data.devices.track}`);
   text("volume-state", `Volume ${data.devices.volume}%`);
+  text("brightness-state", `Brightness ${data.devices.brightness}%`);
+  text("color-state", `Color ${data.devices.color || "—"}`);
+  text("thermostat-state", `Demo thermostat ${data.devices.thermostat_c}°`);
+  text("time-state", data.devices.time
+    ? `Local time ${new Date(data.devices.time).toLocaleTimeString()}`
+    : "Local time —");
+  const weather = data.devices.weather || {};
+  const weatherStatus = {
+    idle: ["NOT REQUESTED", "badge neutral"],
+    loading: ["LOADING", "badge neutral"],
+    cached: ["CACHED", "badge neutral"],
+    ready: ["CURRENT", "badge"],
+    stale: ["CACHED · STALE", "badge rejected"],
+    error: ["UNAVAILABLE", "badge rejected"],
+  }[weather.status] || ["UNKNOWN", "badge neutral"];
+  text("weather-status", weatherStatus[0]);
+  $("weather-status").className = weatherStatus[1];
+  text("weather-location", `Configured city: ${weather.city || "not configured"}`);
+  const current = weather.current;
+  text("weather-current", current
+    ? `${current.condition} · ${current.temperature}${current.temperature_unit} · feels like ${current.apparent_temperature}${current.temperature_unit} · humidity ${current.relative_humidity_percent}%`
+    : (weather.status === "loading" ? "Fetching a current observation…" : "No current observation available."));
+  text("weather-observed", current
+    ? `Observed ${current.observation_time}${current.timezone ? ` · ${current.timezone}` : ""}${weather.cached_at ? ` · fetched ${new Date(weather.cached_at).toLocaleTimeString()}` : ""}`
+    : (weather.error || "No observation cached."));
+  text("call-state", data.devices.call_demo?.message || "No demo call action.");
+  text("message-state", data.devices.message_demo?.message || "No demo message prepared.");
+  const reminderRows = data.devices.reminders || [];
+  text("reminder-state", reminderRows.length
+    ? `Demo reminders · ${reminderRows.map(item => item.text).join(", ")}${data.devices.reminders_viewed_at ? " · list viewed" : ""}`
+    : "No demo reminders yet.");
+  const renderActionList = (id, rows, empty, formatter) => {
+    const list = $(id); list.replaceChildren();
+    const items = rows.length ? rows : [empty];
+    for (const item of items) {
+      const li = document.createElement("li");
+      if (typeof item === "string") li.textContent = item;
+      else li.textContent = formatter(item);
+      list.append(li);
+    }
+  };
+  renderActionList("timer-list", data.devices.timers || [], "No demo timers.",
+    timer => `${timer.label} · ${Math.max(0, Math.ceil(timer.ends_at - Date.now() / 1000))} sec remaining`);
+  renderActionList("alarm-list", data.devices.alarms || [], "No demo alarms.",
+    alarm => `${alarm.label} · ${alarm.time}`);
   document.querySelectorAll(".support").forEach(el => {
     el.textContent = data.mode === "demo" ? "Demo" : data.supported_intents.includes(el.dataset.intent) ? "In loaded model" : "Not loaded / unavailable";
   });
@@ -150,7 +187,7 @@ $("stop").addEventListener("click", () => command("/api/stop"));
 $("demo-send").addEventListener("click", () => command("/api/demo", {intent: $("demo-intent").value, accepted: true}));
 $("demo-reject").addEventListener("click", () => command("/api/demo", {intent: $("demo-intent").value, accepted: false}));
 $("save-mappings").addEventListener("click", async () => {
-  try { await api("/api/mappings", mappings); text("mapping-feedback", "Mappings saved. New accepted commands use these actions."); showError(null); }
+  try { await api("/api/mappings", mappings); text("mapping-feedback", "Enable/disable settings saved. Canonical actions are fixed."); showError(null); }
   catch (error) { showError(error.message); }
 });
 poll();

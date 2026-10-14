@@ -329,13 +329,24 @@ Try the included dashboard without a microphone:
 python -m me2.dashboard --demo --autostart
 ```
 
-Open `http://127.0.0.1:8765`. The dashboard displays the wake → capture →
-decode → decision → cooldown pipeline, model details, saved command mappings,
-and simulated light/player controls. Demo scores are synthetic. For live
-input, configure `config/dashboard.json` and omit `--demo`; the Pi's
-microphone supplies audio, including when the browser connects through SSH.
-Current wake artifacts are not deployment-ready and are blocked by default.
-The guide documents the explicit supervised engineering override.
+Open `http://127.0.0.1:8765`. The Atecco dashboard displays the wake → capture
+→ decode → decision → cooldown pipeline, model details, all 19 canonical
+intent actions, and local demonstration state for player, light, weather,
+time, reminders, timers, alarms, and simulated call/message actions. Demo
+scores and sample slots are synthetic. Weather uses the configured city and
+an optional network lookup; voice inference remains local. For live input,
+configure `config/dashboard.json` and omit `--demo`; the Pi microphone supplies
+audio, including when the browser connects through SSH. Current wake artifacts
+are not deployment-ready and are blocked by default. The guide documents the
+explicit supervised engineering override.
+
+The three-second onset candidate changes only that capture deadline and keeps
+the baseline's other settings fixed:
+`config/dashboard.natural-pause.json` (dashboard) and
+`config/runtime.onset-3s.json` (CLI). It is not the default until matched
+validation and approved live testing support promotion. The engineer handoff
+prompt is
+[`AI231 ME2/ME2_Voice_Command_Dashboard_Mapping_and_Final_Model_Prompt.md`](AI231%20ME2/ME2_Voice_Command_Dashboard_Mapping_and_Final_Model_Prompt.md).
 
 Install inference-only dependencies on 64-bit Raspberry Pi OS with `pip install
 -e .`; add `.[microphone]` only for live input. Training dependencies are kept

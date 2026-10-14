@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ateko · Voice control</title>
+  <title>Atecco · Voice control</title>
   <link rel="stylesheet" href="/dashboard.css">
+  <link rel="stylesheet" href="/dashboard-actions.css">
   <script src="/dashboard.js" defer></script>
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="#overview"><span class="brand-icon">a</span>ateko<span class="brand-dot">.</span></a>
+    <a class="brand" href="#overview"><span class="brand-icon">A</span>Atecco<span class="brand-dot">.</span></a>
     <p class="eyebrow sidebar-label">EDGE VOICE CONSOLE</p>
     <nav aria-label="Dashboard sections">
       <a href="#overview"><span>01</span> Overview</a>
@@ -24,7 +25,7 @@
   <main>
     <header id="overview">
       <div><p class="eyebrow">WORKSPACE / VOICE CONTROL</p><h1>Wake. Listen. Respond.</h1>
-        <p class="subtitle">One continuous pipeline, from “a-teh-ko” to a mapped action.</p></div>
+        <p class="subtitle">One continuous pipeline, from the connected “a-teh-ko” wake word to a mapped demo action.</p></div>
       <div class="connection"><span id="mode" class="badge">CONNECTING</span><span id="connection">Connecting…</span></div>
     </header>
     <div class="notice" id="notice">Connecting to the local inference service…</div>
@@ -67,21 +68,44 @@
       <div><h2>Try the pipeline</h2><p>Send a synthetic wake + command. These examples exercise the state flow and mappings; they do not measure recognition quality.</p></div>
       <div class="demo-controls"><label class="sr-only" for="demo-intent">Example intent</label><select id="demo-intent"></select><button id="demo-send" type="button">Send example</button><button id="demo-reject" type="button" class="light">Try rejection</button></div>
     </section>
-    <section class="card devices-panel" aria-label="Simulated devices">
-      <div><p class="eyebrow">ACTION PREVIEW</p><h2>Simulated devices</h2><p>Mapped actions update these widgets. No physical device or external service is connected.</p></div>
-      <div class="device-widgets"><div><span class="lamp" id="lamp" aria-hidden="true">◉</span><strong id="light-state">Light off</strong></div><div><span class="music" aria-hidden="true">♫</span><strong id="player-state">Stopped · track 1</strong><span id="volume-state">Volume 50%</span></div></div>
+    <section class="card devices-panel" aria-label="Dashboard action preview">
+      <div><p class="eyebrow">ACTION PREVIEW</p><h2>Local demonstrations</h2><p>Actions update dashboard state only. Calls and messages are never sent; lights and thermostat are not connected to hardware.</p></div>
+      <div class="device-widgets">
+        <div><span class="lamp" id="lamp" aria-hidden="true">◉</span><strong id="light-state">Light off</strong><span id="brightness-state">Brightness 60%</span><span id="color-state">Color —</span></div>
+        <div><span class="music" aria-hidden="true">♫</span><strong id="player-state">Stopped · track 1</strong><span id="volume-state">Volume 50%</span></div>
+        <div><span aria-hidden="true">🌡</span><strong id="thermostat-state">Thermostat 22°</strong><span id="time-state">Local time —</span></div>
+      </div>
+    </section>
+    <section class="overview-grid action-grid">
+      <article class="card">
+        <div class="card-heading"><h2>Weather</h2><span id="weather-status" class="badge neutral">NOT REQUESTED</span></div>
+        <p id="weather-location">Configured city: Manila</p>
+        <p id="weather-current">Say “weather” to request a current observation.</p>
+        <p id="weather-observed" class="fine">No observation cached.</p>
+      </article>
+      <article class="card">
+        <div class="card-heading"><h2>Demo call &amp; message</h2><span class="badge neutral">SIMULATED</span></div>
+        <p id="call-state">No demo call action.</p>
+        <p id="message-state">No demo message prepared.</p>
+        <p id="reminder-state" class="fine">No demo reminders yet.</p>
+      </article>
+      <article class="card">
+        <div class="card-heading"><h2>Timers &amp; alarms</h2><span class="badge neutral">UI ONLY</span></div>
+        <ul id="timer-list" class="action-list"><li>No demo timers.</li></ul>
+        <ul id="alarm-list" class="action-list"><li>No demo alarms.</li></ul>
+      </article>
     </section>
     <section class="card" id="mapping">
       <div class="card-heading"><div><p class="eyebrow">INTENT → ACTION</p><h2>Command mapping</h2></div><button id="save-mappings" type="button" class="light">Save mappings</button></div>
-      <p class="section-description">Choose an allowlisted action for each accepted intent. Rejected commands never dispatch an action. Changes apply after saving.</p>
+      <p class="section-description">Each intent has one canonical local action. You may disable an intent; rejected commands never dispatch, and slot-dependent actions require values explicitly supplied by the loaded grammar.</p>
       <p id="mapping-feedback" role="status" class="fine">Loading mappings…</p>
-      <div class="table-scroll"><table><thead><tr><th scope="col">Enabled</th><th scope="col">Recognized intent</th><th scope="col">Mapped action</th><th scope="col">Model support</th></tr></thead><tbody id="mapping-rows"></tbody></table></div>
+      <div class="table-scroll"><table><thead><tr><th scope="col">Enabled</th><th scope="col">Recognized intent</th><th scope="col">Canonical action</th><th scope="col">Model support</th></tr></thead><tbody id="mapping-rows"></tbody></table></div>
     </section>
     <section class="runtime-grid" id="runtime">
       <article class="card"><div class="card-heading"><h2>Event timeline</h2><span class="badge neutral">LATEST 80</span></div><ol id="events" class="events"><li>No events yet.</li></ol></article>
       <article class="card"><div class="card-heading"><h2>Runtime &amp; models</h2><span class="badge neutral">CPU</span></div><dl class="result-data"><div><dt>Audio device</dt><dd id="input-device">Not selected</dd></div><div><dt>Temperature</dt><dd id="temperature">Unavailable on this host</dd></div></dl><p class="fine">Model paths, hashes, thresholds, and grammar provenance are read from the loaded bundles. Configure them in config/dashboard.json, then restart the server.</p><pre id="models">Models load when microphone listening starts.</pre><details><summary>Supported command phrases &amp; slots</summary><pre id="grammar">No live grammar loaded.</pre></details></article>
     </section>
-    <footer>ateko / ME2 <span>Inference stays on the host. Audio is not sent to this browser.</span></footer>
+    <footer>Atecco / ME2 <span>Inference stays on the host. Audio is not sent to this browser.</span></footer>
   </main>
 </body>
 </html>
