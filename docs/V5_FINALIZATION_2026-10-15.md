@@ -1,0 +1,133 @@
+# V5 finalization record — 2026-10-15
+
+## Release state
+
+This is **final-commit-ready documentation for supervised engineering
+evaluation**, not a production, unattended, or Raspberry Pi deployment
+promotion. The safe dashboard demonstration and automated/offline checks are
+complete. No wake candidate is deployment-ready.
+
+The current Raspberry Pi handoff identifies an Ubuntu 26.04.1 LTS ARM64 target
+with CPython 3.14.4 but no ME2 runtime or model checkout in the inspected
+locations. No Pi command was executed for this finalization. Earlier
+hardware-only or host-file evidence is retained as historical evidence only;
+it is not current Pi model validation. Physical speaker audibility remains
+unconfirmed, Bluetooth was not tested, and there are no Pi inference quality
+or timing measurements for this finalization.
+
+## Retained roles and evidence
+
+| Role | Artifact | SHA-256 | Comparable evidence and disposition |
+|---|---|---|---|
+| Final supervised runtime/trial wake candidate | `wake-word/models/wake_word_v5_regularized_seed43.me2` | `d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222` | Frozen `test` report: 2/3 wake events, 4/48 false accepts, 0.9020 accuracy, 0.6953 macro F1. Higher wake recall than v3, but exceeds the 2/48 false-accept guardrail. Retain only for supervised trials. |
+| Dashboard file-replay fixture | `wake-word/models/wake_word_v3_binary_seed43_r1.me2` | `35ec56088979aea4d16f547dfcda047fac969b8f9d46a60176ee1703d853170b` | Same frozen `test` cohort: 0/3 wake events, 0/48 false accepts, 0.9216 accuracy, 0.6458 macro F1. Keep as the dashboard file fixture; it is not a live-wake candidate. |
+| Command-development model | `vcm/models/vcm_ctc_model.me2` | `b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac` | Matched official `test`: 0.8911 accuracy, 0.8682 macro F1, 20/76 OOS false accepts, 316/4,367 in-scope rejections. Retain for command development, not Pi approval. |
+
+The wake reports are small synthetic clip cohorts (3 positive and 48 negative
+rows, one independent speaker). They do not provide false-activations-per-hour
+or live-stream evidence. The selected CTC uses legacy grammar and an
+uncalibrated acceptance policy. Do not set `deployment_ready=true`, relax
+thresholds, replace the v3 dashboard fixture, or overwrite fallback/baseline
+bundles or protected T01–T13 evidence.
+
+## Frozen supervised profile and rollback
+
+`config/runtime.v5-final-supervised-20261015.json` is the explicit,
+reversible final supervised profile. It has the one-second-onset settings of
+`config/runtime.example.json`, points to v5 and the selected CTC bundle, and
+writes only a distinct runtime log. Its SHA-256 is recorded after local
+verification as
+`9bca207c37b6bea8abb102be38ef876f7a8364c5e7fed4db3e95493c8130105e`.
+It is not a default-path replacement or deployment
+configuration.
+
+Rollback/reference artifacts remain:
+
+- `config/dashboard.json` and `config/dashboard.natural-pause.json` retain
+  the v3 dashboard fixture.
+- `wake-word/models/wake_word_model.me2` remains the legacy fallback.
+- `config/runtime.example.json` remains the generic runtime example.
+
+## Raspberry Pi package compatibility
+
+Publisher artifact metadata was checked on 2026-10-15 using each package's
+PyPI JSON release endpoint and the PyTorch CPU simple index. The exact direct
+candidate set is in `config/requirements.pi5-cp314-aarch64.txt`; it is a
+direct-requirements record, not a transitive lock.
+
+| Dependency | Exact candidate | CPython 3.14 / Linux ARM64 artifact evidence | Pi-side prerequisite or remaining check |
+|---|---|---|---|
+| NumPy | 2.5.4 | `cp314-cp314-manylinux_2_27_aarch64.manylinux_2_28_aarch64` | Target `ldd --version` must satisfy the wheel's glibc baseline. |
+| SciPy | 1.18.1 | `cp314-cp314-manylinux_2_27_aarch64.manylinux_2_28_aarch64` | Same glibc check; do not allow a source build. |
+| SoundFile | 0.14.0 | `py2.py3-none-manylinux_2_28_aarch64` | Verify import and libsndfile availability in the isolated venv. |
+| psutil | 7.2.2 | `cp36-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64`; ABI3 is compatible with CPython 3.14 | Verify import on the target. |
+| sounddevice (microphone extra) | 0.5.6 | `py3-none-any` | A usable PortAudio runtime is still required; verify `sounddevice` import and PortAudio version without opening a stream. |
+| PyTorch CPU | 2.14.1+cpu | `cp314-cp314-manylinux_2_28_aarch64` on the PyTorch CPU index | Verify the target glibc is at least 2.28 and import this CPU wheel in the isolated venv. |
+
+The open-ended project dependency ranges do not themselves guarantee this
+environment. The published artifact check supports these direct pins, but no
+current Pi download, install, import, `pip check`, or `pip freeze` has been
+performed. Stop on a missing wheel, failed import, incompatible glibc, or
+missing PortAudio runtime; do not source-build packages, alter system Python,
+or substitute a different wheel silently.
+
+Publisher references:
+
+- `https://pypi.org/pypi/numpy/2.5.4/json`
+- `https://pypi.org/pypi/scipy/1.18.1/json`
+- `https://pypi.org/pypi/soundfile/0.14.0/json`
+- `https://pypi.org/pypi/psutil/7.2.2/json`
+- `https://pypi.org/pypi/sounddevice/0.5.6/json`
+- `https://download.pytorch.org/whl/cpu/torch/`
+- `https://python-sounddevice.readthedocs.io/en/0.5.6/installation.html`
+
+## Remaining Pi gates — all deferred pending operator approval
+
+1. Obtain explicit approval for a read-only connection; confirm board, ARM64,
+   Python, storage, audio enumeration, and `ldd --version`.
+2. Obtain a separate approval for remote writes and package installation.
+   Transfer a reviewed, disposable subset that includes this frozen config and
+   only the v5/CTC bundles; create an isolated venv.
+3. Run `pip download --only-binary=:all:` and install from the exact
+   requirements file. Record `pip check`, imports, the PortAudio version, and
+   `pip freeze --all`.
+4. Verify the frozen config and all three artifact hashes on the target; run
+   individual v5 wake and CTC file replays, then one supplied-WAV integrated
+   replay. These are deterministic file tests only.
+5. Review the dashboard in `--demo` mode without `--autostart` or listening.
+   The demo uses synthetic inputs and does not establish model or microphone
+   behavior.
+
+Do not run a live microphone, speaker, live dashboard-listening, Bluetooth,
+continuous-stream, telemetry, or deployment-validation session in this
+deadline pass. Those items are deferred, not passed or failed.
+
+Use the approval-separated command forms in
+`PI5_SSH_SAFE_VALIDATION_2026-10-15.md`, substituting only an operator-supplied
+target at execution time. The final Pi commands must use the frozen config,
+verify hashes before replay, and invoke the dashboard only as
+`python -m me2.dashboard --demo` (without `--autostart`).
+
+## Cleanup and completion criteria
+
+The sole finalization cleanup action was removal of
+`tests/test_pi5_telemetry.pyc`, an ignored, untracked, unreferenced generated
+bytecode file. Models, datasets, fixture sources, metrics, predictions, logs,
+reports, historical records, and user work were retained. See
+`CLEANUP_2026-10-06.md` for the verification record.
+
+## Local finalization verification
+
+- The new runtime profile parsed successfully through
+  `me2.runtime_config.load_runtime_defaults`.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src:. .venv/bin/pytest -q -k 'not
+  http_assets_and_control_require_local_host_and_token'` completed with
+  **172 passed, 1 deselected**. The deselected localhost-only test is not
+  counted as passed.
+- `.venv/bin/ruff check src tests` and `git diff --check` passed.
+- No path was staged or committed. Existing unrelated worktree changes remain
+  untouched.
+
+The release remains not deployment-ready until separate comparable wake/OOS
+evidence, calibrated command rejection, approved live Pi trials, sustained
+stream measurements, and physical audio validation meet documented guardrails.

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "runtime": {
+    "threads": 2,
+    "stream_chunk_ms": 100,
+    "wake_hop_ms": 250,
+    "pre_roll_ms": 250,
+    "onset_timeout_ms": 1000,
+    "minimum_speech_ms": 250,
+    "endpoint_silence_ms": 500,
+    "cooldown_ms": 1000,
+    "speech_rms_threshold": 0.008,
+    "queue_chunks": 32
+  },
+  "paths": {
+    "wake_model": "../wake-word/models/wake_word_v5_regularized_seed43.me2",
+    "vcm_model": "../vcm/models/vcm_ctc_model.me2",
+    "log_file": "../logs/v5-final-supervised-runtime.jsonl"
+  }
+}
