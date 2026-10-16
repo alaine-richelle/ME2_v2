@@ -31,19 +31,24 @@ Do not use this laptop guide to claim Pi readiness.
    v5 non-wake. V3 becomes an active fallback only if v5 cannot load or has
    an inference/system fault. The terminal and dashboard show degraded mode
    when that happens.
-5. **Command capture.** A valid wake starts command capture. *Pre-roll*
+5. **Wake acknowledgment.** Only after the smoothed active wake decision,
+   the dashboard displays **“Yes? Listening for your command.”** with a
+   visual pulse. In a future approved Pi session, the same event may request
+   one short wired-speaker chime. It confirms that wake capture began; it
+   does not confirm that a command will be understood.
+6. **Command capture.** A valid wake starts command capture. *Pre-roll*
    keeps sound just before the wake so an immediate command is not clipped.
    The *onset timeout* limits how long the app waits for speech; *endpoint
    silence* ends capture after speech stops; and the duration cap rejects
    longer-than-supported audio instead of silently cutting it.
-6. **CTC command decoding and grammar.** The command model creates character
+7. **CTC command decoding and grammar.** The command model creates character
    probabilities. *CTC* is a method for aligning many sound frames with a
    shorter text sequence. The *grammar* is the approved set of command
    phrases, so uncertain sound is not converted into an arbitrary action.
-7. **Accept or reject.** A command is accepted only when it satisfies the
+8. **Accept or reject.** A command is accepted only when it satisfies the
    decoder and safety policy. Silence, ordinary speech, unsupported phrases,
    and system faults can be rejected safely.
-8. **Dashboard action and cooldown.** An accepted mapped command changes only
+9. **Dashboard action and cooldown.** An accepted mapped command changes only
    local simulated dashboard state. *Cooldown* prevents the same utterance
    from firing repeatedly. Calls, messages, home-device controls, and other
    external actions remain demonstrations only.
@@ -102,6 +107,10 @@ device problem.
 These commands prove only that the model files load and make decisions on
 supplied WAV files. They do not test the microphone, earphones, live
 recognition, or Pi.
+
+The two example WAV paths below are available only in the local working tree;
+they are not Git-tracked Pi fixtures. Do not copy or substitute them for the
+separate Pi replay requirement.
 
 ```sh
 # Primary v5 wake file replay.
@@ -198,7 +207,8 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.dashboard \
 
 Open `http://127.0.0.1:8765`, use only visible demo controls, then stop it
 with `Ctrl-C`. Demo events prove neither microphone recognition nor model
-quality.
+quality. They do show the visual **“Yes? Listening for your command.”** pulse;
+the demo never plays a chime.
 
 Only after the separate microphone and earphone checks, start the supervised
 local dashboard. Open the same local address, use its visible control to
@@ -218,6 +228,31 @@ contact anyone, and no physical device, GPIO, external account, or network
 action is authorized. If recognition fails, record the displayed state and
 redacted log outcome. Never use a dashboard demo event as proof that the
 microphone/model path works.
+
+## Future Raspberry Pi wired-speaker acknowledgment
+
+The Pi dashboard configuration is
+`config/dashboard.pi5-dual-wake.json`. It uses direct ALSA microphone capture
+for headless Pi use, but its acknowledgment chime is deliberately **disabled**
+until the wired speaker is connected and separately approved. This separation
+matters: the chime is a small generated tone sent to ALSA, while wake and
+command recognition are model decisions from microphone audio. Hearing a
+chime proves only that the dashboard received a valid wake decision.
+
+After hardware delivery and explicit approval, on the Pi first list the
+playback devices:
+
+```sh
+aplay -l
+```
+
+Choose the confirmed wired speaker from that list, then edit only the
+`wake_acknowledgement` block in `config/dashboard.pi5-dual-wake.json`: set
+`alsa_device` to the listed `plughw:CARD,DEVICE` value and set `enabled` to
+`true`. Do not guess `plughw:0,0` and do not select Bluetooth or HDMI. The
+dashboard sends no saved audio file and limits each generated 880-Hz chime to
+120 ms. A device failure is non-fatal: the on-screen acknowledgment stays
+visible, command capture continues, and a redacted failure event is logged.
 
 ## How to report a result
 

@@ -62,6 +62,24 @@ function render(data) {
   text("notice", data.notice);
   const [label, detail] = descriptions[data.state] || [data.state, ""];
   text("state", label); text("state-detail", detail);
+  const acknowledgement = data.wake_acknowledgement || {};
+  $("wake-acknowledgement").hidden = !acknowledgement.visible;
+  if (acknowledgement.visible) {
+    text("wake-ack-message", acknowledgement.message || "Yes? Listening for your command.");
+    const role = {
+      v5_primary: "v5 primary wake accepted",
+      v3_fault_fallback: "Degraded mode · v3 fault fallback accepted",
+      synthetic_demo: "Synthetic demo acknowledgement",
+    }[acknowledgement.model_role] || "Wake acknowledgement";
+    const audio = {
+      queued: "wired-speaker chime queued",
+      played: "wired-speaker chime played",
+      failed: "chime unavailable; visual acknowledgement remains active",
+      disabled: "chime disabled",
+      unavailable: "chime unavailable",
+    }[acknowledgement.audio_status] || "chime not requested";
+    text("wake-ack-detail", `${role} · ${audio}`);
+  }
   text("live-label", data.mode === "demo" ? "SIMULATED AUDIO" : (data.running ? "MIC SESSION" : "MIC OFF"));
   document.querySelectorAll("[data-state]").forEach(el => el.classList.toggle("active", el.dataset.state === data.state));
   $("start").disabled = data.running; $("stop").disabled = !data.running || data.stopping;

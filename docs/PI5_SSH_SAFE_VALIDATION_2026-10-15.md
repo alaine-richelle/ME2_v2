@@ -26,6 +26,90 @@ replay, and a visual `python -m me2.dashboard --demo` review without
 telemetry, continuous-stream, and deployment-validation activity are deferred
 at the operator's request. Physical speaker audibility remains unconfirmed.
 
+## 2026-10-16 Git-based Pi direct-model and demo result
+
+This is a **passed direct file/model and demo-dashboard check**, not a live
+recognition, deployment, or release-promotion result. GitHub
+`refs/heads/master` resolved to
+`050f5c34f5f6930fa0a4d79e13fc9202f04c03a5`. That exact commit was checked
+out detached in the new mode-`0700` directory
+`/home/rpiadmin/me2-pi5-20261016-050f5c3`; the older
+`/home/rpiadmin/me2-pi5-20261015` directory was preserved.
+
+The target was Raspberry Pi 5 Model B Rev 1.0 on Ubuntu 26.04.1 LTS,
+`aarch64`, CPython 3.14.4, and glibc 2.43. The isolated venv downloaded only
+binary candidates from `config/requirements.pi5-cp314-aarch64.txt`, installed
+ME2 with dependency resolution disabled, and passed `pip check`. The audited
+runtime versions were NumPy 2.5.4, SciPy 1.18.1, SoundFile 0.14.0, psutil
+7.2.2, sounddevice 0.5.6, and CPU-only PyTorch 2.14.1+cpu. Non-audio imports
+passed.
+
+The final v5 runtime config hash was
+`9bca207c37b6bea8abb102be38ef876f7a8364c5e7fed4db3e95493c8130105e`;
+the dual-wake config hash was
+`f3b6838d64a0db519032561b58cdc2a541b25cb6eb1b08317a171f9e864d6ff6`.
+The v5, v3, and CTC bundle SHA-256 values matched the retained identities in
+the finalization record. `me2.health --require-pi5` loaded all three bundles,
+reported an actual 64-bit Raspberry Pi 5, and returned
+`passed_operator_health_not_deployment_approval`.
+
+Three tracked WAVs were available, all documented cached command-error
+examples rather than approved `ateko` clips. Each CTC replay completed and
+accepted, respectively, `pause`, `next`, and `color`; this reproduces
+command-error-fixture behavior and is not an accuracy claim. V5 and V3 each
+rejected every one of the same command-only clips as a wake event. The
+individual CLI replays and their structured logs are direct file checks only.
+
+| Gate | Outcome | Interpretation |
+| --- | --- | --- |
+| V5 and V3 negative wake replay | Passed: all three command-only fixtures rejected | No false wake was observed on these three non-wake fixtures; this is not a wake-recall measurement. |
+| CTC command-error replay | Passed execution; observed accepted intents recorded | The supplied files are known error examples, so their decisions are diagnostic only. |
+| Positive wake-to-command file replay | Not run | No suitable tracked, approved connected-`ateko` WAV exists in the exact detached revision. |
+| V3 fault-only fallback activation | Not run | It requires a V5 load/inference fault in the continuous pipeline; neither a fault injection nor live stream was authorized. |
+| Headless `sounddevice` import | Deferred live-audio limitation | PortAudio could not initialize because PulseAudio was unavailable in the noninteractive SSH session. No audio-service change, microphone capture, or workaround was attempted. |
+
+The Pi demo dashboard started without `--autostart`, listened only on
+`127.0.0.1:8765`, and returned its local status API with `mode=demo`, no
+loaded recognition models, and no microphone prediction. It was made available
+only through the normal local tunnel:
+
+```sh
+ssh -N -L 8765:127.0.0.1:8765 "$ME2_PI_TARGET"
+```
+
+Pi-local evidence is retained under
+`/home/rpiadmin/me2-pi5-20261016-050f5c3/results/`,
+`logs/`, and `wheel-audit/`, including source identity, binary-wheel manifest,
+`pip freeze --all`, import limitation, health reports, direct replay summaries,
+redacted JSONL logs, and dashboard status responses. These generated files are
+not source changes and were not pushed.
+
+## Wake acknowledgment implementation — pending a new reviewed Pi revision
+
+The direct Pi result above predates the dashboard wake-acknowledgment source
+change. It remains valid only for the cited detached commit and does not
+verify this new feature. Before a Pi review, commit and push the reviewed
+change, then clone that exact new commit into a fresh detached run directory;
+do not overwrite the existing evidence directory.
+
+`config/dashboard.pi5-dual-wake.json` is the versioned Pi profile for the
+feature. It uses the direct `arecord` ALSA microphone backend to avoid the
+headless SSH PulseAudio limitation. Its `wake_acknowledgement` chime is
+disabled by default. A valid smoothed v5 wake, or a v3 wake only while v5 has
+a load/inference fault, produces the visible **“Yes? Listening for your
+command.”** pulse and starts normal command capture. A healthy v5/v3
+disagreement, rejected wake, duplicate event, and system failure do not
+acknowledge or chime.
+
+When the wired speaker is physically available and an operator separately
+approves live playback, run `aplay -l`, select the confirmed wired
+`plughw:CARD,DEVICE` entry, then set that exact value plus `"enabled": true`
+in the profile. Do not infer the device from card number, use Bluetooth/HDMI,
+or enable it as part of the file-only deadline check. The chime is generated
+in memory and sent to `aplay` with argument-list execution, a short timeout,
+and no saved audio. Playback failure is non-fatal and is logged only as the
+redacted `acknowledgement_audio_failed` event.
+
 ## Status and release decision
 
 The operator supplied the reachable target and authorized a read-only
@@ -498,6 +582,101 @@ Use actual independently reviewed fixtures on the Pi; the laptop example
 fixtures are not a substitute. Confirm the app reports the expected resolved
 artifact paths/hashes. File replay does not exercise a microphone, dashboard
 speaker, continuous wake smoothing, command onset, or endpoint latency.
+
+## Approved Pi venv, deterministic replays, and dashboard tunnel
+
+The following commands are an **expected future procedure**, not a record of
+commands run during this finalization. Run them only after the separate Pi
+write/package approval, remote/ref/SHA confirmation, detached checkout, and
+source-identity record in the preceding section. They do not authorize a
+microphone, speaker, Bluetooth, live dashboard listener, or external action.
+
+From the detached Pi checkout, create an isolated venv. Download only binary
+packages using the audited CPython-3.14/Linux-ARM64 candidate record, install
+them from that local wheel directory, then install the checkout without asking
+the package resolver for additional dependencies:
+
+```sh
+cd "$ME2_PI_RUN"
+mkdir -p wheel-audit logs results
+python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip download --only-binary=:all: \
+  --dest wheel-audit -r config/requirements.pi5-cp314-aarch64.txt
+.venv/bin/python -m pip install --no-index --find-links wheel-audit \
+  -r config/requirements.pi5-cp314-aarch64.txt
+.venv/bin/python -m pip install --no-deps -e .
+.venv/bin/python -m pip check
+.venv/bin/python -c \
+  'import numpy, psutil, scipy, sounddevice, soundfile, torch; print(torch.__version__)'
+.venv/bin/python -m pip freeze --all > "results/pi5-pip-freeze-$ME2_RUN_ID.txt"
+```
+
+Stop on a missing ARM64 CPython-3.14 wheel, a source-build attempt, failed
+import, failed `pip check`, or an incompatible target runtime. The
+requirements record is a direct-candidate record, not a complete transitive
+lock; retain the wheel filenames, package output, and `pip freeze --all` in
+the approved run evidence.
+
+Before a deterministic replay, obtain independently reviewed WAV paths that
+are present in the detached checkout or in an explicitly approved published
+artifact source. The current repository tracks the frozen V5 config and v5/CTC
+bundles, but it does not track an approved replay WAV. Do not substitute a
+file from the local development working tree.
+
+```sh
+export ME2_WAKE_WAV='APPROVED_CONNECTED_WAKE_WAV'
+export ME2_COMMAND_WAV='APPROVED_SUPPORTED_COMMAND_WAV'
+
+test -f "$ME2_WAKE_WAV"
+test -f "$ME2_COMMAND_WAV"
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.health \
+  --require-pi5 --config config/runtime.v5-final-supervised-20261015.json \
+  --output "results/pi5-health-$ME2_RUN_ID.json"
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
+  --wake-word --config config/runtime.v5-final-supervised-20261015.json \
+  --audio "$ME2_WAKE_WAV" --allow-unverified-wake-model \
+  --log-file "logs/pi5-v5-wake-replay-$ME2_RUN_ID.jsonl"
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
+  --vcm --config config/runtime.v5-final-supervised-20261015.json \
+  --audio "$ME2_COMMAND_WAV" \
+  --log-file "logs/pi5-vcm-replay-$ME2_RUN_ID.jsonl"
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
+  --interactive --config config/runtime.v5-final-supervised-20261015.json \
+  --wake-audio "$ME2_WAKE_WAV" --command-audio "$ME2_COMMAND_WAV" \
+  --threads 2 --allow-unverified-wake-model \
+  --log-file "logs/pi5-integrated-replay-$ME2_RUN_ID.jsonl"
+```
+
+The V5 override permits a controlled engineering replay only; it does not
+change its `deployment_ready=false` status. Stop and preserve the explicit
+rejection/error output when a replay fails. A successful supplied-WAV replay
+does not establish microphone, speaker, continuous-stream, or deployment
+behavior.
+
+For the visual dashboard check, run the demo server on the Pi only and leave
+it bound to Pi loopback. In a separate local terminal, the operator may open
+the SSH tunnel after approving the connection:
+
+```sh
+# On the Pi, from $ME2_PI_RUN:
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.dashboard \
+  --demo --port 8765 --threads 2 \
+  --log-file "logs/pi5-dashboard-demo-$ME2_RUN_ID.log"
+
+# On the operator's local machine, in a separate terminal:
+ssh -N -L 8765:127.0.0.1:8765 "$ME2_PI_TARGET"
+```
+
+Open `http://127.0.0.1:8765` only after the tunnel is established. Demo mode
+uses synthetic state, does not load the microphone or recognition models, and
+must not be started with `--autostart`. Stop the Pi demo and the tunnel with
+`Ctrl-C`. The dashboard's call, message, device, and playback controls remain
+local simulations during this review.
 
 ## Approved live run and telemetry
 

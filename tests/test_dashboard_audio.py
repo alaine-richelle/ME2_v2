@@ -1,9 +1,10 @@
+import subprocess
 import sys
 from types import SimpleNamespace
 
 import numpy as np
 
-from me2.dashboard_audio import DashboardAudioPlayer
+from me2.dashboard_audio import DashboardAudioPlayer, WakeChimePlayer
 
 
 def test_generated_sample_and_ringtone_are_finite_and_bounded():
@@ -70,3 +71,47 @@ def test_audio_stream_is_lazy_and_closed_on_stop(monkeypatch):
     player.pause()
     player.stop()
     assert streams[0].stopped and streams[0].closed
+
+
+def test_wake_chime_uses_generated_pcm_with_bounded_alsa_process(monkeypatch):
+    calls, completed = [], []
+
+    def run(command, **kwargs):
+        calls.append((command, kwargs))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr("me2.dashboard_audio.shutil.which", lambda name: None)
+    player = WakeChimePlayer(
+        enabled=True,
+        alsa_device="plughw:CARD=USB,DEV=0",
+        duration_ms=120,
+        frequency_hz=880,
+        volume=0.12,
+        on_complete=lambda status, error_type: completed.append((status, error_type)),
+    )
+    player._play()
+    command, kwargs = calls[0]
+    assert command[:5] == ["aplay", "-q", "-D", "plughw:CARD=USB,DEV=0", "-t"]
+    assert command[-8:] == ["raw", "-f", "S16_LE", "-r", "48000", "-c", "1", "-"]
+    assert isinstance(kwargs["input"], bytes) and kwargs["input"]
+    assert kwargs["timeout"] <= 2.0
+    assert kwargs["check"] is True
+    assert completed == [("played", None)]
+
+
+def test_wake_chime_failure_is_reported_without_raising(monkeypatch):
+    completed = []
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            subprocess.CalledProcessError(1, ["aplay"])
+        ),
+    )
+    player = WakeChimePlayer(
+        enabled=True, alsa_device="default", duration_ms=20, frequency_hz=200,
+        volume=0.01, on_complete=lambda status, error_type: completed.append((status, error_type)),
+    )
+    player._play()
+    assert completed == [("failed", "CalledProcessError")]

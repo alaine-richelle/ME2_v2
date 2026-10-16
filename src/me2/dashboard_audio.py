@@ -1,10 +1,102 @@
-"""Optional, small synthesized sample player for local dashboard demonstrations."""
+"""Optional, bounded audio feedback for the local dashboard."""
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 import threading
+from collections.abc import Callable
 
 import numpy as np
+
+
+class WakeChimePlayer:
+    """Play one short generated acknowledgement tone through ALSA, asynchronously."""
+
+    def __init__(
+        self,
+        *,
+        enabled: bool,
+        alsa_device: str,
+        duration_ms: int,
+        frequency_hz: int,
+        volume: float,
+        sample_rate: int = 48_000,
+        on_complete: Callable[[str, str | None], None] | None = None,
+    ) -> None:
+        self.enabled = enabled
+        self.alsa_device = alsa_device
+        self.duration_ms = duration_ms
+        self.frequency_hz = frequency_hz
+        self.volume = volume
+        self.sample_rate = sample_rate
+        self.on_complete = on_complete
+        self._lock = threading.Lock()
+        self._active = False
+
+    def request(self) -> bool:
+        """Queue one chime, returning false if disabled or one is already active."""
+        if not self.enabled:
+            return False
+        with self._lock:
+            if self._active:
+                return False
+            self._active = True
+        try:
+            threading.Thread(
+                target=self._play, name="me2-wake-chime", daemon=True
+            ).start()
+        except RuntimeError:
+            with self._lock:
+                self._active = False
+            self._notify("failed", "RuntimeError")
+            return False
+        return True
+
+    def _render_pcm(self) -> bytes:
+        count = round(self.sample_rate * self.duration_ms / 1000)
+        times = np.arange(count, dtype=np.float32) / self.sample_rate
+        envelope = np.minimum(1.0, times / 0.006) * np.minimum(
+            1.0, (self.duration_ms / 1000 - times) / 0.012
+        )
+        waveform = self.volume * np.sin(2 * np.pi * self.frequency_hz * times) * envelope
+        return np.round(np.clip(waveform, -1.0, 1.0) * 32767).astype("<i2").tobytes()
+
+    def _play(self) -> None:
+        status, error_type = "played", None
+        try:
+            subprocess.run(
+                [
+                    shutil.which("aplay") or "aplay",
+                    "-q",
+                    "-D",
+                    self.alsa_device,
+                    "-t",
+                    "raw",
+                    "-f",
+                    "S16_LE",
+                    "-r",
+                    str(self.sample_rate),
+                    "-c",
+                    "1",
+                    "-",
+                ],
+                input=self._render_pcm(),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True,
+                timeout=min(2.0, self.duration_ms / 1000 + 0.75),
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            status, error_type = "failed", type(error).__name__
+        finally:
+            with self._lock:
+                self._active = False
+        self._notify(status, error_type)
+
+    def _notify(self, status: str, error_type: str | None) -> None:
+        if self.on_complete is not None:
+            self.on_complete(status, error_type)
 
 
 class DashboardAudioPlayer:

@@ -7,13 +7,12 @@ evaluation**, not a production, unattended, or Raspberry Pi deployment
 promotion. The safe dashboard demonstration and automated/offline checks are
 complete. No wake candidate is deployment-ready.
 
-The current Raspberry Pi handoff identifies an Ubuntu 26.04.1 LTS ARM64 target
-with CPython 3.14.4 but no ME2 runtime or model checkout in the inspected
-locations. No Pi command was executed for this finalization. Earlier
-hardware-only or host-file evidence is retained as historical evidence only;
-it is not current Pi model validation. Physical speaker audibility remains
-unconfirmed, Bluetooth was not tested, and there are no Pi inference quality
-or timing measurements for this finalization.
+The 2026-10-15 Raspberry Pi handoff identified an Ubuntu 26.04.1 LTS ARM64
+target with CPython 3.14.4, but did not itself run a current Git-based model
+validation. A subsequent, exact-commit Pi direct-model and demo check is
+recorded below. Earlier hardware-only or host-file evidence remains historical
+evidence only. Physical speaker audibility remains unconfirmed, Bluetooth was
+not tested, and there are no Pi live-inference quality or timing measurements.
 
 ## Retained roles and evidence
 
@@ -29,6 +28,33 @@ or live-stream evidence. The selected CTC uses legacy grammar and an
 uncalibrated acceptance policy. Do not set `deployment_ready=true`, relax
 thresholds, replace the v3 dashboard fixture, or overwrite fallback/baseline
 bundles or protected T01–T13 evidence.
+
+## 2026-10-16 wake training-readiness check
+
+No wake candidate was trained, calibrated, evaluated, promoted, or written in
+this follow-up. The current frozen v3 and v5 manifests passed structural
+integrity, file, and split-leakage checks, but both failed the required review
+gate:
+
+| Frozen manifest | Rows | Approved connected positives | Speech-review coverage | Valid for approved training |
+| --- | ---: | ---: | ---: | --- |
+| `wake-word/data/v3/synthetic/manifest.csv` | 408 | 0 | 0% | No |
+| `wake-word/data/v5/command-negatives/manifest.csv` | 826 | 0 | 0% | No |
+
+All 24 v3 positives and all 50 v5 positives remain pending connected-delivery
+and pronunciation review. The v5 manifest includes 116 non-synthetic
+command-negative speakers, but those negatives do not supply reviewed
+connected-wake evidence. Since there are no trainable approved positives,
+`valid_for_training=false` for both manifests. Their frozen assignments,
+thresholds, v5/v3 bundles, calibration/test partitions, metrics, and
+provenance remain unchanged.
+
+The next compliant training attempt requires independently reviewed
+complete-`a-teh-ko` positives, explicit accepted connected-delivery status,
+and a preserved partition plan. Only then may a new versioned candidate be
+trained, selected on validation, calibrated on calibration, and read-only
+evaluated on the frozen test partition. It must remain unpromoted unless it
+meets every comparable rejection, compatibility, and deployment guardrail.
 
 ## Frozen supervised profile and rollback
 
@@ -73,11 +99,42 @@ direct-requirements record, not a transitive lock.
 | PyTorch CPU | 2.14.1+cpu | `cp314-cp314-manylinux_2_28_aarch64` on the PyTorch CPU index | Verify the target glibc is at least 2.28 and import this CPU wheel in the isolated venv. |
 
 The open-ended project dependency ranges do not themselves guarantee this
-environment. The published artifact check supports these direct pins, but no
-current Pi download, install, import, `pip check`, or `pip freeze` has been
-performed. Stop on a missing wheel, failed import, incompatible glibc, or
-missing PortAudio runtime; do not source-build packages, alter system Python,
-or substitute a different wheel silently.
+environment. The published artifact check supports these direct pins. The
+2026-10-16 direct Pi check completed a binary-only download and isolated
+installation at the exact Git revision, with `pip check`, non-audio imports,
+and `pip freeze --all` retained in its Pi-local evidence. Do not source-build
+packages, alter system Python, or substitute a different wheel silently.
+
+## 2026-10-16 measured Pi direct check
+
+GitHub `master` resolved to
+`050f5c34f5f6930fa0a4d79e13fc9202f04c03a5`, which was checked out detached
+in `/home/rpiadmin/me2-pi5-20261016-050f5c3` without modifying the prior Pi
+checkout. The target was a real 64-bit Raspberry Pi 5 on Ubuntu 26.04.1 LTS,
+glibc 2.43, and CPython 3.14.4. The direct pinned package set installed from
+binary wheels only; `pip check` and NumPy, SciPy, SoundFile, psutil, and Torch
+imports passed.
+
+The dual-wake health check loaded the v5 primary, v3 diagnostic/fault fallback,
+and CTC bundle with their recorded SHA-256 identities, returning
+`passed_operator_health_not_deployment_approval`. Three tracked cached
+command-error WAVs completed CTC replay and V5/V3 non-wake checks. CTC
+accepted `pause`, `next`, and `color`; V5 and V3 rejected each clip as a wake
+event. Those fixtures are diagnostic error examples, not a held-out accuracy
+evaluation.
+
+No tracked approved connected-`ateko` WAV was available, so the positive
+wake-to-command replay was not run. V3 fault-only activation was also not run:
+it requires a V5 load/inference fault in the continuous pipeline, and no
+fault injection or live stream was authorized. In a headless SSH session,
+`sounddevice` could not initialize PortAudio because PulseAudio was absent;
+this is a deferred live-audio limitation, not an offline model/demo blocker.
+
+The loopback-only `me2.dashboard --demo` server returned its local API status
+and was exposed only by an SSH local forward. Demo mode loaded no microphone or
+recognition models. The exact Pi evidence remains under
+`/home/rpiadmin/me2-pi5-20261016-050f5c3/results/`, `logs/`, and
+`wheel-audit/`; it was not pushed and does not change deployment status.
 
 Publisher references:
 
@@ -104,9 +161,11 @@ Publisher references:
    fixtures must be available from that reviewed revision or an explicitly
    approved published artifact source; otherwise stop rather than copying
    untracked local files. Create an isolated venv only after this gate.
-3. Run `pip download --only-binary=:all:` and install from the exact
-   requirements file. Record `pip check`, imports, the PortAudio version, and
-   `pip freeze --all`.
+3. Run `pip download --only-binary=:all:` and install only the direct,
+   CPython-3.14/Linux-ARM64 candidates in
+   `config/requirements.pi5-cp314-aarch64.txt`. Install ME2 itself with
+   `--no-deps` after those candidates are verified. Record `pip check`,
+   imports, the PortAudio version, and `pip freeze --all`.
 4. Verify the frozen config and all three artifact hashes on the target; run
    individual v5 wake and CTC file replays, then one supplied-WAV integrated
    replay. These are deterministic file tests only.

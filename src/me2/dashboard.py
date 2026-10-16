@@ -31,7 +31,7 @@ from me2.app import (
     load_wake_pair,
 )
 from me2.app import build_parser as inference_parser
-from me2.dashboard_audio import DashboardAudioPlayer
+from me2.dashboard_audio import DashboardAudioPlayer, WakeChimePlayer
 from me2.logging_utils import configure_logging, log_event
 from me2.streaming import (
     PipelineEvent,
@@ -86,6 +86,8 @@ DEMO_SLOTS = {
     "create_reminder": {"value": "Drink water"},
 }
 SLOT_REQUIRED = frozenset(DEMO_SLOTS)
+_ALSA_DEVICE = re.compile(r"^[A-Za-z0-9_.:,=-]{1,120}$")
+_ACK_MESSAGE = "Yes? Listening for your command."
 
 
 def clean_json(value):
@@ -145,6 +147,10 @@ def _clock_label(value: str | None) -> str:
 
 def load_settings(path: Path) -> dict:
     config = json.loads(path.read_text(encoding="utf-8"))
+    schema_version = config.get("schema_version", 1)
+    if type(schema_version) is not int or schema_version != 1:
+        raise ValueError("dashboard schema_version must be 1")
+    config["schema_version"] = schema_version
     for key in ("wake_model", "vcm_model", "mappings_file"):
         value = Path(config[key]).expanduser()
         config[key] = value if value.is_absolute() else (path.parent / value).resolve()
@@ -183,6 +189,56 @@ def load_settings(path: Path) -> dict:
         raise TypeError("music.output_device must be a device index, name, or null")
     if isinstance(output_device, str) and output_device.isdecimal():
         config["music"]["output_device"] = int(output_device)
+    audio_backend = config.get("audio_backend", "sounddevice")
+    if audio_backend not in {"sounddevice", "arecord"}:
+        raise ValueError("audio_backend must be 'sounddevice' or 'arecord'")
+    config["audio_backend"] = audio_backend
+    alsa_device = config.get("alsa_device", "default")
+    if not isinstance(alsa_device, str) or not _ALSA_DEVICE.fullmatch(alsa_device):
+        raise ValueError("alsa_device must be a supported ALSA device identifier")
+    config["alsa_device"] = alsa_device
+    acknowledgement = config.setdefault("wake_acknowledgement", {})
+    if not isinstance(acknowledgement, dict):
+        raise TypeError("wake_acknowledgement must be a JSON object")
+    allowed_acknowledgement = {
+        "enabled", "backend", "alsa_device", "duration_ms", "frequency_hz",
+        "volume", "sample_rate",
+    }
+    unknown = set(acknowledgement) - allowed_acknowledgement
+    if unknown:
+        raise ValueError(
+            f"unsupported wake_acknowledgement setting: {min(unknown)}"
+        )
+    acknowledgement.setdefault("enabled", False)
+    acknowledgement.setdefault("backend", "alsa")
+    acknowledgement.setdefault("alsa_device", "default")
+    acknowledgement.setdefault("duration_ms", 120)
+    acknowledgement.setdefault("frequency_hz", 880)
+    acknowledgement.setdefault("volume", 0.12)
+    acknowledgement.setdefault("sample_rate", 48_000)
+    if type(acknowledgement["enabled"]) is not bool:
+        raise ValueError("wake_acknowledgement.enabled must be boolean")
+    if acknowledgement["backend"] != "alsa":
+        raise ValueError("wake_acknowledgement.backend must be 'alsa'")
+    if (
+        not isinstance(acknowledgement["alsa_device"], str)
+        or not _ALSA_DEVICE.fullmatch(acknowledgement["alsa_device"])
+    ):
+        raise ValueError(
+            "wake_acknowledgement.alsa_device must be a supported ALSA device identifier"
+        )
+    for key, lower, upper in (
+        ("duration_ms", 20, 500),
+        ("frequency_hz", 200, 4_000),
+        ("sample_rate", 8_000, 48_000),
+    ):
+        value = acknowledgement[key]
+        if type(value) is not int or not lower <= value <= upper:
+            raise ValueError(f"wake_acknowledgement.{key} must be in [{lower}, {upper}]")
+    volume = acknowledgement["volume"]
+    if type(volume) not in (int, float) or not 0.01 <= float(volume) <= 0.5:
+        raise ValueError("wake_acknowledgement.volume must be in [0.01, 0.5]")
+    acknowledgement["volume"] = float(volume)
     device = config.get("input_device")
     if isinstance(device, str) and device.isdecimal():
         device = int(device)
@@ -229,10 +285,22 @@ class Dashboard:
             sample_rate=settings.get("music", {}).get("sample_rate", 22_050),
             output_device=settings.get("music", {}).get("output_device"),
         )
+        acknowledgement = settings.get("wake_acknowledgement", {})
+        self.wake_chime = WakeChimePlayer(
+            enabled=bool(acknowledgement.get("enabled", False)),
+            alsa_device=acknowledgement.get("alsa_device", "default"),
+            duration_ms=acknowledgement.get("duration_ms", 120),
+            frequency_hz=acknowledgement.get("frequency_hz", 880),
+            volume=float(acknowledgement.get("volume", 0.12)),
+            sample_rate=acknowledgement.get("sample_rate", 48_000),
+            on_complete=self._on_chime_complete,
+        )
         self.weather_settings = settings.get("weather", {"city": "Manila"})
         self._weather_thread: threading.Thread | None = None
         self._seen_utterance_ids: deque[str] = deque(maxlen=256)
         self._seen_utterance_set: set[str] = set()
+        self._acknowledged_utterance_ids: deque[str] = deque(maxlen=256)
+        self._acknowledged_utterance_set: set[str] = set()
         self.data = {
             "mode": "demo" if demo else "microphone",
             "state": "STOPPED",
@@ -246,6 +314,7 @@ class Dashboard:
             "device": settings.get("input_device"),
             "rms": 0.0,
             "wake": None,
+            "wake_acknowledgement": self._hidden_acknowledgement(),
             "wake_policy": {
                 "primary_role": "v5_primary",
                 "fallback_role": (
@@ -276,6 +345,72 @@ class Dashboard:
         self.process.cpu_percent()
         self.metrics_at = 0.0
         self.metrics: dict = {}
+
+    def _hidden_acknowledgement(self) -> dict:
+        return {
+            "visible": False,
+            "message": _ACK_MESSAGE,
+            "timestamp": None,
+            "model_role": None,
+            "audio_status": (
+                "disabled" if not self.wake_chime.enabled else "not_requested"
+            ),
+        }
+
+    def _clear_acknowledgement(self) -> None:
+        self.data["wake_acknowledgement"] = self._hidden_acknowledgement()
+
+    def _on_chime_complete(self, status: str, error_type: str | None) -> None:
+        with self.lock:
+            acknowledgement = self.data["wake_acknowledgement"]
+            if acknowledgement["visible"] and acknowledgement["audio_status"] == "queued":
+                acknowledgement["audio_status"] = status
+        if status == "failed":
+            log_event(
+                LOGGER,
+                "acknowledgement_audio_failed",
+                level=logging.WARNING,
+                reason="acknowledgement_audio_failed",
+                error_type=error_type,
+            )
+
+    def _remember_acknowledgement(self, utterance_id: str) -> bool:
+        if utterance_id in self._acknowledged_utterance_set:
+            return False
+        if len(self._acknowledged_utterance_ids) == self._acknowledged_utterance_ids.maxlen:
+            expired = self._acknowledged_utterance_ids.popleft()
+            self._acknowledged_utterance_set.discard(expired)
+        self._acknowledged_utterance_ids.append(utterance_id)
+        self._acknowledged_utterance_set.add(utterance_id)
+        return True
+
+    def _acknowledge_wake(self, event: PipelineEvent) -> None:
+        policy = self.data["wake_policy"]
+        if self.demo:
+            model_role = "synthetic_demo"
+        elif policy.get("mode") == "primary" and policy.get("primary_status") == "ready":
+            model_role = "v5_primary"
+        elif (
+            policy.get("mode") == "fallback_active"
+            and policy.get("primary_status") in {"load_failed", "inference_failed"}
+            and policy.get("fallback_status") == "ready"
+        ):
+            model_role = "v3_fault_fallback"
+        else:
+            return
+        if not event.utterance_id or not self._remember_acknowledgement(event.utterance_id):
+            return
+        self.data["wake_acknowledgement"] = {
+            "visible": True,
+            "message": _ACK_MESSAGE,
+            "timestamp": now(),
+            "model_role": model_role,
+            "audio_status": (
+                "queued" if not self.demo and self.wake_chime.enabled else "disabled"
+            ),
+        }
+        if not self.demo and self.wake_chime.enabled and not self.wake_chime.request():
+            self.data["wake_acknowledgement"]["audio_status"] = "unavailable"
 
     @staticmethod
     def validate_mappings(mappings: dict) -> dict:
@@ -341,6 +476,7 @@ class Dashboard:
                 running=True, stopping=False, state="STARTING", error=None,
                 wake=None, last_result=None, last_action=None, rms=0.0,
             )
+            self._clear_acknowledgement()
             self.worker = threading.Thread(target=self._run, name="me2-audio", daemon=True)
             self.worker.start()
 
@@ -350,6 +486,7 @@ class Dashboard:
             if self.data["running"]:
                 self.data["stopping"] = True
                 self.data["state"] = "STOPPING"
+            self._clear_acknowledgement()
 
     def close(self) -> None:
         self.stop()
@@ -413,6 +550,11 @@ class Dashboard:
                 self.data["state"] = event.state.value
             if event.message == "wake_detected":
                 self.data["counts"]["wake"] += 1
+                self._acknowledge_wake(event)
+            elif event.result is not None or event.state in {
+                PipelineState.COOLDOWN, PipelineState.STOPPED,
+            }:
+                self._clear_acknowledgement()
             if event.result is not None:
                 result = event.result
                 self.data["last_result"] = {
@@ -740,13 +882,18 @@ class Dashboard:
             _require_live_wake_readiness(
                 wake_pair.active_bundle, allow_unverified=self.allow_unverified
             )
-            import sounddevice as sd
+            args.audio_backend = self.settings.get("audio_backend", "sounddevice")
+            args.alsa_device = self.settings.get("alsa_device", "default")
+            if args.audio_backend == "sounddevice":
+                import sounddevice as sd
 
-            sd.check_input_settings(
-                device=args.input_device, channels=1, dtype="float32",
-                samplerate=int(wake_pair.active_bundle["audio"]["sample_rate"]),
-            )
-            device = sd.query_devices(args.input_device, kind="input")["name"]
+                sd.check_input_settings(
+                    device=args.input_device, channels=1, dtype="float32",
+                    samplerate=int(wake_pair.active_bundle["audio"]["sample_rate"]),
+                )
+                device = sd.query_devices(args.input_device, kind="input")["name"]
+            else:
+                device = f"ALSA {args.alsa_device}"
             pipeline = build_streaming_pipeline(
                 args,
                 wake_model,
@@ -776,12 +923,14 @@ class Dashboard:
             self.on_event(PipelineEvent(pipeline.state, 0, "listening_started"))
             run_microphone_stream(
                 pipeline, input_device=args.input_device,
+                audio_backend=args.audio_backend, alsa_device=args.alsa_device,
                 stop_event=self.stop_requested, on_audio=self.on_audio,
             )
         except Exception as error:
             LOGGER.exception("Dashboard pipeline failed")
             with self.lock:
                 self.data["error"] = str(error)
+                self._clear_acknowledgement()
         finally:
             if pipeline is not None:
                 pipeline.stop()
@@ -790,6 +939,7 @@ class Dashboard:
                     running=False, stopping=False, rms=0.0,
                     state="ERROR" if self.data["error"] else "STOPPED",
                 )
+                self._clear_acknowledgement()
 
     def _run_demo(self) -> None:
         active: dict | None = None

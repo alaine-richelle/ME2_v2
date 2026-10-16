@@ -1,9 +1,21 @@
 {
+  "schema_version": 1,
   "wake_model": "../wake-word/models/wake_word_v5_regularized_seed43.me2",
   "wake_fallback_model": "../wake-word/models/wake_word_v3_binary_seed43_r1.me2",
   "vcm_model": "../vcm/models/vcm_ctc_model.me2",
   "mappings_file": "../dashboard-state/laptop-dual-wake-mappings.json",
   "input_device": null,
+  "audio_backend": "sounddevice",
+  "alsa_device": "default",
+  "wake_acknowledgement": {
+    "enabled": false,
+    "backend": "alsa",
+    "alsa_device": "default",
+    "duration_ms": 120,
+    "frequency_hz": 880,
+    "volume": 0.12,
+    "sample_rate": 48000
+  },
   "weather": {
     "city": "Manila",
     "timeout_seconds": 4.0,

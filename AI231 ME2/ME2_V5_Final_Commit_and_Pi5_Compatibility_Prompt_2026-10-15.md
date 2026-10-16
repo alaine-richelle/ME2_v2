@@ -23,6 +23,68 @@ exact commit into a new isolated directory and check out the commit in
 detached-HEAD mode. This makes the Pi result traceable to the final commit
 and prevents accidental transfer of unrelated local files.
 
+## Remaining authorized Pi blockers — complete these now
+
+The user has confirmed that the Pi is powered on, the reviewed repository
+revision is on GitHub, and the time-consuming Pi setup is authorized. Resume
+from the isolated, detached checkout only after re-verifying its exact commit,
+model/config hashes, virtual-environment path, and no-overwrite rule.
+
+Complete the remaining *direct-model and demo-dashboard* gates in this order:
+
+1. **Package/install evidence.** Finish the binary-only dependency audit and
+   isolated venv installation if either is incomplete. Record `pip check`,
+   dependency versions, `pip freeze --all`, Python, glibc, and architecture.
+   Stop on a missing wheel, failed non-audio import, or mismatched artifact
+   hash; do not source-build, use `sudo`, alter system Python, or replace a
+   package silently.
+2. **Headless audio-library limitation.** If `sounddevice`/PortAudio cannot
+   initialize because the noninteractive SSH session lacks PulseAudio, record
+   it as a live-audio limitation only. It is not a blocker for offline model
+   loading, supplied-WAV replay, or `me2.dashboard --demo`. Do not start a
+   PulseAudio service, alter system audio, or open a microphone to work around
+   it.
+3. **Fixture audit.** List tracked WAV files, identify their source and
+   intended role, and use only a suitable, already-tracked fixture for each
+   direct replay. Do not upload personal recordings, record new audio, or use
+   an unreviewed file merely to obtain an accepted result. If no appropriate
+   tracked fixture exists, report the exact missing fixture and stop that
+   replay gate instead of substituting data.
+4. **Direct model checks.** Run individual v5 wake, v3 wake, and CTC command
+   replays. Then run the full supplied-WAV wake-to-command replay, using the
+   implemented v5-primary/v3-diagnostic configuration. Save redacted logs
+   and result files with a new run ID. Capture model load status, resolved
+   paths/hashes, scores/decisions, valid frames, explicit rejections, and the
+   dual-wake role/disagreement outcome. These are file-based results, not
+   live recognition measurements.
+5. **Dashboard demonstration.** Start only
+   `python -m me2.dashboard --demo` without `--autostart`, bind it to Pi
+   localhost, and verify its local status/API response. Give the user the
+   normal SSH port-forward command so they can inspect the UI from the laptop.
+   Do not start dashboard listening, use a microphone/speaker, or perform
+   external actions.
+6. **Final record.** Update the Pi/finalization documentation with the exact
+   Git revision, package state, artifact/config hashes, replay outcomes,
+   dashboard status, and blockers that remain deferred. Distinguish
+   *passed direct file/model check*, *blocked/inconclusive*, and *not run*.
+   Never upgrade the release state from supervised/final-commit-ready to
+   deployment-ready.
+
+The only explicitly deferred blockers after this scope are live microphone
+recognition, speaker audibility, Bluetooth, dashboard listening, continuous
+stream stability/telemetry, false-activations-per-hour, and deployment
+approval. Do not perform them without another explicit user instruction.
+
+When the user separately approves a future Raspberry Pi 5 speaker test, use
+the wired USB/ALSA speaker output identified by the approved device inventory
+(for example, the confirmed `plughw:CARD,DEVICE` value). Do not use Bluetooth,
+wireless earphones, HDMI, or a guessed card/device index. First list the
+available ALSA playback devices, state the exact selected wired device and
+bounded playback command to the user, then wait for approval. A successful
+software playback command establishes only the wired ALSA output path; ask the
+user whether the tone/sample was physically audible and record that answer
+separately.
+
 ## Current handoff and non-negotiable interpretation
 
 Read these records before changing files:
@@ -747,3 +809,30 @@ Return:
 5. The staged paths and final commit hash only if a commit was actually made.
 6. The remaining explicit approval and hardware-validation gates, with live
    testing clearly marked as deferred at the operator's request.
+
+## Dashboard wake acknowledgment implementation
+
+Implement and verify the dashboard acknowledgment without changing wake
+thresholds, grammar, or acceptance policy. After a smoothed active wake
+decision, show the accessible visual pulse and exact text **“Yes? Listening
+for your command.”**, then continue directly into command capture. Expose
+`wake_acknowledgement` through `/api/status` with visible state, message,
+timestamp, model role, and audio status. It may appear only for v5 primary,
+or for v3 while v5 has a load/inference fault. Clear it after a command
+decision, cooldown, stop, or error. Do not show it for a healthy-v5/v3
+disagreement, rejected wake, duplicate wake, or system failure.
+
+Keep the chime separate from the existing PortAudio dashboard music player.
+Use a generated, short, asynchronous ALSA tone sent through a validated
+wired-speaker device with argument-list execution and a strict timeout; do
+not save audio or use shell interpolation. Chime failure must not stop capture
+or change a dashboard action. Log only the redacted
+`acknowledgement_audio_failed` event. Request at most one chime for one valid
+wake event.
+
+Create and document a versioned Pi dashboard profile with chime disabled by
+default. After the wired speaker arrives and the user separately approves a
+live playback diagnostic, run `aplay -l`, select its exact wired
+`plughw:CARD,DEVICE` identifier, then enable the chime. Do not assume
+`plughw:0,0`, Bluetooth, HDMI, or wireless output. Until that approval, use
+the dashboard demo only to confirm the visual acknowledgment.

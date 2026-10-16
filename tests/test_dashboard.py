@@ -39,6 +39,14 @@ def dashboard(tmp_path):
     )
 
 
+@pytest.fixture
+def live_dashboard(tmp_path):
+    return Dashboard(
+        {"mappings_file": tmp_path / "live-mappings.json", "input_device": None},
+        demo=False,
+    )
+
+
 def result(**changes):
     values = {
         "decoded_text": "turn on the light", "intent": "light_on", "slots": {},
@@ -356,6 +364,109 @@ def test_stop_suppresses_a_command_finishing_during_shutdown(dashboard):
     assert dashboard.data["devices"]["light"] is False
 
 
+def _wake_policy(mode="primary"):
+    return {
+        "primary_role": "v5_primary",
+        "fallback_role": "v3_fault_fallback",
+        "mode": mode,
+        "primary_status": "ready" if mode == "primary" else "inference_failed",
+        "fallback_status": "ready",
+        "primary_failure": None if mode == "primary" else "RuntimeError",
+        "fallback_failure": None,
+    }
+
+
+def _wake_event(utterance_id="wake-1"):
+    return PipelineEvent(
+        PipelineState.CAPTURING_COMMAND, 10, "wake_detected",
+        utterance_id=utterance_id,
+    )
+
+
+def test_wake_acknowledgement_lifecycle_and_primary_chime_request(live_dashboard):
+    requests = []
+    live_dashboard.wake_chime.enabled = True
+    live_dashboard.wake_chime.request = lambda: requests.append("requested") or True
+    live_dashboard.on_wake("ateko", 0.91, 4.0, True, _wake_policy())
+    live_dashboard.on_event(_wake_event())
+    acknowledgement = live_dashboard.snapshot()["wake_acknowledgement"]
+    assert acknowledgement["visible"] is True
+    assert acknowledgement["message"] == "Yes? Listening for your command."
+    assert acknowledgement["model_role"] == "v5_primary"
+    assert acknowledgement["audio_status"] == "queued"
+    assert requests == ["requested"]
+
+    live_dashboard.on_event(PipelineEvent(
+        PipelineState.ACCEPTED_OR_REJECTED, 20, "accepted", result(),
+        utterance_id="wake-1",
+    ))
+    acknowledgement = live_dashboard.snapshot()["wake_acknowledgement"]
+    assert acknowledgement["visible"] is False
+    assert acknowledgement["timestamp"] is None
+
+
+def test_acknowledgement_uses_v3_only_for_active_v5_fault_fallback(live_dashboard):
+    live_dashboard.on_wake("ateko", 0.91, 4.0, True, _wake_policy("fallback_active"))
+    live_dashboard.on_event(_wake_event("fallback-wake"))
+    acknowledgement = live_dashboard.snapshot()["wake_acknowledgement"]
+    assert acknowledgement["visible"] is True
+    assert acknowledgement["model_role"] == "v3_fault_fallback"
+
+
+def test_disabled_chime_keeps_the_visual_acknowledgement(live_dashboard):
+    live_dashboard.on_wake("ateko", 0.91, 4.0, True, _wake_policy())
+    live_dashboard.on_event(_wake_event("no-speaker-yet"))
+    acknowledgement = live_dashboard.snapshot()["wake_acknowledgement"]
+    assert acknowledgement["visible"] is True
+    assert acknowledgement["audio_status"] == "disabled"
+
+
+@pytest.mark.parametrize("policy", [
+    {
+        "primary_role": "v5_primary", "fallback_role": "v3_fault_fallback",
+        "mode": "both_failed", "primary_status": "inference_failed",
+        "fallback_status": "inference_failed", "primary_failure": "RuntimeError",
+        "fallback_failure": "RuntimeError",
+    },
+])
+def test_wake_acknowledgement_rejects_non_active_wake_paths(live_dashboard, policy):
+    requests = []
+    live_dashboard.wake_chime.enabled = True
+    live_dashboard.wake_chime.request = lambda: requests.append("requested") or True
+    live_dashboard.on_wake("unavailable", 0.0, 0.0, False, policy)
+    live_dashboard.on_event(_wake_event("not-an-accepted-wake"))
+    assert live_dashboard.snapshot()["wake_acknowledgement"]["visible"] is False
+    assert requests == []
+
+
+def test_healthy_v3_disagreement_without_a_wake_event_never_chimes(dashboard):
+    requests = []
+    dashboard.wake_chime.enabled = True
+    dashboard.wake_chime.request = lambda: requests.append("requested") or True
+    dashboard.on_wake("background", 0.1, 2.0, False, _wake_policy())
+    assert dashboard.snapshot()["wake_acknowledgement"]["visible"] is False
+    assert requests == []
+
+
+def test_duplicate_wake_and_chime_failure_do_not_mutate_dashboard_action_state(live_dashboard):
+    requests = []
+    live_dashboard.wake_chime.enabled = True
+    live_dashboard.wake_chime.request = lambda: requests.append("requested") or True
+    live_dashboard.on_wake("ateko", 0.91, 4.0, True, _wake_policy())
+    event = _wake_event("same-wake")
+    live_dashboard.on_event(event)
+    live_dashboard.on_event(event)
+    before = json.loads(json.dumps(live_dashboard.data["devices"]))
+    live_dashboard._on_chime_complete("failed", "CalledProcessError")
+    acknowledgement = live_dashboard.snapshot()["wake_acknowledgement"]
+    assert requests == ["requested"]
+    assert acknowledgement["visible"] is True
+    assert acknowledgement["audio_status"] == "failed"
+    assert live_dashboard.data["devices"] == before
+    live_dashboard.stop()
+    assert live_dashboard.snapshot()["wake_acknowledgement"]["visible"] is False
+
+
 def test_decoding_event_arrives_before_predictor_runs():
     observed = []
 
@@ -528,6 +639,29 @@ def test_config_paths_are_relative_to_config_file(tmp_path):
     assert settings["input_device"] == 2
 
 
+@pytest.mark.parametrize("acknowledgement", [
+    {"backend": "sounddevice"},
+    {"alsa_device": "bad device name"},
+    {"duration_ms": 501},
+    {"frequency_hz": 199},
+    {"volume": 0.51},
+    {"unknown": True},
+])
+def test_wake_acknowledgement_config_rejects_unsupported_or_unbounded_values(
+    tmp_path, acknowledgement
+):
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({
+        "schema_version": 1,
+        "wake_model": "wake.me2",
+        "vcm_model": "command.me2",
+        "mappings_file": "state/mappings.json",
+        "wake_acknowledgement": acknowledgement,
+    }))
+    with pytest.raises((TypeError, ValueError)):
+        load_settings(config)
+
+
 def test_http_assets_and_control_require_local_host_and_token(dashboard):
     server = make_server(dashboard, 0)
     worker = threading.Thread(target=server.serve_forever, daemon=True)
@@ -538,6 +672,7 @@ def test_http_assets_and_control_require_local_host_and_token(dashboard):
             page = response.read()
             assert b"Voice pipeline" in page
             assert b"Atecco" in page
+            assert b"Yes? Listening for your command." in page
             assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
         with urlopen(base + "/dashboard-actions.css") as response:
             assert b".action-grid" in response.read()

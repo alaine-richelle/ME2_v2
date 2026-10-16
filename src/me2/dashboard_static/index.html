@@ -36,6 +36,11 @@
         <div class="state-display"><span class="orbit" aria-hidden="true">◉</span><div>
           <p class="eyebrow">CURRENT STATE</p><h3 id="state" aria-live="polite">Stopped</h3>
           <p id="state-detail">Start listening when you’re ready.</p></div></div>
+        <div id="wake-acknowledgement" class="wake-acknowledgement" role="status" aria-live="assertive" hidden>
+          <span class="wake-pulse" aria-hidden="true"></span>
+          <div><strong id="wake-ack-message">Yes? Listening for your command.</strong>
+            <p id="wake-ack-detail">Wake acknowledgement</p></div>
+        </div>
         <ol class="stages" aria-label="Pipeline stages">
           <li data-state="LISTENING_FOR_WAKE"><span>01</span>Wake</li>
           <li data-state="CAPTURING_COMMAND"><span>02</span>Capture</li>
