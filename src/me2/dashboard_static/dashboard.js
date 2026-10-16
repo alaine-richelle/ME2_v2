@@ -143,12 +143,12 @@ function render(data) {
   text("weather-status", weatherStatus[0]);
   $("weather-status").className = weatherStatus[1];
   text("weather-location", `Configured city: ${weather.city || "not configured"}`);
-  const current = weather.current;
-  text("weather-current", current
-    ? `${current.condition} · ${current.temperature}${current.temperature_unit} · feels like ${current.apparent_temperature}${current.temperature_unit} · humidity ${current.relative_humidity_percent}%`
+  const weatherCurrent = weather.current;
+  text("weather-current", weatherCurrent
+    ? `${weatherCurrent.condition} · ${weatherCurrent.temperature}${weatherCurrent.temperature_unit} · feels like ${weatherCurrent.apparent_temperature}${weatherCurrent.temperature_unit} · humidity ${weatherCurrent.relative_humidity_percent}%`
     : (weather.status === "loading" ? "Fetching a current observation…" : "No current observation available."));
-  text("weather-observed", current
-    ? `Observed ${current.observation_time}${current.timezone ? ` · ${current.timezone}` : ""}${weather.cached_at ? ` · fetched ${new Date(weather.cached_at).toLocaleTimeString()}` : ""}`
+  text("weather-observed", weatherCurrent
+    ? `Observed ${weatherCurrent.observation_time}${weatherCurrent.timezone ? ` · ${weatherCurrent.timezone}` : ""}${weather.cached_at ? ` · fetched ${new Date(weather.cached_at).toLocaleTimeString()}` : ""}`
     : (weather.error || "No observation cached."));
   text("call-state", data.devices.call_demo?.message || "No demo call action.");
   text("message-state", data.devices.message_demo?.message || "No demo message prepared.");
