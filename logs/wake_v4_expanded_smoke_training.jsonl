@@ -1,0 +1,2 @@
+{"epoch": 1, "train_loss": 0.7167120575904846, "train_accuracy": 0.5625, "validation_loss": 0.6783623695373535, "validation_accuracy": 0.8571428571428571, "clean_train_loss": 0.6922036111354828, "clean_train_accuracy": 0.515625, "learning_rate": 0.001}
+{"epoch": 2, "train_loss": 0.696920782327652, "train_accuracy": 0.5625, "validation_loss": 0.6771128177642822, "validation_accuracy": 0.8571428571428571, "clean_train_loss": 0.6921965777873993, "clean_train_accuracy": 0.515625, "learning_rate": 0.001}

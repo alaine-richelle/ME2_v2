@@ -1,0 +1,1 @@
+clip_id,expected_intent,expected_command,expected_slots,primary_intent,classification_intent,primary_command,primary_slots,primary_event_type,primary_latency_ms,command_fire_count,extra_fire_count,premature_fire_count,late_fire_count,wake_detected,source,speaker_id

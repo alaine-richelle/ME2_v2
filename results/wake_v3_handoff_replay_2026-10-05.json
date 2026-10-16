@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-05",
+  "integration_revision": "52b38f7fdaf35a0f5b5a8dbbd239f4bfb7700e24",
+  "wake_input": "wake-word/data/v2/audition/927f756e547f_guide_connected.wav",
+  "wake_review_status": "accepted_by_user",
+  "wake_review_note": "User confirmed this connected Samantha/rate-175 a teh ko candidate as correct on 2026-10-05.",
+  "wake_model": "wake-word/models/wake_word_v3_binary_seed43_r1.me2",
+  "wake_model_deployment_ready": false,
+  "wake_detected": true,
+  "wake_class": "ateko",
+  "wake_confidence": 0.7802,
+  "command_input": "vcm/data/test_sample.wav",
+  "command_model": "vcm/models/vcm_ctc_model.me2",
+  "command_accepted": true,
+  "decoded_text": "play music",
+  "intent": "play_music",
+  "slots": {},
+  "rejection_reason": null,
+  "decoder_normalized_log_score": -0.0007,
+  "interpretation": "File-based interface and handoff compatibility passed. This is not streaming, unseen-speaker, continuous-negative, or Raspberry Pi validation."
+}

@@ -1,0 +1,264 @@
+{
+  "audit_schema_version": 1,
+  "manifest": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/wake-word/data/v4/synthetic-expanded/manifest.csv",
+  "dataset_versions": {
+    "wake-v4-connected-a-teh-ko-expanded": 506
+  },
+  "rows": 506,
+  "labels": {
+    "a": 30,
+    "te": 30,
+    "ko": 30,
+    "ateko": 50,
+    "background": 366
+  },
+  "splits": {
+    "train": 353,
+    "validation": 51,
+    "test": 51,
+    "calibration": 51
+  },
+  "speakers": 10,
+  "real_speakers": 0,
+  "sources": {
+    "macos_say_synthetic": 410,
+    "generated_noise": 96
+  },
+  "review_status": {
+    "pending": 410,
+    "accepted": 96
+  },
+  "speech_review_coverage": 0.0,
+  "positive_review_status": {
+    "pending": 50
+  },
+  "positive_connected_delivery_status": {
+    "pending": 50
+  },
+  "connected_delivery_review_coverage": 0.0,
+  "duration_seconds": {
+    "total": 474.4283125,
+    "minimum": 0.2683125,
+    "maximum": 2.0
+  },
+  "exact_duplicate_groups": [
+    {
+      "sha256": "2ed0a7a54cdda211db4dfda38983ff3851ee6d6cece036de0cd8cbe56de5e71c",
+      "recording_ids": [
+        "1268e7339f865f4f8c604764fb7a877c",
+        "746ae4c1a3ab583d84f4db711815f817"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "ba8a38ad3a41e8be1c7c28d25dff9f7ecb659c0586e8e817710759947fb84c45",
+      "recording_ids": [
+        "c48988de87f254d18d1d3af34e68d609",
+        "b4ee42b3262a584ab2aa9a8b3e0ae6c8"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "56c419fa183376cb049ec94b04db75a353dba17daed6e9127d04e1d1c391dbc4",
+      "recording_ids": [
+        "77445ed2f32e5d0da15449cca9635b07",
+        "4d59be199eac50d688888266fdfc1a3d"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "10715a53f40436bde410a06dd8f9bb0de253cece4c1da8906399e4203c05d0ce",
+      "recording_ids": [
+        "07bb535671a75379848289f82fe9e11a",
+        "1d5d2fd492b75e2d878b435eeef144f7"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "8f6f88dea2fd5812db76be1379f59e2136e1d6b20a2863452114eb7c51205e75",
+      "recording_ids": [
+        "5b84702c364051d492c0553c8a2ab630",
+        "346382f8dda25e3db37fd527ac97f1e4"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "14c6f321850c2c8992f86e1115c1da1fadb91efcbb3890753daa5a950aac5a47",
+      "recording_ids": [
+        "7be748d455e854e7b1d649bce85ec1c2",
+        "469f67b666f35380911fd96acf9bf426"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "767f4efc653498c50389adb5a8d3d191bf458c7b4be86a3534f58877871ccb31",
+      "recording_ids": [
+        "2be30af6907e5f17a9089b37377cb401",
+        "d95281dff84c5d9785d70342b4994ca4"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "c1dbabd4ebf0c19e236c011d3a49e0bd87c7437aae0f1207dc88b81ca144a9ba",
+      "recording_ids": [
+        "d200386e4d41518ca649f79f5569b125",
+        "5dde68c406d458c79542996661577938"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "74685587aa19f4ffe38845df8436bc6f978e87d100f551e49f4e1209fd538bea",
+      "recording_ids": [
+        "19c19c73d8b252e3b50cd70820721747",
+        "c6c8a83510f7574eb1119ad02b975743"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "122761829c2eb98d8ea899af9b9dd735a9b1722505d4bd2eae1bfcc412752622",
+      "recording_ids": [
+        "1c26a7c4526e52d0b9d6801890fb972c",
+        "116269afdc6e5789923b5f03fe9e6d01"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "f2f19c9963b1af090ef03d7d1d88d52e6e3719ae025306a06c630dda386d1262",
+      "recording_ids": [
+        "488b538ebd925c2e82f678fdf5ca3676",
+        "7a01d1ae2ad9595fb213b79b0bbe9645"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "d49fd06038dca9d18d91aef6c27314835af8e29a92416f80c27a7c585eaca307",
+      "recording_ids": [
+        "1bca4d4ae5465e7299aa36ebda1c6ba9",
+        "2da7e0c500a75e2ebf690a1ac0faafa2"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "cdfc11b25c534a080830af2f579ab4847b587850b7964b89921170e3d4dba7f9",
+      "recording_ids": [
+        "fc5a810f294e57758c50f465a414ed8a",
+        "4345846366035bda922ed2614fde6445"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "2ca976d4540dcfec30f1d576736e16ebb5e0d7e3f20082184f1fb97f737a4cd0",
+      "recording_ids": [
+        "a850f2e0d2125e6c8e694431cbef48a8",
+        "74611343e1085e31ac164c1046bedc14"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "23d07a737afea2ba384d3956746859a50039b736021715bace878a669f6d9b00",
+      "recording_ids": [
+        "f1468b58dfc658b4bb295484e8ca9ade",
+        "b49debd13cc3523b9e5742f6ca96d83a"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "7a281d967088e3814ffece9d64f45d113da5ccf83c0b7ba09952b7aae0226e2d",
+      "recording_ids": [
+        "b960c6b725a65baf948acb79e74b80fd",
+        "be4537789ff75e6fb042a3f4d26751d6"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "5c8ef44196f4404cf15a99fba68acaaaaebde720c1906f1fa560538bc3c7d269",
+      "recording_ids": [
+        "1f64a84af90151d0a8841d1a0de0e6a2",
+        "15c5622ad8685ffb8f0d644892506ede"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "f6791d89fae894714bed852dd2c690d2036c2169f930dd035ceac9c456c9af3c",
+      "recording_ids": [
+        "354bd0b0984354308316f22ee1ba8e1d",
+        "d9f00af3dbff5f23876d61bcf4562167"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "d29f8194968e505d346b6c620d782e702f5e82c857c7b9219bd9b33f61edcee3",
+      "recording_ids": [
+        "9cb3347518365c74b584c929f0c4dd55",
+        "9cc332828b7c5e8bace58cc2843cfde4"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "d7241d7caa984fa38b509437e0b627f64ae5a4f0464901384cbd7a88994a9a8d",
+      "recording_ids": [
+        "a483ec8335c352e1b557100c8785e1f3",
+        "6a427484163b5f3cb2b0d0aa40b19eae"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "e59b941bc27179c902771741c3d414f86b40a52d3f5fcb2ef4b0cc50e9f98599",
+      "recording_ids": [
+        "6a67ae27d001534295da7babd2841c5a",
+        "4eb9faeeff315b05bdcfad8db4c1194c"
+      ],
+      "splits": [
+        "train"
+      ]
+    }
+  ],
+  "near_duplicate_group_count": 21,
+  "cross_split_exact_duplicates": [],
+  "speaker_split_leakage": {},
+  "parent_split_leakage": {},
+  "issues": [],
+  "trainable_approved_positives": 0,
+  "structurally_valid": true,
+  "valid_for_training": false
+}

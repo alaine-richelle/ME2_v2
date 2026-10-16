@@ -1,0 +1,117 @@
+{
+  "class_names": [
+    "non_wake",
+    "ateko"
+  ],
+  "accuracy": 0.9215686274509803,
+  "precision_macro": 0.6458333333333334,
+  "recall_macro": 0.6458333333333334,
+  "f1_macro": 0.6458333333333334,
+  "confusion_matrix": [
+    [
+      46,
+      2
+    ],
+    [
+      2,
+      1
+    ]
+  ],
+  "per_class": {
+    "non_wake": {
+      "precision": 0.9583333333333334,
+      "recall": 0.9583333333333334,
+      "f1-score": 0.9583333333333334,
+      "support": 48.0
+    },
+    "ateko": {
+      "precision": 0.3333333333333333,
+      "recall": 0.3333333333333333,
+      "f1-score": 0.3333333333333333,
+      "support": 3.0
+    },
+    "accuracy": 0.9215686274509803,
+    "macro avg": {
+      "precision": 0.6458333333333334,
+      "recall": 0.6458333333333334,
+      "f1-score": 0.6458333333333334,
+      "support": 51.0
+    },
+    "weighted avg": {
+      "precision": 0.9215686274509803,
+      "recall": 0.9215686274509803,
+      "f1-score": 0.9215686274509803,
+      "support": 51.0
+    }
+  },
+  "roc_auc": 0.9583333333333334,
+  "split": "test",
+  "wake_threshold": 0.6210040450096131,
+  "smoothing_policy": {
+    "calibration_mode": "clip_proxy_pending_continuous_validation",
+    "cooldown_ms": 1000,
+    "required_hits": 2,
+    "smoothing_window": 3,
+    "wake_hop_ms": 250
+  },
+  "false_accepts": 0,
+  "false_accept_rate": 0.0,
+  "false_accept_rate_95pct_wilson": [
+    0.0,
+    0.0741026511527422
+  ],
+  "false_rejects": 3,
+  "false_reject_rate": 1.0,
+  "positive_count": 3,
+  "negative_count": 48,
+  "wake_detection_precision": 0.0,
+  "wake_detection_recall": 0.0,
+  "wake_detection_accuracy": 0.9411764705882353,
+  "wake_recall_95pct_wilson": [
+    0.0,
+    0.5615060804490177
+  ],
+  "wake_detection_f1": 0.0,
+  "wake_detection_roc_auc": 0.9583333333333334,
+  "continuous_negative_seconds": 0,
+  "continuous_false_activations": 0,
+  "false_activations_per_hour": null,
+  "false_activations_note": "Unavailable without rows explicitly annotated as continuous_negative.",
+  "detection_delay_ms": null,
+  "detection_delay_note": "Unavailable until reviewed wake boundaries and streaming event timestamps are present.",
+  "duplicate_trigger_rate": null,
+  "pronunciation_guide": "a-teh-ko",
+  "dataset_version": "wake-v3-connected-a-teh-ko",
+  "review_status_counts": {
+    "pending": 39,
+    "accepted": 12
+  },
+  "independent_speakers": 1,
+  "source_breakdown": {
+    "macos_say_synthetic": {
+      "positives": 3,
+      "detected": 0,
+      "negatives": 36,
+      "false_accepts": 0
+    },
+    "generated_noise": {
+      "positives": 0,
+      "detected": 0,
+      "negatives": 12,
+      "false_accepts": 0
+    }
+  },
+  "syllable_cues_counted_as_non_wake": 9,
+  "read_only_evaluation": true,
+  "parameter_count": 2858,
+  "model_size_bytes": 15489,
+  "input_dimensions": [
+    1,
+    40,
+    201
+  ],
+  "cpu_inference_ms_mean": 0.9532816428691149,
+  "cpu_inference_ms_p95": 1.0671331081539392,
+  "process_peak_rss_bytes": 430260224,
+  "measurement_note": "CPU-only single-example inference; process RSS is process-wide, not model-only memory"
+}

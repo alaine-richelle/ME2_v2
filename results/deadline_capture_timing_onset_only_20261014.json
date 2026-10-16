@@ -1,0 +1,1492 @@
+{
+  "before": {
+    "source_root": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2",
+    "config": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/config/runtime.example.json",
+    "config_sha256": "e5c65399ee0555161dda6ea1d7c8375301624d6bcfc772eb5368f15257f32a9a",
+    "streaming_sha256": "825e22cc1a4e34ae7ab3664f6b3620b6eb68a216ee2540678ab4dd9c15a33713",
+    "artifact_hashes": {
+      "wake_model": "d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222",
+      "vcm_model": "b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac"
+    },
+    "fixture_sha256": "7855ff08f73870c49e0550f0d451995af4056be184ac9eba3999d7d67f240b62",
+    "maximum_feature_frames": 501,
+    "maximum_output_frames": 126,
+    "infeasible_grammar_terminals": [
+      {
+        "text": "send a message on facebook to pending friend requests that my friend list is full and i will be creating a new profile soon",
+        "intent": "message",
+        "required_frames": 128
+      }
+    ],
+    "scenarios": [
+      {
+        "scenario": "immediate_short",
+        "predictors": "mock_wake_and_command",
+        "calls": [
+          {
+            "samples": 21600,
+            "nonzero_samples": 9600
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 1100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 1100.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 600.0,
+              "speech_span_ms": 600.0,
+              "captured_samples": 21600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 1100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "pause_1500_short",
+        "predictors": "mock_wake_and_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_onset_timeout",
+            "ms_since_wake": 1000.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": null,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 1000.0,
+              "speech_observed": false,
+              "speech_ms": 0.0,
+              "speech_span_ms": 0.0,
+              "captured_samples": 4000,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 0.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 12000,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_onset_timeout",
+              "capture_discarded": true,
+              "capture_end_reason": "command_onset_timeout",
+              "next_action": "inspect_onset_wait_and_speech_level"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 1000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 2000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "pause_2000_short",
+        "predictors": "mock_wake_and_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_onset_timeout",
+            "ms_since_wake": 1000.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": null,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 1000.0,
+              "speech_observed": false,
+              "speech_ms": 0.0,
+              "speech_span_ms": 0.0,
+              "captured_samples": 4000,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 0.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 12000,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_onset_timeout",
+              "capture_discarded": true,
+              "capture_end_reason": "command_onset_timeout",
+              "next_action": "inspect_onset_wait_and_speech_level"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 1000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 2000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "speech_4300",
+        "predictors": "mock_wake_and_command",
+        "calls": [
+          {
+            "samples": 80800,
+            "nonzero_samples": 68800
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 4800.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 4800.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 4300.0,
+              "speech_span_ms": 4300.0,
+              "captured_samples": 80800,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 4800.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "pause_2000_speech_4600",
+        "predictors": "mock_wake_and_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_onset_timeout",
+            "ms_since_wake": 1000.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": null,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 1000.0,
+              "speech_observed": false,
+              "speech_ms": 0.0,
+              "speech_span_ms": 0.0,
+              "captured_samples": 4000,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 0.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 12000,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_onset_timeout",
+              "capture_discarded": true,
+              "capture_end_reason": "command_onset_timeout",
+              "next_action": "inspect_onset_wait_and_speech_level"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 1000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 2000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "internal_pause_600",
+        "predictors": "mock_wake_and_command",
+        "calls": [
+          {
+            "samples": 21600,
+            "nonzero_samples": 9600
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 1100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 1100.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 600.0,
+              "speech_span_ms": 600.0,
+              "captured_samples": 21600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 1100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 2100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "too_short_noise",
+        "predictors": "mock_wake_and_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_too_short",
+            "ms_since_wake": 600.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 100.0,
+              "speech_span_ms": 100.0,
+              "captured_samples": 13600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_too_short",
+              "capture_discarded": true,
+              "capture_end_reason": "command_too_short",
+              "next_action": "speak_a_complete_command"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 600.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "duration_exceeded",
+        "predictors": "mock_wake_and_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_too_long",
+            "ms_since_wake": 5100.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 5100.0,
+              "speech_span_ms": 5100.0,
+              "captured_samples": 85600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 0.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_too_long",
+              "capture_discarded": true,
+              "capture_end_reason": "command_too_long",
+              "next_action": "use_shorter_supported_phrase_or_validated_longer_artifact"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 5100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 6100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "no_command",
+        "predictors": "mock_wake_and_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_onset_timeout",
+            "ms_since_wake": 1000.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": null,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 1000.0,
+              "speech_observed": false,
+              "speech_ms": 0.0,
+              "speech_span_ms": 0.0,
+              "captured_samples": 4000,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 0.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 12000,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_onset_timeout",
+              "capture_discarded": true,
+              "capture_end_reason": "command_onset_timeout",
+              "next_action": "inspect_onset_wait_and_speech_level"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 1000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 2000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "prepared_fixture_immediate",
+        "predictors": "mock_wake_real_command",
+        "calls": [
+          {
+            "samples": 28000,
+            "nonzero_samples": 27817
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 2100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 2100.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 41600,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 600.0,
+              "speech_observed": true,
+              "speech_ms": 1000.0,
+              "speech_span_ms": 1000.0,
+              "captured_samples": 28000,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 5600,
+              "pre_onset_dropped_rms": 0.006320713479245747,
+              "usable_samples": 27966,
+              "padded_samples": 80000,
+              "feature_frames": 501,
+              "valid_feature_frames": 175,
+              "output_frames": 126,
+              "valid_output_frames": 44,
+              "beam_width": 16,
+              "grammar_terminal_count": 577,
+              "minimum_terminal_frames": 4,
+              "pruned_prefix_count": 682,
+              "beam_pruning_observed": true,
+              "surviving_prefix_count": 16,
+              "nonempty_prefix_count": 16,
+              "longest_surviving_prefix": 14,
+              "terminal_count": 1,
+              "expansions": 2615,
+              "diagnostic_category": "accepted",
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 2100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 3100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "prepared_fixture_pause_1500",
+        "predictors": "mock_wake_real_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_onset_timeout",
+            "ms_since_wake": 1000.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": null,
+              "onset_timeout_ms": 1000.0,
+              "onset_wait_ms": 1000.0,
+              "speech_observed": false,
+              "speech_ms": 0.0,
+              "speech_span_ms": 0.0,
+              "captured_samples": 4000,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 0.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 12000,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_onset_timeout",
+              "capture_discarded": true,
+              "capture_end_reason": "command_onset_timeout",
+              "next_action": "inspect_onset_wait_and_speech_level"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 1000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 2000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      }
+    ]
+  },
+  "candidate": {
+    "source_root": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2",
+    "config": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/config/runtime.onset-3s.json",
+    "config_sha256": "b01cc53f96e4980bd04ff9bbbed95af7e5c259af0cf7c2a83a13b55ab5bb9aca",
+    "streaming_sha256": "825e22cc1a4e34ae7ab3664f6b3620b6eb68a216ee2540678ab4dd9c15a33713",
+    "artifact_hashes": {
+      "wake_model": "d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222",
+      "vcm_model": "b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac"
+    },
+    "fixture_sha256": "7855ff08f73870c49e0550f0d451995af4056be184ac9eba3999d7d67f240b62",
+    "maximum_feature_frames": 501,
+    "maximum_output_frames": 126,
+    "infeasible_grammar_terminals": [
+      {
+        "text": "send a message on facebook to pending friend requests that my friend list is full and i will be creating a new profile soon",
+        "intent": "message",
+        "required_frames": 128
+      }
+    ],
+    "scenarios": [
+      {
+        "scenario": "immediate_short",
+        "predictors": "mock_wake_and_command",
+        "calls": [
+          {
+            "samples": 21600,
+            "nonzero_samples": 9600
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 1100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 1100.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 600.0,
+              "speech_span_ms": 600.0,
+              "captured_samples": 21600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 1100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "pause_1500_short",
+        "predictors": "mock_wake_and_command",
+        "calls": [
+          {
+            "samples": 21600,
+            "nonzero_samples": 9600
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 2600.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 2600.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 56000,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 1500.0,
+              "speech_observed": true,
+              "speech_ms": 600.0,
+              "speech_span_ms": 600.0,
+              "captured_samples": 21600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 20000,
+              "pre_onset_dropped_rms": 0.0,
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 2600.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "pause_2000_short",
+        "predictors": "mock_wake_and_command",
+        "calls": [
+          {
+            "samples": 21600,
+            "nonzero_samples": 9600
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 3100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 3100.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 64000,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 2000.0,
+              "speech_observed": true,
+              "speech_ms": 600.0,
+              "speech_span_ms": 600.0,
+              "captured_samples": 21600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 28000,
+              "pre_onset_dropped_rms": 0.0,
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 3100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "speech_4300",
+        "predictors": "mock_wake_and_command",
+        "calls": [
+          {
+            "samples": 80800,
+            "nonzero_samples": 68800
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 4800.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 4800.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 4300.0,
+              "speech_span_ms": 4300.0,
+              "captured_samples": 80800,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 4800.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "pause_2000_speech_4600",
+        "predictors": "mock_wake_and_command",
+        "calls": [
+          {
+            "samples": 85600,
+            "nonzero_samples": 73600
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 7100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 7100.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 64000,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 2000.0,
+              "speech_observed": true,
+              "speech_ms": 4600.0,
+              "speech_span_ms": 4600.0,
+              "captured_samples": 85600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 28000,
+              "pre_onset_dropped_rms": 0.0,
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 7100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "internal_pause_600",
+        "predictors": "mock_wake_and_command",
+        "calls": [
+          {
+            "samples": 21600,
+            "nonzero_samples": 9600
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 1100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 1100.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 600.0,
+              "speech_span_ms": 600.0,
+              "captured_samples": 21600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 1100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 2100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "too_short_noise",
+        "predictors": "mock_wake_and_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_too_short",
+            "ms_since_wake": 600.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 100.0,
+              "speech_span_ms": 100.0,
+              "captured_samples": 13600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_too_short",
+              "capture_discarded": true,
+              "capture_end_reason": "command_too_short",
+              "next_action": "speak_a_complete_command"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 600.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "duration_exceeded",
+        "predictors": "mock_wake_and_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_too_long",
+            "ms_since_wake": 5100.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 32000,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 0.0,
+              "speech_observed": true,
+              "speech_ms": 5100.0,
+              "speech_span_ms": 5100.0,
+              "captured_samples": 85600,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 0.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 0,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_too_long",
+              "capture_discarded": true,
+              "capture_end_reason": "command_too_long",
+              "next_action": "use_shorter_supported_phrase_or_validated_longer_artifact"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 5100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 6100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "no_command",
+        "predictors": "mock_wake_and_command",
+        "calls": [],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "command_onset_timeout",
+            "ms_since_wake": 3000.0,
+            "accepted": false,
+            "intent": null,
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": null,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 3000.0,
+              "speech_observed": false,
+              "speech_ms": 0.0,
+              "speech_span_ms": 0.0,
+              "captured_samples": 4000,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 0.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 44000,
+              "pre_onset_dropped_rms": 0.0,
+              "diagnostic_category": "command_onset_timeout",
+              "capture_discarded": true,
+              "capture_end_reason": "command_onset_timeout",
+              "next_action": "inspect_onset_wait_and_speech_level"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 3000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 4000.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "prepared_fixture_immediate",
+        "predictors": "mock_wake_real_command",
+        "calls": [
+          {
+            "samples": 28000,
+            "nonzero_samples": 27817
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 2100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 2100.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 41600,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 600.0,
+              "speech_observed": true,
+              "speech_ms": 1000.0,
+              "speech_span_ms": 1000.0,
+              "captured_samples": 28000,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 5600,
+              "pre_onset_dropped_rms": 0.006320713479245747,
+              "usable_samples": 27966,
+              "padded_samples": 80000,
+              "feature_frames": 501,
+              "valid_feature_frames": 175,
+              "output_frames": 126,
+              "valid_output_frames": 44,
+              "beam_width": 16,
+              "grammar_terminal_count": 577,
+              "minimum_terminal_frames": 4,
+              "pruned_prefix_count": 682,
+              "beam_pruning_observed": true,
+              "surviving_prefix_count": 16,
+              "nonempty_prefix_count": 16,
+              "longest_surviving_prefix": 14,
+              "terminal_count": 1,
+              "expansions": 2615,
+              "diagnostic_category": "accepted",
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 2100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 3100.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      },
+      {
+        "scenario": "prepared_fixture_pause_1500",
+        "predictors": "mock_wake_real_command",
+        "calls": [
+          {
+            "samples": 28000,
+            "nonzero_samples": 27817
+          }
+        ],
+        "events": [
+          {
+            "state": "CAPTURING_COMMAND",
+            "reason": "wake_detected",
+            "ms_since_wake": 0.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "DECODING",
+            "reason": "endpoint_detected",
+            "ms_since_wake": 3600.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "ACCEPTED_OR_REJECTED",
+            "reason": "accepted",
+            "ms_since_wake": 3600.0,
+            "accepted": true,
+            "intent": "play_music",
+            "diagnostics": {
+              "wake_sample_index": 32000,
+              "speech_start_sample_index": 65600,
+              "onset_timeout_ms": 3000.0,
+              "onset_wait_ms": 2100.0,
+              "speech_observed": true,
+              "speech_ms": 1000.0,
+              "speech_span_ms": 1000.0,
+              "captured_samples": 28000,
+              "pre_roll_ms": 250.0,
+              "endpoint_silence_ms": 500.0,
+              "trailing_silence_ms": 500.0,
+              "maximum_command_ms": 5000.0,
+              "minimum_speech_ms": 250.0,
+              "capture_truncated": false,
+              "onset_boundary_verified": false,
+              "pre_onset_dropped_samples": 29600,
+              "pre_onset_dropped_rms": 0.002749250178891692,
+              "usable_samples": 27966,
+              "padded_samples": 80000,
+              "feature_frames": 501,
+              "valid_feature_frames": 175,
+              "output_frames": 126,
+              "valid_output_frames": 44,
+              "beam_width": 16,
+              "grammar_terminal_count": 577,
+              "minimum_terminal_frames": 4,
+              "pruned_prefix_count": 682,
+              "beam_pruning_observed": true,
+              "surviving_prefix_count": 16,
+              "nonempty_prefix_count": 16,
+              "longest_surviving_prefix": 14,
+              "terminal_count": 1,
+              "expansions": 2615,
+              "diagnostic_category": "accepted",
+              "capture_end_reason": "endpoint_detected"
+            }
+          },
+          {
+            "state": "COOLDOWN",
+            "reason": "cooldown_started",
+            "ms_since_wake": 3600.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          },
+          {
+            "state": "LISTENING_FOR_WAKE",
+            "reason": "cooldown_complete",
+            "ms_since_wake": 4600.0,
+            "accepted": null,
+            "intent": null,
+            "diagnostics": {}
+          }
+        ]
+      }
+    ]
+  },
+  "limitations": [
+    "Offline development mechanics: mocked wake edge, synthetic signals and one existing file fixture.",
+    "No real pronunciation review, live microphone, test/holdout tuning or Raspberry Pi measurement.",
+    "Candidate profile is provisional until explicitly approved live before/after trials."
+  ]
+}

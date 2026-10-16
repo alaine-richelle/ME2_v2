@@ -29,7 +29,9 @@ from me2.vcm.ctc import (
     CharacterAudioCNN,
     CommandResult,
     CompactCTCModel,
+    DecoderBudgetError,
     DecoderLimits,
+    InferenceInputError,
     coerce_grammar_entries,
     decode_command,
 )
@@ -245,10 +247,16 @@ def predict_command(
     sample_length: int | None = None,
 ) -> CommandResult:
     started = time.perf_counter()
-    _validate_waveform(waveform, bundle, sample_length)
+    try:
+        _validate_waveform(waveform, bundle, sample_length)
+    except ValueError as error:
+        raise InferenceInputError("empty_invalid_audio_input", str(error)) from error
     frontend = _bundle_frontend(bundle)
     with torch.inference_mode():
-        features = frontend(waveform)
+        try:
+            features = frontend(waveform)
+        except ValueError as error:
+            raise InferenceInputError("empty_invalid_feature_input", str(error)) from error
         frontend_ms = (time.perf_counter() - started) * 1000.0
         architecture = bundle.get("architecture", "TinyAudioCNN")
         if architecture in {"CharacterAudioCNN", "CompactCTCModel"}:
@@ -260,29 +268,36 @@ def predict_command(
             output_lengths = model.output_lengths(feature_lengths)
             model_started = time.perf_counter()
             logits = model(features, feature_lengths).squeeze(0)
+            frame_diagnostics = {
+                "usable_samples": sample_length,
+                "padded_samples": int(torch.as_tensor(waveform).shape[-1]),
+                "feature_frames": features.shape[-1],
+                "valid_feature_frames": int(feature_lengths[0]),
+                "output_frames": logits.shape[0],
+                "valid_output_frames": int(output_lengths[0]),
+            }
             model_ms = (time.perf_counter() - model_started) * 1000.0
             decode_started = time.perf_counter()
-            result = decode_command(
-                logits,
-                bundle["grammar"],
-                charset=str(bundle.get("charset", LEGACY_CHARSET)),
-                blank_id=int(
-                    bundle.get(
-                        "blank_id",
-                        len(str(bundle.get("charset", LEGACY_CHARSET))),
-                    )
-                ),
-                beam_width=int(bundle.get("beam_width", 16)),
-                input_length=int(output_lengths[0]),
-                acceptance_policy=bundle.get("acceptance_policy"),
-                model_version=str(bundle.get("model_version", "")),
-                grammar_version=str(bundle.get("grammar_version", "")),
-                limits=DecoderLimits(**bundle.get("decoder_limits", {})),
-            )
+            try:
+                result = decode_command(
+                    logits, bundle["grammar"],
+                    charset=str(bundle.get("charset", LEGACY_CHARSET)),
+                    blank_id=int(bundle.get("blank_id", len(str(bundle.get("charset", LEGACY_CHARSET))))),
+                    beam_width=int(bundle.get("beam_width", 16)),
+                    input_length=int(output_lengths[0]),
+                    acceptance_policy=bundle.get("acceptance_policy"),
+                    model_version=str(bundle.get("model_version", "")),
+                    grammar_version=str(bundle.get("grammar_version", "")),
+                    limits=DecoderLimits(**bundle.get("decoder_limits", {})),
+                )
+            except (InferenceInputError, DecoderBudgetError) as error:
+                error.diagnostics = {**frame_diagnostics, **error.diagnostics}
+                raise
             decode_ms = (time.perf_counter() - decode_started) * 1000.0
             return CommandResult(
                 **{
                     **result.__dict__,
+                    "diagnostics": {**frame_diagnostics, **result.diagnostics},
                     "stage_timings_ms": {
                         "frontend": frontend_ms,
                         "acoustic_model": model_ms,

@@ -1,0 +1,48 @@
+Evaluation report
+=================
+Accuracy: 0.9356
+Macro precision: 0.9176
+Macro recall: 0.9126
+Macro F1: 0.9095
+ROC-AUC: 0.9593
+
+Per-class performance (observed)
+alarm: support=423, precision=0.9976, recall=0.9693, f1=0.9832
+brightness: support=423, precision=0.9975, recall=0.9480, f1=0.9721
+call: support=141, precision=0.9850, recall=0.9291, f1=0.9562
+color: support=423, precision=0.9527, recall=0.9054, f1=0.9285
+create_reminder: support=423, precision=0.9976, recall=0.9929, f1=0.9953
+light_off: support=141, precision=0.9167, recall=0.8582, f1=0.8864
+light_on: support=141, precision=0.8497, recall=0.9220, f1=0.8844
+list_reminders: support=141, precision=1.0000, recall=0.8794, f1=0.9358
+message: support=137, precision=0.9848, recall=0.9489, f1=0.9665
+next: support=141, precision=0.9375, recall=0.9574, f1=0.9474
+out_of_scope: support=76, precision=0.2784, recall=0.7105, f1=0.4000
+pause: support=141, precision=0.9178, recall=0.9504, f1=0.9338
+play_music: support=141, precision=0.9185, recall=0.8794, f1=0.8986
+stop: support=141, precision=0.9496, recall=0.9362, f1=0.9429
+temperature: support=423, precision=0.9953, recall=0.9929, f1=0.9941
+time: support=141, precision=0.9085, recall=0.9149, f1=0.9117
+timer: support=423, precision=0.9976, recall=0.9835, f1=0.9905
+volume_down: support=141, precision=0.8929, recall=0.8865, f1=0.8897
+volume_up: support=141, precision=0.9402, recall=0.7801, f1=0.8527
+weather: support=141, precision=0.9343, recall=0.9078, f1=0.9209
+
+Most frequent confusions (gold -> predicted)
+color -> out_of_scope: 21
+volume_up -> out_of_scope: 20
+brightness -> out_of_scope: 14
+alarm -> out_of_scope: 11
+play_music -> out_of_scope: 9
+list_reminders -> out_of_scope: 8
+light_off -> out_of_scope: 8
+stop -> play_music: 7
+color -> light_on: 7
+volume_down -> out_of_scope: 6
+
+Model footprint (measured)
+Parameters: 3652572
+Serialized model: 14648929 bytes
+Input dimensions: [1, 40, 501]
+CPU inference mean/p95: 5.322/5.626 ms per example
+Process peak RSS: 2327183360 bytes (process-wide, not model-only)

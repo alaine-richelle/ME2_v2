@@ -78,7 +78,11 @@ function render(data) {
   text("temperature", data.metrics.temperature_c === null ? "Unavailable on this host" : `${data.metrics.temperature_c.toFixed(1)} °C`);
   if (data.wake) {
     text("wake-score", data.wake.score.toFixed(3));
-    text("wake-detail", `${data.wake.label} · ${data.mode === "demo" ? "simulated" : `${data.wake.inference_ms.toFixed(1)} ms`}`);
+    const wakeMode = data.wake_policy?.mode;
+    const modeLabel = wakeMode === "fallback_active" ? "v3 fault fallback"
+      : wakeMode === "both_failed" ? "wake fault"
+        : wakeMode === "primary" ? "v5 primary" : null;
+    text("wake-detail", `${data.wake.label} · ${data.mode === "demo" ? "simulated" : `${data.wake.inference_ms.toFixed(1)} ms`}${modeLabel ? ` · ${modeLabel}` : ""}`);
   } else { text("wake-score", "—"); text("wake-detail", "Waiting for a window"); }
   const result = data.last_result;
   if (result) {

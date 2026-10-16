@@ -1,0 +1,156 @@
+{
+  "report_schema_version": 1,
+  "date": "2026-10-05",
+  "integration_revision": "52b38f7fdaf35a0f5b5a8dbbd239f4bfb7700e24",
+  "command_reference_revision": "f5d2dc585b49b46e8518ec6122261a9ca7f2f5e4",
+  "command_dataset_revision": "bfca0bbebfe17e00d6a685d1da573615d29ecdce",
+  "host": {
+    "os": "macOS 26.6.2",
+    "architecture": "arm64",
+    "python": "3.14.3",
+    "pytorch": "2.14.1",
+    "raspberry_pi": false
+  },
+  "pronunciation": {
+    "canonical_label": "ateko",
+    "guide": "a-teh-ko",
+    "canonical_synthesis_text": "a teh ko",
+    "synthesis_recipe_version": "connected-a-teh-ko-v1",
+    "experiment_manifest_reviewed_speech_clips": 0,
+    "audition_approved_anchor_clips": 1
+  },
+  "dataset": {
+    "version": "wake-v2-a-teh-ko",
+    "manifest": "wake-word/data/v2/synthetic/manifest.csv",
+    "rows": 432,
+    "voices": 8,
+    "real_speakers": 0,
+    "speech_review_status": "pending",
+    "test_rows": 54,
+    "test_voices": 1,
+    "test_positive_rows": 6,
+    "test_negative_rows": 48
+  },
+  "historical_context": {
+    "dataset": "wake-v1-historical-unverified",
+    "test_accuracy": 0.6794871794871795,
+    "test_macro_f1": 0.5476026000009583,
+    "wake_recall": 0.4166666666666667,
+    "false_accepts": 8,
+    "negative_rows": 198,
+    "warning": "Different unreviewed pronunciation recipes and data; not a controlled v2 comparison."
+  },
+  "experiments": [
+    {
+      "id": "A",
+      "name": "historical_model_on_v2",
+      "status": "not_run_incompatible",
+      "reason": "The historical 1.5-second input would crop a 1.557-second complete-word v2 clip. The strict loader refused to discard a possible keyword ending."
+    },
+    {
+      "id": "B",
+      "name": "corrected_five_class_basic",
+      "parameters": 3293,
+      "epochs": 10,
+      "augmentation": false,
+      "source_aware_sampling": false,
+      "dropout": 0.0,
+      "weight_decay": 0.0,
+      "accuracy": 0.7222222222222222,
+      "macro_f1": 0.16774193548387098,
+      "wake_recall": 0.0,
+      "false_accepts": 0,
+      "false_accept_rate": 0.0,
+      "wake_roc_auc": 0.5520833333333334,
+      "host_cpu_inference_p95_ms": 0.8159166667610407
+    },
+    {
+      "id": "C",
+      "name": "five_class_source_aware_augmented",
+      "parameters": 3293,
+      "epochs_completed": 16,
+      "augmentation": true,
+      "source_aware_sampling": true,
+      "dropout": 0.0,
+      "weight_decay": 0.0,
+      "accuracy": 0.7222222222222222,
+      "macro_f1": 0.3139673266255545,
+      "wake_recall": 0.0,
+      "false_accepts": 0,
+      "false_accept_rate": 0.0,
+      "wake_roc_auc": 0.7951388888888888,
+      "host_cpu_inference_p95_ms": 1.6837415285408497
+    },
+    {
+      "id": "D",
+      "name": "five_class_regularized",
+      "parameters": 3293,
+      "epochs_completed": 15,
+      "augmentation": true,
+      "source_aware_sampling": true,
+      "dropout": 0.1,
+      "weight_decay": 0.0001,
+      "accuracy": 0.6851851851851852,
+      "macro_f1": 0.40236488657541286,
+      "wake_recall": 0.0,
+      "false_accepts": 3,
+      "false_accept_rate": 0.0625,
+      "wake_roc_auc": 0.7951388888888888,
+      "host_cpu_inference_p95_ms": 2.0490331575274467
+    },
+    {
+      "id": "E",
+      "name": "binary_regularized",
+      "parameters": 2858,
+      "epochs_completed": 23,
+      "augmentation": true,
+      "source_aware_sampling": true,
+      "dropout": 0.1,
+      "weight_decay": 0.0001,
+      "accuracy": 0.7222222222222222,
+      "macro_f1": 0.5856777493606138,
+      "wake_recall": 0.3333333333333333,
+      "wake_recall_count": "2/6",
+      "false_accepts": 4,
+      "false_accept_rate": 0.08333333333333333,
+      "wake_roc_auc": 0.7847222222222222,
+      "host_cpu_inference_p95_ms": 0.7588579785078764
+    }
+  ],
+  "selection": {
+    "deployment_model": null,
+    "best_provisional_direction": "E_binary_regularized",
+    "reason": "Only candidate with nonzero frozen-policy wake recall, but error rates and evidence are inadequate.",
+    "all_v2_artifacts_deployment_ready": false
+  },
+  "host_benchmark": {
+    "model": "E_binary_regularized",
+    "audio_review_status": "pending",
+    "iterations": 200,
+    "threads": 2,
+    "frontend_p50_ms": 0.17075007781386375,
+    "frontend_p95_ms": 0.2043750137090683,
+    "cnn_p50_ms": 0.4379579331725836,
+    "cnn_p95_ms": 0.5393750034272671,
+    "complete_p50_ms": 0.6072919350117445,
+    "complete_p95_ms": 0.7237500976771116,
+    "process_rss_bytes": 287440896,
+    "warning": "Warm host CPU microbenchmark; excludes buffering/endpointing and is not Raspberry Pi evidence."
+  },
+  "handoff_replay": {
+    "status": "passed",
+    "wake_detected": true,
+    "command_accepted": true,
+    "decoded_text": "play music",
+    "intent": "play_music",
+    "warning": "Interface smoke replay with pending synthetic wake audio; not pronunciation validation."
+  },
+  "unverified": [
+    "Pronunciation quality of all synthetic speech",
+    "Generalization to unseen real speakers",
+    "False activations per hour on continuous negative audio",
+    "Wake-end detection delay and duplicate-event rate",
+    "Wake-to-command success on representative recordings",
+    "Raspberry Pi 5 latency, RSS, CPU, temperature, and throttling"
+  ]
+}

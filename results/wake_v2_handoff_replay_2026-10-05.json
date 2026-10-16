@@ -1,0 +1,21 @@
+{
+  "report_schema_version": 1,
+  "date": "2026-10-05",
+  "status": "passed",
+  "purpose": "Interface smoke replay only",
+  "wake_model": "wake-word/models/wake_word_model_v2_E_binary.me2",
+  "wake_audio": "wake-word/data/v2/audition/927f756e547f_guide_connected.wav",
+  "wake_audio_review_status": "pending",
+  "wake_detected": true,
+  "wake_probability": 0.6952,
+  "command_model": "vcm/models/vcm_ctc_model.me2",
+  "command_audio": "vcm/data/test_sample.wav",
+  "command_accepted": true,
+  "decoded_text": "play music",
+  "intent": "play_music",
+  "limitations": [
+    "The wake audio is synthetic and has not been pronunciation-approved.",
+    "This is file-based component handoff, not continuous microphone event evaluation.",
+    "No Raspberry Pi hardware was used."
+  ]
+}

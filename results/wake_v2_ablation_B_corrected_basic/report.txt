@@ -1,0 +1,38 @@
+Evaluation report
+=================
+Accuracy: 0.7222
+Macro precision: 0.1444
+Macro recall: 0.2000
+Macro F1: 0.1677
+ROC-AUC: 0.8370
+
+Per-class performance (observed)
+background: support=39, precision=0.7222, recall=1.0000, f1=0.8387
+a: support=3, precision=0.0000, recall=0.0000, f1=0.0000
+te: support=3, precision=0.0000, recall=0.0000, f1=0.0000
+ko: support=3, precision=0.0000, recall=0.0000, f1=0.0000
+ateko: support=6, precision=0.0000, recall=0.0000, f1=0.0000
+
+Most frequent confusions (gold -> predicted)
+ateko -> background: 6
+te -> background: 3
+ko -> background: 3
+a -> background: 3
+
+Binary wake detection
+Threshold: 0.1804
+False accepts: 0/48 (0.0000)
+False rejects: 6/6 (1.0000)
+Binary accuracy: 0.8889
+Binary precision: 0.0000
+Binary recall: 0.0000
+Binary F1: 0.0000
+Binary ROC-AUC: 0.5521
+Syllable-only negatives: 9
+
+Model footprint (measured)
+Parameters: 3293
+Serialized model: 16720 bytes
+Input dimensions: [1, 40, 201]
+CPU inference mean/p95: 0.769/0.816 ms per example
+Process peak RSS: 583024640 bytes (process-wide, not model-only)

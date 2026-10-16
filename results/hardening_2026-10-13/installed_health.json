@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "status": "passed_operator_health_not_deployment_approval",
+  "git_commit": "unknown-installed-build",
+  "decoder_runtime_version": "bounded-prefix-runtime-v2",
+  "artifacts": [
+    {
+      "artifact_sha256": "b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac",
+      "weights_sha256": "1cafdcb1f6945fe9ca65c790be1a55c3dc7231a6ef832ade366539fb443db789",
+      "metadata_sha256": "5c2ad560fac7ad2db68aa9de3cadc4628865ca337e67c5f2096e48a96a57ad7c",
+      "task": "vcm",
+      "architecture": "CharacterAudioCNN",
+      "model_version": "legacy-character-audio-cnn-v1",
+      "grammar_version": "legacy-training-transcripts",
+      "dataset_revision": null,
+      "deployment_ready": null,
+      "parameters": 3652572,
+      "artifact_bytes": 13550852,
+      "load_ms": 84.9315410014242,
+      "first_forward_ms": 35.722624976187944,
+      "warm_forward_ms": [
+        17.071499954909086,
+        16.659917077049613
+      ],
+      "synthetic_operator_smoke_only": true,
+      "warnings": [
+        "legacy_grammar_without_slot_metadata",
+        "training_dataset_provenance_missing"
+      ]
+    }
+  ],
+  "raw_audio_recorded": false,
+  "network_access_required": false,
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.3",
+    "pointer_bits": 64,
+    "board_model": null,
+    "measured_pi5": false,
+    "os_release": null,
+    "packages": {
+      "me2-v2": "0.1.0",
+      "torch": "2.14.1",
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "soundfile": "0.14.0",
+      "psutil": "7.2.2",
+      "sounddevice": "0.5.6"
+    },
+    "logical_cpus": 10,
+    "available_memory_bytes": 2843885568,
+    "available_storage_bytes": 261808181248,
+    "cpu_governor": null,
+    "temperature_millicelsius": null,
+    "firmware_telemetry": {},
+    "quantized_backends": [
+      "qnnpack"
+    ],
+    "quantization_verified": false
+  },
+  "rss_bytes": 335593472
+}

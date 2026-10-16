@@ -19,6 +19,11 @@ The preliminary compact CTC and all wake artifacts lack deployment evidence.
 The v5 regularized wake artifact is permitted only for explicitly unverified,
 controlled engineering checks.
 
+Retention update (2026-10-15): the calibrated and preliminary compact candidate
+bundles were pruned after metric review. Their historical reports and
+predictions remain; see `docs/MODEL_SELECTION_2026-10-15.md` for exact
+dispositions and regeneration requirements.
+
 Read starting evidence: `docs/IMPROVEMENT_CYCLE_2026-10-06.md`, saved
 `results/reproduced_*_test_2026-10-05/metrics.json` and
 `results/analysis_*_test_2026-10-05/`. Those official-test results were already

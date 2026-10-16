@@ -5,9 +5,11 @@
 The safe dashboard demonstration and offline verification are ready to show.
 The live wake-to-command path is **not deployment-ready**. For the final v5
 record, v5 is the final supervised runtime/trial candidate, v3 remains the
-dashboard file-replay fixture, and the retained CTC bundle is the
-command-development model. V5 has 2/3 comparable test wake events but 4/48
-false accepts, exceeding the 2/48 guardrail; it is not a deployment promotion.
+dashboard file-replay fixture and diagnostic/fault-only fallback, and the
+retained CTC bundle is the command-development model. A healthy v5 non-wake
+remains non-wake if v3 disagrees. V5 has 2/3 comparable test wake events but
+4/48 false accepts, exceeding the 2/48 guardrail; it is not a deployment
+promotion.
 
 The current Pi handoff identifies an Ubuntu 26.04.1 ARM64 CPython 3.14.4
 target with no ME2 runtime or model checkout in the inspected locations. No Pi
@@ -29,6 +31,8 @@ results fail closed.
 The authoritative selection, frozen supervised profile, exact package
 candidate audit, cleanup disposition, and approval-separated Pi gates are in
 `V5_FINALIZATION_2026-10-15.md`.
+The separate supervised laptop plan is in `LAPTOP_OPERATOR_GUIDE_2026-10-16.md`;
+it does not change the Pi direct-model/demo-only scope.
 
 ## Exact local evidence
 

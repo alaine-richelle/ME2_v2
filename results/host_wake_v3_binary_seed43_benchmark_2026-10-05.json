@@ -1,0 +1,64 @@
+{
+  "benchmark_schema_version": 1,
+  "model": {
+    "path": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/wake-word/models/wake_word_v3_binary_seed43.me2",
+    "task": "wake_word",
+    "architecture": "TinyAudioCNN",
+    "model_version": "wake-tiny-cnn-a-teh-ko-v2-binary",
+    "grammar_version": "",
+    "parameters": 2858,
+    "artifact_bytes": 15138
+  },
+  "audio": {
+    "path": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/wake-word/data/v2/audition/927f756e547f_guide_connected.wav",
+    "source_sample_rate": 16000,
+    "usable_samples": 32000,
+    "usable_seconds": 2.0
+  },
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.3",
+    "torch": "2.14.1",
+    "torch_threads": 2,
+    "logical_cpus": 10
+  },
+  "run": {
+    "warmup_iterations": 10,
+    "measured_iterations": 200,
+    "process_cpu_percent_of_one_core": 110.73084486916817,
+    "rss_bytes_after_run": 288604160,
+    "total": {
+      "mean_ms": 0.5895327101461589,
+      "p50_ms": 0.5642499309033155,
+      "p95_ms": 0.7364589255303144,
+      "maximum_ms": 1.00145791657269
+    },
+    "stages": {
+      "acoustic_model": {
+        "mean_ms": 0.42783357203006744,
+        "p50_ms": 0.40770811028778553,
+        "p95_ms": 0.5279171746224165,
+        "maximum_ms": 0.7841249462217093
+      },
+      "frontend": {
+        "mean_ms": 0.1586910244077444,
+        "p50_ms": 0.15449989587068558,
+        "p95_ms": 0.20362483337521553,
+        "maximum_ms": 0.3049168735742569
+      }
+    }
+  },
+  "last_result": {
+    "accepted": true,
+    "decoded_text": "ateko",
+    "intent": "ateko",
+    "rejection_reason": null
+  },
+  "limitations": [
+    "RSS is process-wide, not model-only.",
+    "CPU percentage is measured over the active inference loop.",
+    "Temperature, throttling, idle CPU, and sustained-run power require target-hardware tools.",
+    "File decoding and endpoint wait time are outside the measured inference loop."
+  ]
+}

@@ -19,8 +19,8 @@ or timing measurements for this finalization.
 
 | Role | Artifact | SHA-256 | Comparable evidence and disposition |
 |---|---|---|---|
-| Final supervised runtime/trial wake candidate | `wake-word/models/wake_word_v5_regularized_seed43.me2` | `d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222` | Frozen `test` report: 2/3 wake events, 4/48 false accepts, 0.9020 accuracy, 0.6953 macro F1. Higher wake recall than v3, but exceeds the 2/48 false-accept guardrail. Retain only for supervised trials. |
-| Dashboard file-replay fixture | `wake-word/models/wake_word_v3_binary_seed43_r1.me2` | `35ec56088979aea4d16f547dfcda047fac969b8f9d46a60176ee1703d853170b` | Same frozen `test` cohort: 0/3 wake events, 0/48 false accepts, 0.9216 accuracy, 0.6458 macro F1. Keep as the dashboard file fixture; it is not a live-wake candidate. |
+| Final supervised runtime/trial wake candidate | `wake-word/models/wake_word_v5_regularized_seed43.me2` | `d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222` | Frozen `test` report: 2/3 wake events, 4/48 false accepts, 0.9020 accuracy, 0.6953 macro F1. Primary decision source; retain only for supervised trials. |
+| Dashboard fixture and diagnostic/fault fallback | `wake-word/models/wake_word_v3_binary_seed43_r1.me2` | `35ec56088979aea4d16f547dfcda047fac969b8f9d46a60176ee1703d853170b` | Same frozen `test` cohort: 0/3 wake events, 0/48 false accepts, 0.9216 accuracy, 0.6458 macro F1. Score beside v5 for diagnostics and use only after a v5 load/inference fault; never accept a v3 disagreement as an OR rule. |
 | Command-development model | `vcm/models/vcm_ctc_model.me2` | `b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac` | Matched official `test`: 0.8911 accuracy, 0.8682 macro F1, 20/76 OOS false accepts, 316/4,367 in-scope rejections. Retain for command development, not Pi approval. |
 
 The wake reports are small synthetic clip cohorts (3 positive and 48 negative
@@ -33,13 +33,14 @@ bundles or protected T01–T13 evidence.
 ## Frozen supervised profile and rollback
 
 `config/runtime.v5-final-supervised-20261015.json` is the explicit,
-reversible final supervised profile. It has the one-second-onset settings of
-`config/runtime.example.json`, points to v5 and the selected CTC bundle, and
-writes only a distinct runtime log. Its SHA-256 is recorded after local
-verification as
+reversible single-wake supervised profile. It has the one-second-onset
+settings of `config/runtime.example.json`, points to v5 and the selected CTC
+bundle, and writes only a distinct runtime log. Its SHA-256 is recorded after
+local verification as
 `9bca207c37b6bea8abb102be38ef876f7a8364c5e7fed4db3e95493c8130105e`.
-It is not a default-path replacement or deployment
-configuration.
+`config/runtime.laptop-dual-wake.json` is the separate, explicit dual-wake
+profile for supervised laptop evaluation. It is not a default-path replacement
+or deployment configuration.
 
 Rollback/reference artifacts remain:
 
@@ -47,6 +48,13 @@ Rollback/reference artifacts remain:
   the v3 dashboard fixture.
 - `wake-word/models/wake_word_model.me2` remains the legacy fallback.
 - `config/runtime.example.json` remains the generic runtime example.
+
+The dual-wake policy is fail-closed: both models score each prepared wake
+window using their own embedded threshold and smoothing policy. A healthy v5
+non-wake remains non-wake even if v3 disagrees. V3 becomes active only after a
+v5 load or inference/system fault; two failures do not capture a command or
+dispatch an action. Redacted logs, CLI state, dashboard status, and health
+output expose the primary/fallback roles and degraded state.
 
 ## Raspberry Pi package compatibility
 
@@ -86,8 +94,16 @@ Publisher references:
 1. Obtain explicit approval for a read-only connection; confirm board, ARM64,
    Python, storage, audio enumeration, and `ldd --version`.
 2. Obtain a separate approval for remote writes and package installation.
-   Transfer a reviewed, disposable subset that includes this frozen config and
-   only the v5/CTC bundles; create an isolated venv.
+   The user must first push the reviewed local changes themselves and provide
+   a credential-free remote URL, the containing branch or tag, and the exact
+   full pushed commit SHA. Confirm that the remote is reachable and that the
+   branch/tag resolves to that commit. Then clone into a new Pi run directory,
+   fetch that SHA, and check it out detached; log the remote, requested
+   branch/tag, requested SHA, and checked-out SHA. Do not transfer a tar/ZIP
+   file or a local working tree. Required configs, v5/CTC bundles, and replay
+   fixtures must be available from that reviewed revision or an explicitly
+   approved published artifact source; otherwise stop rather than copying
+   untracked local files. Create an isolated venv only after this gate.
 3. Run `pip download --only-binary=:all:` and install from the exact
    requirements file. Record `pip check`, imports, the PortAudio version, and
    `pip freeze --all`.
@@ -105,7 +121,8 @@ deadline pass. Those items are deferred, not passed or failed.
 Use the approval-separated command forms in
 `PI5_SSH_SAFE_VALIDATION_2026-10-15.md`, substituting only an operator-supplied
 target at execution time. The final Pi commands must use the frozen config,
-verify hashes before replay, and invoke the dashboard only as
+verify the detached source identity and artifact hashes before replay, and
+invoke the dashboard only as
 `python -m me2.dashboard --demo` (without `--autostart`).
 
 ## Cleanup and completion criteria
@@ -131,3 +148,8 @@ reports, historical records, and user work were retained. See
 The release remains not deployment-ready until separate comparable wake/OOS
 evidence, calibrated command rejection, approved live Pi trials, sustained
 stream measurements, and physical audio validation meet documented guardrails.
+
+The student-facing, supervised laptop microphone/earphone procedure is
+`LAPTOP_OPERATOR_GUIDE_2026-10-16.md`. It is deliberately separate from the
+Pi direct-model/demo-only runbook and no hardware command was run while
+preparing it.

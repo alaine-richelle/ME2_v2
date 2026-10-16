@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-05",
+  "revisions": {
+    "integration_checkout": "52b38f7fdaf35a0f5b5a8dbbd239f4bfb7700e24",
+    "ctc_reference": "f5d2dc585b49b46e8518ec6122261a9ca7f2f5e4",
+    "hugging_face_dataset": "bfca0bbebfe17e00d6a685d1da573615d29ecdce"
+  },
+  "wake": {
+    "dataset_version": "wake-v3-connected-a-teh-ko",
+    "rows": 408,
+    "synthetic_voice_identities": 8,
+    "real_speakers": 0,
+    "positive_rows": 24,
+    "positive_synthesis_text": "a teh ko",
+    "approved_main_corpus_positives": 0,
+    "approved_anchor": "wake-word/data/v2/audition/927f756e547f_guide_connected.wav",
+    "selected_preliminary_model": "wake-word/models/wake_word_v3_binary_seed43_r1.me2",
+    "selected_model_parameters": 2858,
+    "validation": {
+      "positive_events": 3,
+      "negative_clips": 48,
+      "wake_recall": 0.6666666666666666,
+      "false_accepts": 2,
+      "wake_f1": 0.5714285714285715
+    },
+    "test": {
+      "positive_events": 3,
+      "negative_clips": 48,
+      "wake_recall": 0.0,
+      "false_accepts": 0,
+      "wake_f1": 0.0
+    },
+    "deployment_ready": false,
+    "limitation": "All partition identities are synthetic voices and only one separate audition clip has user pronunciation approval."
+  },
+  "voice_commands": {
+    "dataset_rows": {
+      "train": 10733,
+      "test": 4443,
+      "holdout": 202
+    },
+    "baseline": {
+      "model": "vcm/models/vcm_baseline_model.me2",
+      "parameters": 8052,
+      "accuracy": 0.5349988746342561,
+      "macro_f1": 0.40619735908353904,
+      "out_of_scope_false_accepts": 56,
+      "out_of_scope_count": 76,
+      "in_scope_false_rejects": 107,
+      "in_scope_count": 4367
+    },
+    "legacy_ctc_corrected_decoder": {
+      "model": "vcm/models/vcm_ctc_model.me2",
+      "parameters": 3652572,
+      "accuracy": 0.8910645959936979,
+      "macro_f1": 0.8682290822166946,
+      "out_of_scope_false_accepts": 20,
+      "out_of_scope_count": 76,
+      "in_scope_false_rejects": 316,
+      "in_scope_count": 4367,
+      "normalized_exact_transcript_accuracy_on_nonempty_transcripts": 0.48733031674208144,
+      "greedy_exact_transcript_accuracy_on_nonempty_transcripts": 0.08733031674208144,
+      "greedy_character_error_rate": 0.22140932738758826,
+      "greedy_exact_grammar_semantic_accuracy": 0.1516993022732388,
+      "trie_candidate_semantic_accuracy": 0.8784604996623903,
+      "slot_semantics_supported": false
+    },
+    "compact_ctc_preliminary": {
+      "model": "vcm/models/vcm_compact_ctc_preliminary_2026-10-05.me2",
+      "parameters": 203638,
+      "training_scope": "balanced 2048-row development limit; 2018 usable train rows",
+      "best_validation_macro_f1": 0.0038535645472061652,
+      "calibration_status": "reject_all_no_eligible_threshold",
+      "test_accuracy": 0.017105559306774702,
+      "test_macro_f1": 0.001681788006196061,
+      "test_in_scope_false_rejects": 4367,
+      "test_in_scope_count": 4367,
+      "status": "completed preliminary failure; not promoted"
+    }
+  },
+  "integrated_replay": "results/wake_v3_handoff_replay_2026-10-05.json",
+  "raspberry_pi_benchmark_available": false
+}

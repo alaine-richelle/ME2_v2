@@ -1,0 +1,74 @@
+[
+  {
+    "index": 10054,
+    "file": "audio/train_010571_SpeechCommands_v2_4435.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10055,
+    "file": "audio/train_010572_SpeechCommands_v2_1816.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10056,
+    "file": "audio/train_010573_SpeechCommands_v2_3331.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10057,
+    "file": "audio/train_010574_SpeechCommands_v2_796.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10058,
+    "file": "audio/train_010575_SpeechCommands_v2_651.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10059,
+    "file": "audio/train_010576_SpeechCommands_v2_4811.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10060,
+    "file": "audio/train_010577_SpeechCommands_v2_463.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10061,
+    "file": "audio/train_010578_SpeechCommands_v2_842.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10062,
+    "file": "audio/train_010579_SpeechCommands_v2_1561.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10063,
+    "file": "audio/train_010580_SpeechCommands_v2_167.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10064,
+    "file": "audio/train_010581_SpeechCommands_v2_1057.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 30,
+    "item": "audio/train_000030_real_voice_play_owner_20260930-171408-217.wav",
+    "reason": "Audio has 115200 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  }
+]

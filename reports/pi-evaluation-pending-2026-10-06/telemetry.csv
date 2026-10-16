@@ -1,0 +1,1 @@
+timestamp,cpu_temperature_c,cpu_clock_mhz,load_1m,load_5m,load_15m,system_cpu_percent,assistant_cpu_percent,system_ram_used_mib,assistant_rss_mib,throttling_flags

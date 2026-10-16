@@ -1,0 +1,13 @@
+{
+  "manifest": null,
+  "events": null,
+  "telemetry": null,
+  "metadata": {
+    "path": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/config/pi_report_pending.json",
+    "sha256": "54907eb939230ab6d47f727e7c5f936d38bfd2e76e8dee20033791c25c89e86c"
+  },
+  "schema": {
+    "path": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/config/command_schema_v1.json",
+    "sha256": "c239fb03dd821021f452e3230e0cdbf79d95895d37dbafa4f7a48a6ce69781c7"
+  }
+}

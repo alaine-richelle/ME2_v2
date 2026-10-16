@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "failed",
+  "git_commit": "022452a954d6e9d11c3eb7fee584167cdb1cdf42",
+  "decoder_runtime_version": "bounded-prefix-runtime-v2",
+  "artifacts": [],
+  "raw_audio_recorded": false,
+  "network_access_required": false,
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.3",
+    "pointer_bits": 64,
+    "board_model": null,
+    "measured_pi5": false,
+    "os_release": null,
+    "packages": {
+      "me2-v2": "0.1.0",
+      "torch": "2.14.1",
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "soundfile": "0.14.0",
+      "psutil": "7.2.2",
+      "sounddevice": "0.5.6"
+    },
+    "logical_cpus": 10,
+    "available_memory_bytes": 3131867136,
+    "available_storage_bytes": 261816475648,
+    "cpu_governor": null,
+    "temperature_millicelsius": null,
+    "firmware_telemetry": {},
+    "quantized_backends": [
+      "qnnpack"
+    ],
+    "quantization_verified": false
+  },
+  "input_devices": [],
+  "error_type": "RuntimeError",
+  "error_code": "no_input_devices",
+  "next_action": "connect_input_device_and_check_os_microphone_permissions"
+}

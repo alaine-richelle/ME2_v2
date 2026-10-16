@@ -93,6 +93,7 @@ def test_continuous_replay_rejects_command_onset_timeout():
             np.ones(100, dtype=np.float32),
             np.zeros(100, dtype=np.float32),
             np.zeros(100, dtype=np.float32),
+            np.zeros(100, dtype=np.float32),
         ],
     )
     outcomes = [
@@ -124,7 +125,7 @@ def test_continuous_replay_rejects_overlong_command_without_decoding():
             np.zeros(100, dtype=np.float32),
             np.zeros(100, dtype=np.float32),
             np.ones(100, dtype=np.float32),
-            *[np.ones(100, dtype=np.float32) for _ in range(6)],
+            *[np.ones(100, dtype=np.float32) for _ in range(8)],
         ],
     )
     outcomes = [
@@ -163,6 +164,7 @@ def test_decoder_failure_becomes_non_actionable_rejection_and_cooldown():
         failed_decoder,
     )
     pipeline.feed(np.ones(400, dtype=np.float32))
+    pipeline.feed(np.ones(100, dtype=np.float32) * 0.5)
     pipeline.feed(np.ones(100, dtype=np.float32) * 0.5)
     pipeline.feed(np.zeros(100, dtype=np.float32))
     events = pipeline.feed(np.zeros(100, dtype=np.float32))

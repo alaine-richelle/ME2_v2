@@ -1,0 +1,21 @@
+{
+  "report_schema_version": 1,
+  "status": "not_run",
+  "intent": null,
+  "command": null,
+  "command_metrics_available": false,
+  "command_metrics_unavailable_reason": "no Raspberry Pi 5, held-out Pi event log, ground-truth trial manifest, or Pi telemetry was available in this workspace",
+  "counts": {
+    "n_all": 0,
+    "n_in_scope": 0,
+    "n_oos": 0
+  },
+  "pipeline": {},
+  "unknown_intents": {},
+  "slot_summary": {},
+  "pi": {
+    "specs": {},
+    "telemetry_method": {},
+    "onnx": {}
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "calibration_schema_version": 1,
+  "split": "calibration",
+  "rows": 51,
+  "positive_rows": 3,
+  "negative_rows": 48,
+  "target_false_accept_rate": 0.05,
+  "threshold": 0.5923380255699159,
+  "observed_false_accepts": 0,
+  "observed_false_accept_rate": 0.0,
+  "observed_recall": 0.0,
+  "calibration_mode": "clip_proxy_pending_continuous_validation",
+  "warning": "This is not false activations per hour. Continuous validation audio with event boundaries is still required to calibrate smoothing and cooldown."
+}

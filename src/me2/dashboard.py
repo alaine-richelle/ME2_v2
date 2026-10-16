@@ -28,6 +28,7 @@ from me2.app import (
     _model,
     _require_live_wake_readiness,
     build_streaming_pipeline,
+    load_wake_pair,
 )
 from me2.app import build_parser as inference_parser
 from me2.dashboard_audio import DashboardAudioPlayer
@@ -147,6 +148,11 @@ def load_settings(path: Path) -> dict:
     for key in ("wake_model", "vcm_model", "mappings_file"):
         value = Path(config[key]).expanduser()
         config[key] = value if value.is_absolute() else (path.parent / value).resolve()
+    if "wake_fallback_model" in config:
+        value = Path(config["wake_fallback_model"]).expanduser()
+        config["wake_fallback_model"] = (
+            value if value.is_absolute() else (path.parent / value).resolve()
+        )
     config.setdefault("weather", {})
     config.setdefault("music", {})
     if not isinstance(config["weather"], dict) or not isinstance(config["music"], dict):
@@ -240,6 +246,15 @@ class Dashboard:
             "device": settings.get("input_device"),
             "rms": 0.0,
             "wake": None,
+            "wake_policy": {
+                "primary_role": "v5_primary",
+                "fallback_role": (
+                    "v3_fault_fallback"
+                    if settings.get("wake_fallback_model") is not None
+                    else "not_configured"
+                ),
+                "mode": "not_started",
+            },
             "models": {},
             "last_result": None,
             "last_action": None,
@@ -360,12 +375,27 @@ class Dashboard:
             except queue.Full as error:
                 raise ValueError("An example is already queued") from error
 
-    def on_wake(self, label: str, score: float, elapsed: float, detected: bool) -> None:
+    def on_wake(
+        self,
+        label: str,
+        score: float,
+        elapsed: float,
+        detected: bool,
+        policy: dict | None = None,
+    ) -> None:
         with self.lock:
             self.data["wake"] = {
                 "label": label, "score": score, "inference_ms": elapsed,
                 "detected": detected, "at": now(),
             }
+            if policy is not None:
+                self.data["wake_policy"] = {
+                    key: policy.get(key)
+                    for key in (
+                        "primary_role", "fallback_role", "mode", "primary_status",
+                        "fallback_status", "primary_failure", "fallback_failure",
+                    )
+                }
 
     def on_audio(self, chunk: np.ndarray) -> None:
         with self.lock:
@@ -477,6 +507,8 @@ class Dashboard:
         if not isinstance(slots, dict):
             raise TypeError("invalid slot payload")
         if intent not in SLOT_REQUIRED:
+            if slots:
+                raise ValueError("unsupported slot supplied for this intent")
             return None
         if set(slots) != {"value"} or not isinstance(slots.get("value"), str):
             raise ValueError("required supported slot is missing")
@@ -509,9 +541,9 @@ class Dashboard:
                 self.audio_player.stop()
             devices["player"] = "stopped"
         elif intent == "next":
-            devices["track"] += 1
             if not self.demo and devices["player"] == "playing":
                 self.audio_player.next_track()
+            devices["track"] += 1
         elif intent in {"volume_up", "volume_down"}:
             delta = 10 if intent == "volume_up" else -10
             updated = min(100, max(0, devices["volume"] + delta))
@@ -648,7 +680,9 @@ class Dashboard:
                     raise ValueError(f"Unknown streaming setting: {key}")
                 setattr(args, key, value)
             wake_path, vcm_path = self.settings["wake_model"], self.settings["vcm_model"]
-            wake_model, wake_bundle = _model(wake_path, "wake_word")
+            fallback_path = self.settings.get("wake_fallback_model")
+            wake_pair = load_wake_pair(wake_path, fallback_path, loader=_model)
+            wake_model, wake_bundle = wake_pair.primary_model, wake_pair.primary_bundle
             vcm_model, vcm_bundle = _model(vcm_path, "vcm")
             if vcm_bundle.get("grammar"):
                 grammar = coerce_grammar_entries(vcm_bundle["grammar"])
@@ -656,7 +690,7 @@ class Dashboard:
                 examples = [dataclasses.asdict(entry) for entry in grammar]
                 slot_values: dict[str, dict[str, str]] = {}
                 for entry in grammar:
-                    for name, value in entry.slots.items():
+                    for value in entry.slots.values():
                         slot_values.setdefault(entry.intent, {})[value.casefold()] = value
                 with self.lock:
                     self.supported_slot_values = slot_values
@@ -664,10 +698,10 @@ class Dashboard:
                 intents = [label for label in vcm_bundle["labels"] if label != "out_of_scope"]
                 examples = []
             models = {}
-            for name, path, bundle in (
-                ("wake", wake_path, wake_bundle), ("command", vcm_path, vcm_bundle),
-            ):
+
+            def add_model(name, role, path, model, bundle, load_error=None):
                 models[name] = {
+                    "role": role,
                     "path": str(path), "architecture": bundle.get("architecture"),
                     "version": bundle.get("model_version"),
                     "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -675,28 +709,65 @@ class Dashboard:
                     "audio": bundle["audio"], "threshold": bundle.get("threshold"),
                     "streaming_policy": bundle.get("streaming_policy", {}),
                     "grammar_version": bundle.get("grammar_version"),
+                    "status": "ready" if model is not None else "load_failed",
+                    "load_error": load_error,
                 }
+            if wake_bundle is not None:
+                add_model("wake_primary", "v5_primary", wake_path, wake_model, wake_bundle)
+            else:
+                models["wake_primary"] = {
+                    "role": "v5_primary", "status": "load_failed",
+                    "load_error": wake_pair.primary_load_error,
+                }
+            if fallback_path is not None:
+                if wake_pair.fallback_bundle is not None:
+                    add_model(
+                        "wake_fallback",
+                        "v3_fault_fallback",
+                        fallback_path,
+                        wake_pair.fallback_model,
+                        wake_pair.fallback_bundle,
+                    )
+                else:
+                    models["wake_fallback"] = {
+                        "role": "v3_fault_fallback", "status": "load_failed",
+                        "load_error": wake_pair.fallback_load_error,
+                    }
+            add_model("command", "command_development", vcm_path, vcm_model, vcm_bundle)
             with self.lock:
                 self.data.update(models=models, supported_intents=intents)
                 self.data["grammar"] = examples
-            _require_live_wake_readiness(wake_bundle, allow_unverified=self.allow_unverified)
+            _require_live_wake_readiness(
+                wake_pair.active_bundle, allow_unverified=self.allow_unverified
+            )
             import sounddevice as sd
 
             sd.check_input_settings(
                 device=args.input_device, channels=1, dtype="float32",
-                samplerate=int(wake_bundle["audio"]["sample_rate"]),
+                samplerate=int(wake_pair.active_bundle["audio"]["sample_rate"]),
             )
             device = sd.query_devices(args.input_device, kind="input")["name"]
             pipeline = build_streaming_pipeline(
-                args, wake_model, wake_bundle, vcm_model, vcm_bundle,
+                args,
+                wake_model,
+                wake_bundle,
+                vcm_model,
+                vcm_bundle,
+                fallback_model=wake_pair.fallback_model,
+                fallback_bundle=wake_pair.fallback_bundle,
+                primary_load_error=wake_pair.primary_load_error,
                 on_event=self.on_event, on_wake=self.on_wake,
             )
             with self.lock:
                 self.data.update(
                     device=device,
+                    wake_policy=dict(pipeline.wake_status),
                     notice=(
-                        "Engineering override · wake model has not passed deployment review"
-                        if wake_bundle.get("deployment_ready") is False
+                        (
+                            "Engineering override · v5 primary, v3 fault-only fallback; "
+                            "wake model has not passed deployment review"
+                        )
+                        if wake_pair.active_bundle.get("deployment_ready") is False
                         else "Live microphone · actions update simulated dashboard devices"
                     ),
                 )

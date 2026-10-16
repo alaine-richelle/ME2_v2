@@ -1,0 +1,72 @@
+{
+  "calibration_schema_version": 1,
+  "dataset_id": "airimonda/ai231-me2-voice-commands",
+  "dataset_revision": "bfca0bbebfe17e00d6a685d1da573615d29ecdce",
+  "partition_manifest": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/results/vcm_ctc_partitions.json",
+  "partition": "official_train/speaker_disjoint_calibration",
+  "rows_requested": 1462,
+  "rows_used": 1454,
+  "audio_issues": [
+    {
+      "index": 1082,
+      "item": "audio/train_001353_SNIPS_snips_smart-lights_2318_far.wav",
+      "reason": "Audio has 89929 samples after trimming, exceeding the configured maximum of 80000"
+    },
+    {
+      "index": 1161,
+      "item": "audio/train_001448_SNIPS_snips_smart-lights_3255_far.wav",
+      "reason": "Audio has 97984 samples after trimming, exceeding the configured maximum of 80000"
+    },
+    {
+      "index": 1283,
+      "item": "audio/train_001605_SNIPS_snips_smart-lights_2844_far.wav",
+      "reason": "Audio has 95920 samples after trimming, exceeding the configured maximum of 80000"
+    },
+    {
+      "index": 2278,
+      "item": "audio/train_002644_group_synthetic_NEXT_s74_v3_noisy.wav",
+      "reason": "Audio has 84723 samples after trimming, exceeding the configured maximum of 80000"
+    },
+    {
+      "index": 3058,
+      "item": "audio/train_003506_group_synthetic_CALL_s74_v2_noisy.wav",
+      "reason": "Audio has 130675 samples after trimming, exceeding the configured maximum of 80000"
+    },
+    {
+      "index": 3101,
+      "item": "audio/train_003549_group_synthetic_CALL_s74_v2_clean.wav",
+      "reason": "Audio has 130582 samples after trimming, exceeding the configured maximum of 80000"
+    },
+    {
+      "index": 10073,
+      "item": "audio/train_010590_CommonVoice_en_common_voice_en_21087884.wav",
+      "reason": "Audio has 102502 samples after trimming, exceeding the configured maximum of 80000"
+    },
+    {
+      "index": 10528,
+      "item": "audio/train_011045_group_synthetic_NEXT_s74_v3_clean.wav",
+      "reason": "Audio has 84681 samples after trimming, exceeding the configured maximum of 80000"
+    }
+  ],
+  "target_false_accept_rate": 0.05,
+  "policy": {
+    "min_normalized_log_score": -0.42637394370371773,
+    "min_margin": -1e+30,
+    "min_candidate_posterior": 0.0,
+    "version": "calibrated-score-margin-posterior-v1"
+  },
+  "selected_metrics": {
+    "macro_f1": 0.8963433256116078,
+    "accuracy": 0.9002751031636864,
+    "false_accepts": 0,
+    "false_accept_rate": 0.0,
+    "wrong_actions": 2,
+    "wrong_action_rate": 0.001394700139470014,
+    "in_scope_rejects": 143,
+    "in_scope_reject_rate": 0.099721059972106,
+    "acceptance_coverage": 0.8878954607977991,
+    "utility": 0.8956459755418728
+  },
+  "official_test_used_for_selection": false,
+  "warning": "Candidate-posterior and beam scores are decoder scores, not calibrated correctness probabilities."
+}

@@ -1,0 +1,380 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-10-15",
+  "repository": {
+    "branch": "master",
+    "head": "20f793d43b664c232f1b25f33a87cf6479c069aa",
+    "origin": "https://github.com/alaine-richelle/ME2_v2.git",
+    "remote_default_branch": "master",
+    "remote_default_sha": "52b38f7fdaf35a0f5b5a8dbbd239f4bfb7700e24",
+    "remote_verified_with": "git ls-remote --symref origin HEAD refs/heads/master",
+    "local_commits_ahead_of_remote_default": 6
+  },
+  "purged_archive_root": "/private/tmp/ME2_v2_model_archive_2026-10-15",
+  "policy": "Preserve GitHub baselines, canonical runtime fixtures, protected live-test artifacts, and all metric/report evidence. Prune only exact untracked candidate bundles whose measured results fail selection and whose evidence remains saved.",
+  "reference_audit": {
+    "live_microphone_logs": "logs/laptop-long-command-*.jsonl and docs/CAPTURE_TIMING_2026-10-14.md; all recorded wake model_ready events identify wake_word_v5_regularized_seed43 by SHA-256 d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222.",
+    "runtime_configs": "config/dashboard.json and config/dashboard.natural-pause.json select wake_word_v3_binary_seed43_r1; config/runtime.example.json, config/runtime.natural-pause.json, config/runtime.onset-3s.json, and config/runtime.pi5.natural-pause.json select wake_word_v5_regularized_seed43. No config selects either archived checkpoint.",
+    "code_and_tests": "Exact filename, experiment-id, and artifact-SHA searches in src/ and tests/ found no reference to either archived checkpoint.",
+    "documentation": "Exact filename and experiment-id searches in README.md, AGENTS.md, and docs/ found no reference to either archived checkpoint.",
+    "results_and_reports": "Exact filename, experiment-id, and artifact-SHA searches in results/ and reports/ found no downstream evaluation, replay, or benchmark using either archived checkpoint.",
+    "git": "Both original bundles were untracked; git log name searches found no committed reference, and git ls-files confirmed they are not tracked.",
+    "preserved_training_logs": [
+      "logs/wake_v2_v3-connected-smoke_training.jsonl",
+      "logs/wake_v4_expanded_smoke_training.jsonl"
+    ]
+  },
+  "archived": [
+    {
+      "original_path": "wake-word/models/wake_word_v3_connected_smoke.me2",
+      "archive_path": "/private/tmp/ME2_v2_model_archive_2026-10-15/wake-word/models/wake_word_v3_connected_smoke.me2",
+      "sha256": "a16241c37b5ca73d863ac07d45d9a1f2f24baa66945c8838474ac80c0d39e7f6",
+      "reason": "One-epoch synthetic-only smoke checkpoint. Not selected, not deployment-ready, and not consumed by a later replay, benchmark, config, source path, test, report, or documented experiment. Superseded by full v3 candidate runs; retain its training log as the smoke-run record.",
+      "metric_evidence": {
+        "kind": "training-smoke-only; no standalone metrics.json or held-out evaluation",
+        "log": "logs/wake_v2_v3-connected-smoke_training.jsonl",
+        "epoch": 1,
+        "train_loss": 0.6750298589468002,
+        "validation_loss": 0.6826911228043693,
+        "validation_accuracy": 0.8571428571428571,
+        "interpretation": "One-epoch validation proxy, not a promotion or deployment metric."
+      },
+      "references_checked": [
+        "README.md",
+        "AGENTS.md",
+        "docs/",
+        "config/",
+        "src/",
+        "tests/",
+        "logs/laptop-long-command-*.jsonl",
+        "docs/CAPTURE_TIMING_2026-10-14.md",
+        "results/",
+        "reports/",
+        "Git tracked paths and committed name references"
+      ],
+      "live_microphone_use": false,
+      "selected_or_baseline": false,
+      "protected_by_documented_experiment_or_downstream_validation": false,
+      "final_disposition": "The prior recoverable archive copy was explicitly deleted under the updated cleanup instruction."
+    },
+    {
+      "original_path": "wake-word/models/wake_word_v4_expanded_smoke.me2",
+      "archive_path": "/private/tmp/ME2_v2_model_archive_2026-10-15/wake-word/models/wake_word_v4_expanded_smoke.me2",
+      "sha256": "8e2756e2699021e8a903be1b09f7c34f202d06d736e4f91247885cee200b5f2a",
+      "reason": "Two-epoch synthetic-only smoke checkpoint. Not selected, not deployment-ready, and not consumed by a later replay, benchmark, config, source path, test, report, or documented experiment. Superseded by full v4 candidate runs; retain its training log as the smoke-run record.",
+      "metric_evidence": {
+        "kind": "training-smoke-only; no standalone metrics.json or held-out evaluation",
+        "log": "logs/wake_v4_expanded_smoke_training.jsonl",
+        "best_epoch": 2,
+        "best_validation_loss": 0.6771128177642822,
+        "validation_accuracy": 0.8571428571428571,
+        "interpretation": "Two-epoch validation proxy, not a promotion or deployment metric."
+      },
+      "references_checked": [
+        "README.md",
+        "AGENTS.md",
+        "docs/",
+        "config/",
+        "src/",
+        "tests/",
+        "logs/laptop-long-command-*.jsonl",
+        "docs/CAPTURE_TIMING_2026-10-14.md",
+        "results/",
+        "reports/",
+        "Git tracked paths and committed name references"
+      ],
+      "live_microphone_use": false,
+      "selected_or_baseline": false,
+      "protected_by_documented_experiment_or_downstream_validation": false,
+      "final_disposition": "The prior recoverable archive copy was explicitly deleted under the updated cleanup instruction."
+    }
+  ],
+  "final_model_selection": {
+    "report": "docs/MODEL_SELECTION_2026-10-15.md",
+    "wake_word": {
+      "dashboard_fixture": {
+        "path": "wake-word/models/wake_word_v3_binary_seed43_r1.me2",
+        "sha256": "35ec56088979aea4d16f547dfda047fac969b8f9d46a60176ee1703d853170b",
+        "status": "retained_dashboard_fixture_not_deployment_ready",
+        "test_event_recall": "0/3",
+        "test_false_accepts": "0/48"
+      },
+      "protected_live_trial": {
+        "path": "wake-word/models/wake_word_v5_regularized_seed43.me2",
+        "sha256": "d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222",
+        "status": "retained_only_for_T01_T13_live_evidence_not_promoted",
+        "test_event_recall": "2/3",
+        "test_false_accepts": "4/48"
+      },
+      "deployment_ready_model_selected": false
+    },
+    "voice_command": {
+      "path": "vcm/models/vcm_ctc_model.me2",
+      "sha256": "b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac",
+      "status": "selected_command_development_fixture_not_pi_approved",
+      "test_accuracy": 0.8910645959936979,
+      "test_macro_f1": 0.8682290822166946,
+      "test_oos_false_accepts": "20/76",
+      "test_in_scope_false_rejects": "316/4367"
+    },
+    "baseline_files_preserved": [
+      "wake-word/models/wake_word_model.pkl",
+      "wake-word/models/wake_word_model.me2",
+      "vcm/models/vcm_model.pkl",
+      "vcm/models/vcm_baseline_model.me2",
+      "vcm/models/vcm_ctc_model.pkl"
+    ]
+  },
+  "pruned_candidate_bundles": [
+    {
+      "paths": [
+        "wake-word/models/wake_word_model_v2_B_corrected_basic.me2",
+        "wake-word/models/wake_word_model_v2_C_source_aug.me2",
+        "wake-word/models/wake_word_model_v2_D_regularized.me2",
+        "wake-word/models/wake_word_model_v2_E_binary.me2"
+      ],
+      "metrics": [
+        "results/wake_v2_ablation_B_corrected_basic/metrics.json",
+        "results/wake_v2_ablation_C_source_aug/metrics.json",
+        "results/wake_v2_ablation_D_regularized/metrics.json",
+        "results/wake_v2_ablation_E_binary/metrics.json"
+      ],
+      "reason": "Older 6-positive test cohort; B/C/D detected 0/6 and E detected 2/6 while false-accepting 4/48. Model binaries removed; metrics, predictions and replay/benchmark reports remain."
+    },
+    {
+      "paths": [
+        "wake-word/models/wake_word_v3_binary_seed42.me2",
+        "wake-word/models/wake_word_v3_binary_seed44.me2",
+        "wake-word/models/wake_word_v3_five_class_seed42.me2"
+      ],
+      "metrics": [
+        "results/wake_v3_binary_seed42_validation/metrics.json",
+        "results/wake_v3_binary_seed44_validation/metrics.json",
+        "results/wake_v3_five_class_seed42_test/metrics.json",
+        "results/wake_v3_five_class_seed42_validation/metrics.json"
+      ],
+      "reason": "Unselected seeds/class scheme; retained dashboard candidate is the only v3 binary fixture used by config."
+    },
+    {
+      "paths": [
+        "wake-word/models/wake_word_v4_expanded_seed42.me2",
+        "wake-word/models/wake_word_v4_expanded_seed43.me2",
+        "wake-word/models/wake_word_v4_expanded_seed44.me2"
+      ],
+      "metrics": [
+        "results/wake_v4_expanded_seed42_validation/metrics.json",
+        "results/wake_v4_expanded_seed43_validation/metrics.json",
+        "results/wake_v4_expanded_seed44_validation/metrics.json"
+      ],
+      "reason": "All three candidates had 0/3 event recall and 0/48 false accepts; high aggregate accuracy came from rejecting all positives."
+    },
+    {
+      "paths": [
+        "wake-word/models/wake_word_v5_command_negatives_seed42.me2",
+        "wake-word/models/wake_word_v5_width16_regularized_seed43.me2"
+      ],
+      "metrics": [
+        "results/wake_v5_command_negatives_seed42_validation/metrics.json",
+        "results/wake_v5_width16_regularized_seed43_validation/metrics.json"
+      ],
+      "reason": "Both missed 3/3 wake examples; width16's 0.9804 accuracy and 0.9233 macro F1 mask zero wake recall."
+    },
+    {
+      "paths": [
+        "vcm/models/vcm_compact_ctc_preliminary_2026-10-05.me2",
+        "vcm/models/vcm_ctc_calibrated_2026-10-05.me2",
+        "vcm/models/vcm_ctc_smoke.me2"
+      ],
+      "metrics": [
+        "results/vcm_compact_ctc_preliminary_2026-10-05_test/metrics.json",
+        "results/reproduced_legacy_ctc_calibrated_test_2026-10-05/metrics.json",
+        "results/host_compact_ctc_smoke_benchmark_2026-10-05.json"
+      ],
+      "reason": "Compact CTC rejected all 4,367 in-scope rows; calibrated policy failed the predeclared F1 and coverage guardrails; smoke bundle had no quality evaluation. Metric/prediction evidence remains."
+    }
+  ],
+  "pruned_candidate_sha256": {
+    "wake-word/models/wake_word_model_v2_B_corrected_basic.me2": "14bb6d62b5a6e71031b2e86a088bcae698e7e8d65cc059c441a233cd6260f122",
+    "wake-word/models/wake_word_model_v2_C_source_aug.me2": "a85b171f42d9dd1dcc9536f4644a52c5e4b0f787cfa70fb966407c3fe0b1e9e0",
+    "wake-word/models/wake_word_model_v2_D_regularized.me2": "cec4fc58db776038a9b59acd0450e3bd40b8f5bf4511951ca21e702509a14b91",
+    "wake-word/models/wake_word_model_v2_E_binary.me2": "26b1c2b6c8a4650fd46d046108f3f6164dbc22199183cbe44916ed4276adcb89",
+    "wake-word/models/wake_word_v3_binary_seed42.me2": "8d040d5f533d6fac00f53b6820e65651ce230a3c29cc7e0f3b4a4ecd19e0ce5f",
+    "wake-word/models/wake_word_v3_binary_seed44.me2": "37db69578c03d472d6301772d354c8bb26744dfd16390cb6e99399371a3160c4",
+    "wake-word/models/wake_word_v3_five_class_seed42.me2": "9e21f0ed380aef2321c5624c059403ef93b0337fa3829199a738fe327421087f",
+    "wake-word/models/wake_word_v4_expanded_seed42.me2": "b41942a6acb3a9842017f55001eee5080979917e30758aead06eb03d72a24de3",
+    "wake-word/models/wake_word_v4_expanded_seed43.me2": "19d680d19cbc9e0942c45c5c6fa1050d0b9609e858f019af0006b0f7aacee21e",
+    "wake-word/models/wake_word_v4_expanded_seed44.me2": "b275828fce0a31c15e89f466bbf6baf863417cf5adacaa2b00db3fd65683e4d2",
+    "wake-word/models/wake_word_v5_command_negatives_seed42.me2": "70d9420600bdb70c96daf6390b2c6077201747a7d603961c354076b5135578d6",
+    "wake-word/models/wake_word_v5_width16_regularized_seed43.me2": "a358996c81a47de278fe9f55f5827fc247f38b3c2ca0648df19508f0ac380ffe",
+    "vcm/models/vcm_compact_ctc_preliminary_2026-10-05.me2": "d481e1b25a7f731b75d57fa3eb618e1047d06f7deeece8fc65a82df686b1dff9",
+    "vcm/models/vcm_ctc_calibrated_2026-10-05.me2": "3d5503fd8ad0ad0458d122ec251d5d0c64a0668145f272beea8d5e6ac104a434",
+    "vcm/models/vcm_ctc_smoke.me2": "62caea0507a681e8b72e26728d112fc6fb3a06289533283af458e14407bd3b71"
+  },
+  "protected_runtime_artifacts": [
+    {
+      "path": "wake-word/models/wake_word_v5_regularized_seed43.me2",
+      "reason": "Referenced by runtime candidate configs and used in laptop microphone trials T01-T13; SHA-256 is recorded in capture logs."
+    },
+    {
+      "path": "wake-word/models/wake_word_v3_binary_seed43_r1.me2",
+      "reason": "Selected by dashboard config and retained as the file-based integration fixture; its bundle remains deployment_ready=false."
+    },
+    {
+      "path": "vcm/models/vcm_ctc_model.me2",
+      "reason": "Selected CTC command artifact and runtime-validation fixture."
+    },
+    {
+      "paths": [
+        "wake-word/models/wake_word_model.me2",
+        "vcm/models/vcm_baseline_model.me2",
+        "wake-word/models/wake_word_model.pkl",
+        "vcm/models/vcm_model.pkl",
+        "vcm/models/vcm_ctc_model.pkl"
+      ],
+      "reason": "Historical baselines and/or trusted legacy migration inputs; preserved."
+    }
+  ],
+  "deleted_untracked_build_snapshot": {
+    "paths": [
+      "build/lib/me2/__init__.py",
+      "build/lib/me2/app.py",
+      "build/lib/me2/audio.py",
+      "build/lib/me2/benchmark.py",
+      "build/lib/me2/bundle.py",
+      "build/lib/me2/contracts.py",
+      "build/lib/me2/dashboard.py",
+      "build/lib/me2/dashboard_static/dashboard.css",
+      "build/lib/me2/dashboard_static/dashboard.js",
+      "build/lib/me2/dashboard_static/index.html",
+      "build/lib/me2/features.py",
+      "build/lib/me2/health.py",
+      "build/lib/me2/io_utils.py",
+      "build/lib/me2/logging_utils.py",
+      "build/lib/me2/metrics.py",
+      "build/lib/me2/model.py",
+      "build/lib/me2/pi_report.py",
+      "build/lib/me2/runtime_config.py",
+      "build/lib/me2/streaming.py",
+      "build/lib/me2/training.py",
+      "build/lib/me2/vcm/__init__.py",
+      "build/lib/me2/vcm/analyze.py",
+      "build/lib/me2/vcm/audit.py",
+      "build/lib/me2/vcm/calibrate.py",
+      "build/lib/me2/vcm/ctc.py",
+      "build/lib/me2/vcm/ctc_training.py",
+      "build/lib/me2/vcm/data.py",
+      "build/lib/me2/vcm/evaluate.py",
+      "build/lib/me2/vcm/train.py",
+      "build/lib/me2/wake_word/__init__.py",
+      "build/lib/me2/wake_word/calibrate.py",
+      "build/lib/me2/wake_word/data.py",
+      "build/lib/me2/wake_word/detector.py",
+      "build/lib/me2/wake_word/evaluate.py",
+      "build/lib/me2/wake_word/record.py",
+      "build/lib/me2/wake_word/train.py"
+    ],
+    "reason": "Untracked generated build/lib snapshot duplicated the src/me2 package, had no unique modules, was stale versus src/me2, was not referenced by config/docs/tests/runtime-validation outputs, and its logging module lacked runtime_source_hash so it did not match the recorded T01 installed-build implementation hash. The verified GitHub source baseline remains on origin/master.",
+    "metric_evidence": "Not a model artifact; no model metrics apply. Build files were not used to generate the retained evaluation reports.",
+    "references_checked": [
+      "README.md",
+      "AGENTS.md",
+      "docs/",
+      "config/",
+      "src/",
+      "tests/",
+      "logs/laptop-long-command-*.jsonl implementation hashes",
+      "results/",
+      "reports/",
+      "pyproject.toml",
+      "Git tracked paths"
+    ],
+    "reproducibility": "Regenerable from the retained src/me2 package and the verified baseline Git commit."
+  },
+  "deleted_prior_archive_copies": [
+    "/private/tmp/ME2_v2_model_archive_2026-10-15/wake-word/models/wake_word_v3_connected_smoke.me2",
+    "/private/tmp/ME2_v2_model_archive_2026-10-15/wake-word/models/wake_word_v4_expanded_smoke.me2"
+  ],
+  "reports_inventory": {
+    "file_count": 14,
+    "directories": [
+      {
+        "path": "reports/pi-evaluation-pending-2026-10-06/",
+        "status": "retained",
+        "reason": "Authoritative pending Pi assessment referenced by README, docs, config, saved improvement-cycle metadata, and report-generation tests. It explicitly records status=not_run and the lack of Pi hardware, event manifest, events, and telemetry; preserving the empty/zero tables prevents the missing assessment from being mistaken for a successful run and keeps the schema reproducible.",
+        "provenance": {
+          "input_references": "metadata and schema are hash-pinned; manifest, events, and telemetry are null.",
+          "metadata_sha256": "54907eb939230ab6d47f727e7c5f936d38bfd2e76e8dee20033791c25c89e86c",
+          "schema_sha256": "c239fb03dd821021f452e3230e0cdbf79d95895d37dbafa4f7a48a6ce69781c7",
+          "run_status": "not_run",
+          "live_microphone_or_pi_event_evidence": false
+        },
+        "files": [
+          "reports/pi-evaluation-pending-2026-10-06/classification.csv",
+          "reports/pi-evaluation-pending-2026-10-06/command_confusions.csv",
+          "reports/pi-evaluation-pending-2026-10-06/input_references.json",
+          "reports/pi-evaluation-pending-2026-10-06/intent_confusions.csv",
+          "reports/pi-evaluation-pending-2026-10-06/metrics.json",
+          "reports/pi-evaluation-pending-2026-10-06/per_intent.csv",
+          "reports/pi-evaluation-pending-2026-10-06/predictions.csv",
+          "reports/pi-evaluation-pending-2026-10-06/report.md",
+          "reports/pi-evaluation-pending-2026-10-06/run_metadata.json",
+          "reports/pi-evaluation-pending-2026-10-06/slot_values.csv",
+          "reports/pi-evaluation-pending-2026-10-06/source_breakdown.csv",
+          "reports/pi-evaluation-pending-2026-10-06/telemetry.csv",
+          "reports/pi-evaluation-pending-2026-10-06/telemetry_metrics.csv"
+        ],
+        "file_roles": {
+          "report.md": "Human-readable six-section not-run report; explicitly says the Pi assessment did not occur.",
+          "metrics.json": "Machine-readable not_run status with zero scored clips and reason.",
+          "run_metadata.json": "Run identity, dataset/code revisions, null hardware/checkpoint fields, and unavailable reason.",
+          "input_references.json": "SHA-256 provenance for config/pi_report_pending.json and config/command_schema_v1.json; records no trial manifest, events, or telemetry.",
+          "classification.csv, command_confusions.csv, intent_confusions.csv, per_intent.csv, predictions.csv, slot_values.csv, source_breakdown.csv": "Header-only output schemas because there are no observations; retained as reproducible sections of the pending report.",
+          "telemetry.csv": "Header-only raw telemetry schema; no Pi samples were supplied.",
+          "telemetry_metrics.csv": "Sixteen explicit zero-sample metric rows with reasons telemetry is unavailable."
+        },
+        "references_checked": [
+          "README.md",
+          "docs/IMPROVEMENT_CYCLE_2026-10-06.md",
+          "docs/PI_EVALUATION_REPORT.md",
+          "config/pi_report_pending.json",
+          "results/improvement_cycle_2026-10-06.json",
+          "src/me2/pi_report.py",
+          "tests/test_pi_report.py"
+        ]
+      },
+      {
+        "path": "reports/model-artifact-archive-2026-10-15/manifest.json",
+        "status": "retained",
+        "reason": "Required cleanup provenance from the preceding artifact audit: records baseline verification, exact removed model/build paths, protected candidates, checksums, and references examined."
+      }
+    ],
+    "deleted": [],
+    "references_checked": [
+      "README.md",
+      "AGENTS.md",
+      "docs/",
+      "config/",
+      "src/",
+      "tests/",
+      "results/",
+      "logs/",
+      "reports/"
+    ]
+  },
+  "verification": {
+    "archive_copy_hashes_matched_originals_before_purge": true,
+    "original_paths_absent_after_move": true,
+    "prior_archive_copies_deleted_after_updated_scope": true,
+    "prior_archive_copy_paths_absent": true,
+    "generated_build_snapshot_paths_absent": true,
+    "pruned_candidate_bundle_paths_absent": true,
+    "pruned_candidate_checksums_recorded": true,
+    "pruned_candidate_metrics_and_prediction_reports_preserved": true,
+    "selected_and_protected_runtime_artifacts_present": true,
+    "github_remote_default_verified": true,
+    "tracked_github_baseline_paths_deleted": false,
+    "preserved_training_logs_present": true,
+    "saved_metrics_and_reports_untouched": true,
+    "microphone_trials_or_raw_audio_changed": false
+  }
+}

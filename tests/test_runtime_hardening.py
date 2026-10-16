@@ -30,7 +30,13 @@ from me2.logging_utils import (
 )
 from me2.model import TinyAudioCNN
 from me2.runtime_config import RuntimeSettings
-from me2.streaming import PipelineState, StreamingConfig, StreamingPipeline, run_microphone_stream
+from me2.streaming import (
+    PipelineState,
+    StreamingConfig,
+    StreamingPipeline,
+    _ArecordInputStream,
+    run_microphone_stream,
+)
 from me2.vcm.ctc import (
     AcceptancePolicy,
     DecoderBudgetError,
@@ -148,17 +154,134 @@ def test_deterministic_decoder_limits_fail_closed_and_exclude_padding():
 def test_runtime_config_precedence_and_path_resolution(tmp_path):
     path = tmp_path / "runtime.json"
     path.write_text(json.dumps({
-        "schema_version": 1, "runtime": {"threads": 1, "pre_roll_ms": 300},
+        "schema_version": 1,
+        "runtime": {
+            "threads": 1, "pre_roll_ms": 300,
+            "audio_backend": "arecord", "alsa_device": "plughw:0,0",
+        },
         "paths": {"vcm_model": "candidate.me2"},
     }))
     args = parse_args(["--vcm", "--config", str(path), "--threads", "3"])
     assert args.threads == 3 and args.pre_roll_ms == 300
+    assert args.audio_backend == "arecord" and args.alsa_device == "plughw:0,0"
     assert args.vcm_model == tmp_path / "candidate.me2"
     with pytest.raises(ValueError):
         RuntimeSettings(speech_rms_threshold=float("nan"))
+    with pytest.raises(ValueError, match="audio_backend"):
+        RuntimeSettings(audio_backend="pulse")
+    with pytest.raises(ValueError, match="alsa_device"):
+        RuntimeSettings(audio_backend="arecord", alsa_device=" ")
     path.write_text('{"schema_version":1,"runtime":{"threadz":2}}')
     with pytest.raises(SystemExit):
         parse_args(["--vcm", "--config", str(path)])
+
+
+def test_arecord_stream_converts_pcm_and_terminates_process(monkeypatch):
+    from me2 import streaming
+
+    pcm = np.array([-32768, 0, 16384, 32767], dtype="<i2").tobytes()
+    process_calls = []
+
+    class FakeProcess:
+        def __init__(self):
+            self.stdout = io.BytesIO(pcm)
+            self.returncode = None
+
+        def poll(self):
+            if self.stdout.tell() == len(pcm) and self.returncode is None:
+                self.returncode = 0
+            return self.returncode
+
+        def terminate(self):
+            self.returncode = -15
+
+        def wait(self, timeout=None):
+            del timeout
+            return self.returncode
+
+        def kill(self):
+            self.returncode = -9
+
+    def fake_popen(command, **kwargs):
+        process_calls.append((command, kwargs))
+        return FakeProcess()
+
+    monkeypatch.setattr(streaming.shutil, "which", lambda _name: "/usr/bin/arecord")
+    monkeypatch.setattr(streaming.subprocess, "Popen", fake_popen)
+    received = []
+    ready = threading.Event()
+
+    def callback(indata, frames, timing, status):
+        received.append((indata.copy(), frames, timing, status))
+        ready.set()
+
+    stream = _ArecordInputStream(
+        samplerate=16_000,
+        channels=1,
+        dtype="float32",
+        blocksize=4,
+        device="plughw:0,0",
+        callback=callback,
+    )
+    with stream:
+        assert ready.wait(timeout=1)
+
+    command, options = process_calls[0]
+    assert command == [
+        "/usr/bin/arecord", "-q", "-D", "plughw:0,0", "-t", "raw",
+        "-f", "S16_LE", "-r", "16000", "-c", "1", "--period-size", "4", "-",
+    ]
+    assert options["stdout"] == subprocess.PIPE
+    assert options["stderr"] == subprocess.DEVNULL
+    values, frames, timing, status = received[0]
+    assert frames == 4 and timing is None and status is False
+    np.testing.assert_allclose(values[:, 0], [-1.0, 0.0, 0.5, 32767 / 32768])
+
+
+def test_arecord_backend_feeds_existing_pipeline_and_stops_cleanly(monkeypatch):
+    from me2 import streaming
+
+    pcm = np.zeros(1600, dtype="<i2").tobytes()
+
+    class FakeProcess:
+        def __init__(self):
+            self.stdout = io.BytesIO(pcm)
+            self.returncode = None
+
+        def poll(self):
+            if self.stdout.tell() == len(pcm) and self.returncode is None:
+                self.returncode = 0
+            return self.returncode
+
+        def terminate(self):
+            self.returncode = -15
+
+        def wait(self, timeout=None):
+            del timeout
+            return self.returncode
+
+        def kill(self):
+            self.returncode = -9
+
+    monkeypatch.setattr(streaming.shutil, "which", lambda _name: "/usr/bin/arecord")
+    monkeypatch.setattr(streaming.subprocess, "Popen", lambda *_args, **_kwargs: FakeProcess())
+    stop = threading.Event()
+    observed = []
+    pipeline = StreamingPipeline(
+        StreamingConfig(), lambda _window: False, lambda _waveform: None
+    )
+
+    run_microphone_stream(
+        pipeline,
+        audio_backend="arecord",
+        alsa_device="plughw:0,0",
+        stop_event=stop,
+        on_audio=lambda chunk: (observed.append(chunk), stop.set()),
+    )
+
+    assert len(observed) == 1
+    assert observed[0].shape == (1600,)
+    assert pipeline.state == PipelineState.STOPPED
 
 
 def test_microphone_and_file_preparation_share_ctc_and_classifier_contract():
@@ -341,5 +464,54 @@ def test_device_probe_has_native_process_timeout_without_recording(monkeypatch):
         probe_input_devices("private device", 16000)
     command, options = calls[0]
     assert options["timeout"] == 10 and options["capture_output"] and options["check"]
-    assert command[0][-2:] == ["private device", "16000"]
+    assert command[0][-4:] == ["private device", "16000", "sounddevice", "default"]
     assert "InputStream" not in command[0][2]
+
+
+def test_arecord_device_probe_lists_alsa_without_opening_capture(monkeypatch):
+    from me2 import health
+
+    observed = []
+
+    def fake_run(command, **kwargs):
+        observed.append((command, kwargs))
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout=(
+                "**** List of CAPTURE Hardware Devices ****\n"
+                "card 0: Device [USB Audio], device 0: USB Audio [USB Audio]\n"
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(health.shutil, "which", lambda name: "/usr/bin/arecord")
+    monkeypatch.setattr(health.subprocess, "run", fake_run)
+    report = health.inspect_input_devices(
+        None, 16_000, audio_backend="arecord", alsa_device="plughw:0,0"
+    )
+
+    assert report["audio_backend"] == "arecord"
+    assert report["input_devices"] == [
+        "card 0: Device [USB Audio], device 0: USB Audio [USB Audio]"
+    ]
+    assert report["device_format_check"] == "not_run_no_capture"
+    assert observed[0][0] == ["/usr/bin/arecord", "-l"]
+    assert observed[0][1]["timeout"] == 5
+
+
+def test_arecord_device_probe_fails_closed_when_no_capture_card_is_listed(monkeypatch):
+    from me2 import health
+
+    monkeypatch.setattr(health.shutil, "which", lambda name: "/usr/bin/arecord")
+    monkeypatch.setattr(
+        health.subprocess,
+        "run",
+        lambda command, **kwargs: subprocess.CompletedProcess(
+            command, 0, stdout="no soundcards found\n", stderr=""
+        ),
+    )
+    report = health.inspect_input_devices(
+        None, 16_000, audio_backend="arecord", alsa_device="plughw:0,0"
+    )
+    assert report["device_error"] == "no_input_devices"

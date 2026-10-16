@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "trial_id": "pi5-wake-only-trial-04",
+  "date": "2026-10-15",
+  "host": "Raspberry Pi 5 at 10.68.208.235",
+  "operator_protocol": {
+    "ready_received_before_capture": true,
+    "go_cue_after_capture_started": true,
+    "prompt": "connected ateko once, then silence",
+    "spoken_content_independently_verified": false,
+    "operator_later_confirmed_go_was_missed": true,
+    "target_utterance_attempted": false
+  },
+  "artifact": {
+    "path": "/home/rpiadmin/me2-pi5-20261015/wake-word/models/wake_word_v5_regularized_seed43.me2",
+    "sha256": "d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222",
+    "model_version": "wake-tiny-cnn-connected-a-teh-ko-wake-v5-connected-a-teh-ko-command-negatives-binary",
+    "deployment_ready": false
+  },
+  "capture": {
+    "backend": "arecord",
+    "device": "plughw:0,0",
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "format": "S16_LE",
+    "duration_limit_seconds": 15,
+    "captured_seconds": 15.0,
+    "samples_received": 240000,
+    "arecord_exit_status": 0,
+    "clipped_samples": 0,
+    "raw_audio_saved": false
+  },
+  "wake_scoring": {
+    "mode": "buffered_after_capture",
+    "window_seconds": 2.0,
+    "hop_seconds": 0.25,
+    "windows_scored": 53,
+    "predicted_label_counts": {
+      "non_wake": 53
+    },
+    "ateko_class_windows": 0,
+    "maximum_ateko_posterior": 0.058000098913908005,
+    "threshold": 0.00007743502646917477,
+    "smoothing_window": 3,
+    "required_hits": 2,
+    "smoothed_wake_events": 0,
+    "preprocessing_plus_model_p95_ms": 4.643591400599689
+  },
+  "safety": {
+    "command_model_loaded_or_run": false,
+    "dispatcher_invoked": false,
+    "raw_audio_retained": false
+  },
+  "conclusion": "Missed-cue/inconclusive for wake recognition. The operator later confirmed the GO interval was missed and the target utterance was not attempted. The all-non_wake result must not be counted as a wake false rejection or used to judge pronunciation recognition. The technical capture completed; command capture and CTC decoding were not tested, and this buffered run is not a live streaming benchmark."
+}

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "status": "failed",
+  "git_commit": "022452a954d6e9d11c3eb7fee584167cdb1cdf42",
+  "decoder_runtime_version": "bounded-prefix-runtime-v2",
+  "artifacts": [],
+  "raw_audio_recorded": false,
+  "network_access_required": false,
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.3",
+    "pointer_bits": 64,
+    "board_model": null,
+    "measured_pi5": false,
+    "os_release": null,
+    "packages": {
+      "me2-v2": "0.1.0",
+      "torch": "2.14.1",
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "soundfile": "0.14.0",
+      "psutil": "7.2.2",
+      "sounddevice": "0.5.6"
+    },
+    "logical_cpus": 10,
+    "available_memory_bytes": 2851586048,
+    "available_storage_bytes": 261796663296,
+    "cpu_governor": null,
+    "temperature_millicelsius": null,
+    "firmware_telemetry": {},
+    "quantized_backends": [
+      "qnnpack"
+    ],
+    "quantization_verified": false
+  },
+  "input_devices": [],
+  "error_type": "PortAudioError",
+  "next_action": "check_schema_hash_permissions_runtime_and_target"
+}

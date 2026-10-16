@@ -1,0 +1,17 @@
+metric,unit,n,mean,p50,p95,p99,max,unavailable_reason
+Response latency,ms,0,,,,,,no structured command-stage decisions with common-clock timestamps
+Inference time,ms,0,,,,,,Pi telemetry not emitted
+Real-time factor,ratio,0,,,,,,Pi telemetry not emitted
+CPU temperature,°C,0,,,,,,Pi telemetry not emitted
+Observed CPU clock,MHz,0,,,,,,Pi telemetry not emitted
+Load average 1 min,load,0,,,,,,Pi telemetry not emitted
+Load average 5 min,load,0,,,,,,Pi telemetry not emitted
+Load average 15 min,load,0,,,,,,Pi telemetry not emitted
+Whole-Pi CPU utilization,%,0,,,,,,Pi telemetry not emitted
+Assistant process-tree CPU utilization,% single-core equivalents,0,,,,,,Pi telemetry not emitted
+Whole-Pi RAM used,MiB,0,,,,,,Pi telemetry not emitted
+Assistant process-tree RSS,MiB,0,,,,,,Pi telemetry not emitted
+Assistant CPU-seconds per audio second,ratio,0,,,,,,not supplied by Pi run metadata
+Assistant CPU share of test wall time,%,0,,,,,,not supplied by Pi run metadata
+Test duration,s,0,,,,,,not supplied by Pi run metadata
+Throttling flags,bitmask,0,,,,,,Pi throttling telemetry not emitted

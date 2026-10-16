@@ -1,0 +1,4 @@
+interface:
+  display_name: "ME2 Project Navigator"
+  short_description: "Locate code, data, models, tests, and workflows"
+  default_prompt: "Use $project-navigator to locate the relevant files and trace this change through the ME2 project."

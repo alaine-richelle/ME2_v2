@@ -5,7 +5,9 @@
 The checkout intentionally assigns distinct roles rather than globally
 promoting one wake artifact. V3 remains the dashboard file-replay fixture; v5
 is the final **supervised runtime/trial candidate** because the protected
-T01–T13 microphone logs used it and it has higher comparable wake recall. The
+T01–T13 microphone logs used it and it has higher comparable wake recall. V3
+is also scored side by side as a diagnostic and may be a fault-only fallback
+after a v5 load/inference fault; a healthy v5 non-wake remains non-wake. The
 CTC command bundle remains the command-development model in every
 dashboard/runtime profile. Neither wake artifact is deployment-ready.
 
@@ -30,6 +32,7 @@ recorded in `V5_FINALIZATION_2026-10-15.md`.
 | `config/dashboard.json` | `wake-word/models/wake_word_v3_binary_seed43_r1.me2` | `vcm/models/vcm_ctc_model.me2` |
 | `config/dashboard.natural-pause.json` | `wake-word/models/wake_word_v3_binary_seed43_r1.me2` | `vcm/models/vcm_ctc_model.me2` |
 | `config/runtime.example.json`, `runtime.natural-pause.json`, `runtime.onset-3s.json`, `runtime.pi5.natural-pause.json`, `runtime.v5-final-supervised-20261015.json` | `wake-word/models/wake_word_v5_regularized_seed43.me2` | `vcm/models/vcm_ctc_model.me2` |
+| `config/runtime.laptop-dual-wake.json` | v5 primary plus v3 diagnostic/fault fallback | `vcm/models/vcm_ctc_model.me2` |
 | `python -m me2.app` without explicit model/config overrides | `wake-word/models/wake_word_model.me2` (legacy five-class fallback) | `vcm/models/vcm_ctc_model.me2` |
 
 The laptop command used a runtime config and explicitly permitted the

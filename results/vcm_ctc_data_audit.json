@@ -1,0 +1,212 @@
+{
+  "audit_schema_version": 1,
+  "revisions": {
+    "checkout_head": "52b38f7fdaf35a0f5b5a8dbbd239f4bfb7700e24",
+    "reviewed_integration_revision": "52b38f7fdaf35a0f5b5a8dbbd239f4bfb7700e24",
+    "reviewed_ctc_reference_revision": "f5d2dc585b49b46e8518ec6122261a9ca7f2f5e4",
+    "dataset_revision": "bfca0bbebfe17e00d6a685d1da573615d29ecdce"
+  },
+  "dataset": {
+    "id": "airimonda/ai231-me2-voice-commands",
+    "configuration": "default"
+  },
+  "text_contract": {
+    "normalizer_version": "nfkd-ascii-alnum-space-v1",
+    "charset": "abcdefghijklmnopqrstuvwxyz0123456789 ",
+    "blank_id": 37,
+    "decoder_version": "ctc-prefix-logsumexp-v1"
+  },
+  "partitions": {
+    "train": {
+      "rows": 6805,
+      "speakers": 229
+    },
+    "validation": {
+      "rows": 2455,
+      "speakers": 47
+    },
+    "calibration": {
+      "rows": 1462,
+      "speakers": 31
+    },
+    "quarantine": {
+      "rows": 11,
+      "speakers": 1
+    }
+  },
+  "grammar": {
+    "terminals": 571,
+    "provenance": "approved official-train transcripts only",
+    "held_out_transcripts_used": false
+  },
+  "splits": {
+    "train": {
+      "rows": 10733,
+      "classes": {
+        "alarm": 1022,
+        "brightness": 1032,
+        "call": 326,
+        "color": 999,
+        "create_reminder": 1015,
+        "light_off": 333,
+        "light_on": 333,
+        "list_reminders": 333,
+        "message": 322,
+        "next": 333,
+        "out_of_scope": 270,
+        "pause": 333,
+        "play_music": 333,
+        "stop": 333,
+        "temperature": 1048,
+        "time": 333,
+        "timer": 1036,
+        "volume_down": 333,
+        "volume_up": 333,
+        "weather": 333
+      },
+      "speakers": 308,
+      "sources": {
+        "group_synthetic": 8305,
+        "SLURP": 1010,
+        "real_voice": 620,
+        "SNIPS": 331,
+        "FluentSpeechCommands": 256,
+        "group_synthetic_oos": 69,
+        "xela_SET_TEMPERATURE_REAL": 60,
+        "CommonVoice_en": 36,
+        "TimersAndSuch": 31,
+        "SpeechCommands_v2": 11,
+        "xela_Multi-Sensor": 4
+      },
+      "transcript_provenance": {
+        "label": 8374,
+        "dataset": 1728,
+        "whisper": 487,
+        "prompt": 72,
+        "folder_phrase": 61,
+        "silence": 11
+      },
+      "empty_transcript_rows": [
+        10010,
+        10054,
+        10055,
+        10056,
+        10057,
+        10058,
+        10059,
+        10060,
+        10061,
+        10062,
+        10063,
+        10064
+      ],
+      "digit_transcript_rows": 3932,
+      "adjacent_repeat_rows": 3854,
+      "maximum_normalized_characters": 123,
+      "p99_normalized_characters": 50,
+      "semantic_collision_count": 0,
+      "semantic_collisions": {},
+      "declared_duration_infeasible_count": 0,
+      "declared_duration_infeasible_examples": []
+    },
+    "test": {
+      "rows": 4443,
+      "classes": {
+        "alarm": 423,
+        "brightness": 423,
+        "call": 141,
+        "color": 423,
+        "create_reminder": 423,
+        "light_off": 141,
+        "light_on": 141,
+        "list_reminders": 141,
+        "message": 137,
+        "next": 141,
+        "out_of_scope": 76,
+        "pause": 141,
+        "play_music": 141,
+        "stop": 141,
+        "temperature": 423,
+        "time": 141,
+        "timer": 423,
+        "volume_down": 141,
+        "volume_up": 141,
+        "weather": 141
+      },
+      "speakers": 115,
+      "sources": {
+        "group_synthetic": 3590,
+        "SLURP": 403,
+        "real_voice": 179,
+        "FluentSpeechCommands": 144,
+        "SNIPS": 61,
+        "group_synthetic_oos": 29,
+        "CommonVoice_en": 14,
+        "xela_Multi-Sensor": 11,
+        "xela_SET_TEMPERATURE_REAL": 10,
+        "TimersAndSuch": 2
+      },
+      "transcript_provenance": {
+        "label": 3619,
+        "dataset": 645,
+        "prompt": 179
+      },
+      "empty_transcript_rows": [],
+      "digit_transcript_rows": 1649,
+      "adjacent_repeat_rows": 1571,
+      "maximum_normalized_characters": 123,
+      "p99_normalized_characters": 43,
+      "semantic_collision_count": 0,
+      "semantic_collisions": {},
+      "declared_duration_infeasible_count": 0,
+      "declared_duration_infeasible_examples": []
+    },
+    "holdout": {
+      "rows": 202,
+      "classes": {
+        "alarm": 18,
+        "brightness": 18,
+        "call": 6,
+        "color": 18,
+        "create_reminder": 18,
+        "light_off": 6,
+        "light_on": 6,
+        "list_reminders": 6,
+        "message": 6,
+        "next": 6,
+        "out_of_scope": 16,
+        "pause": 6,
+        "play_music": 6,
+        "stop": 6,
+        "temperature": 18,
+        "time": 6,
+        "timer": 18,
+        "volume_down": 6,
+        "volume_up": 6,
+        "weather": 6
+      },
+      "speakers": 5,
+      "sources": {
+        "group_synthetic": 100,
+        "real_voice": 84,
+        "FluentSpeechCommands": 9,
+        "group_synthetic_oos": 6,
+        "CommonVoice_en": 3
+      },
+      "transcript_provenance": {
+        "label": 106,
+        "prompt": 84,
+        "dataset": 12
+      },
+      "empty_transcript_rows": [],
+      "digit_transcript_rows": 72,
+      "adjacent_repeat_rows": 75,
+      "maximum_normalized_characters": 66,
+      "p99_normalized_characters": 63,
+      "semantic_collision_count": 0,
+      "semantic_collisions": {},
+      "declared_duration_infeasible_count": 0,
+      "declared_duration_infeasible_examples": []
+    }
+  }
+}

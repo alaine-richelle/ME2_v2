@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "status": "passed_operator_health_not_deployment_approval",
+  "git_commit": "022452a954d6e9d11c3eb7fee584167cdb1cdf42",
+  "decoder_runtime_version": "bounded-prefix-runtime-v2",
+  "artifacts": [
+    {
+      "artifact_sha256": "85ebe9751f6ad7107936615ac9da975b16a16034f77900cefb0d1ac8d43069f9",
+      "weights_sha256": "bac1b5cc7def579a9646a85e26922e8ea848223226945f01447565e52fd9eade",
+      "metadata_sha256": "dd761d5bc08b0ca5c6551878651a144490ad2126a2ac166a118562f0694cc244",
+      "task": "vcm",
+      "architecture": "TinyAudioCNN",
+      "model_version": "legacy-tinyaudiocnn-v1",
+      "grammar_version": null,
+      "dataset_revision": null,
+      "deployment_ready": null,
+      "parameters": 8052,
+      "artifact_bytes": 34269,
+      "load_ms": 3.5142500419169664,
+      "first_forward_ms": 2.0675831474363804,
+      "warm_forward_ms": [
+        1.3165839482098818,
+        1.311832806095481
+      ],
+      "synthetic_operator_smoke_only": true,
+      "warnings": [
+        "training_dataset_provenance_missing"
+      ]
+    },
+    {
+      "artifact_sha256": "b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac",
+      "weights_sha256": "1cafdcb1f6945fe9ca65c790be1a55c3dc7231a6ef832ade366539fb443db789",
+      "metadata_sha256": "5c2ad560fac7ad2db68aa9de3cadc4628865ca337e67c5f2096e48a96a57ad7c",
+      "task": "vcm",
+      "architecture": "CharacterAudioCNN",
+      "model_version": "legacy-character-audio-cnn-v1",
+      "grammar_version": "legacy-training-transcripts",
+      "dataset_revision": null,
+      "deployment_ready": null,
+      "parameters": 3652572,
+      "artifact_bytes": 13550852,
+      "load_ms": 55.27612520381808,
+      "first_forward_ms": 19.513208186253905,
+      "warm_forward_ms": [
+        16.761708073318005,
+        16.748040914535522
+      ],
+      "synthetic_operator_smoke_only": true,
+      "warnings": [
+        "legacy_grammar_without_slot_metadata",
+        "training_dataset_provenance_missing"
+      ]
+    },
+    {
+      "artifact_sha256": "d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222",
+      "weights_sha256": "8e594ad786489bbe2fef383e8f2b2212db050bca2046a2fa6c6b1f88571373f0",
+      "metadata_sha256": "22980dbb0018e89be3a7f432aade81f789032f9f5487ae9eaa9cbd06686e2ff4",
+      "task": "wake_word",
+      "architecture": "TinyAudioCNN",
+      "model_version": "wake-tiny-cnn-connected-a-teh-ko-wake-v5-connected-a-teh-ko-command-negatives-binary",
+      "grammar_version": null,
+      "dataset_revision": null,
+      "deployment_ready": false,
+      "parameters": 2858,
+      "artifact_bytes": 15537,
+      "load_ms": 3.206457942724228,
+      "first_forward_ms": 0.7451670244336128,
+      "warm_forward_ms": [
+        0.6187921389937401,
+        0.7180420216172934
+      ],
+      "synthetic_operator_smoke_only": true,
+      "warnings": [
+        "training_dataset_provenance_missing",
+        "wake_not_approved"
+      ]
+    }
+  ],
+  "raw_audio_recorded": false,
+  "network_access_required": false,
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.3",
+    "pointer_bits": 64,
+    "board_model": null,
+    "measured_pi5": false,
+    "os_release": null,
+    "packages": {
+      "me2-v2": "0.1.0",
+      "torch": "2.14.1",
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "soundfile": "0.14.0",
+      "psutil": "7.2.2",
+      "sounddevice": "0.5.6"
+    },
+    "logical_cpus": 10,
+    "available_memory_bytes": 2638888960,
+    "available_storage_bytes": 261798252544,
+    "cpu_governor": null,
+    "temperature_millicelsius": null,
+    "firmware_telemetry": {},
+    "quantized_backends": [
+      "qnnpack"
+    ],
+    "quantization_verified": false
+  },
+  "rss_bytes": 363724800
+}

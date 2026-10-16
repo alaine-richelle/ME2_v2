@@ -218,7 +218,9 @@ be converted to success.
 The deterministic best epoch was saved as
 `vcm/models/vcm_compact_ctc_preliminary_2026-10-05.me2`. Its frozen test
 evaluation rejected all 4,367 in-scope commands and is explicitly a
-preliminary negative result.
+preliminary negative result. The untracked bundle was pruned on 2026-10-15
+after selection review; its report and predictions remain. Regenerate it with
+the training command below before rerunning that evaluation.
 
 `me2.vcm.analyze` now exports per-command precision/recall/F1, explicit
 rejection outcomes, raw and row-normalized confusion matrices, directional

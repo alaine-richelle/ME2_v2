@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "revisions": {
+    "me2_v2": "52b38f7fdaf35a0f5b5a8dbbd239f4bfb7700e24",
+    "ctc_reference": "f5d2dc585b49b46e8518ec6122261a9ca7f2f5e4",
+    "command_dataset": "bfca0bbebfe17e00d6a685d1da573615d29ecdce"
+  },
+  "environment": {
+    "platform": "macOS ARM64",
+    "python": "3.14.3",
+    "torch": "2.14.1",
+    "raspberry_pi_measured": false
+  },
+  "wake_data": {
+    "v4": {
+      "version": "wake-v4-connected-a-teh-ko-expanded",
+      "rows": 506,
+      "speakers_or_voices": 10,
+      "real_speakers": 0,
+      "protected_rows_hash_preserved": 153,
+      "structurally_valid": true
+    },
+    "v5": {
+      "version": "wake-v5-connected-a-teh-ko-command-negatives",
+      "rows": 826,
+      "hf_command_negatives": 320,
+      "hf_source_speakers": 185,
+      "manual_negative_audio_review_complete": false,
+      "structurally_valid": true
+    }
+  },
+  "wake_selected_experimental_candidate": {
+    "artifact": "wake-word/models/wake_word_v5_regularized_seed43.me2",
+    "parameters": 2858,
+    "seed": 43,
+    "dropout": 0.2,
+    "weight_decay": 0.0005,
+    "best_epoch": 20,
+    "epochs_completed": 26,
+    "elapsed_host_seconds": 41.02,
+    "validation": {
+      "wake_recall": 0.6666666666666666,
+      "false_accepts": 0,
+      "negative_clips": 48,
+      "wake_f1": 0.8
+    },
+    "calibration": {
+      "wake_recall": 0.6666666666666666,
+      "false_accepts": 2,
+      "negative_clips": 48
+    },
+    "reused_test": {
+      "wake_recall": 0.6666666666666666,
+      "false_accepts": 4,
+      "negative_clips": 48,
+      "wake_f1": 0.4444444444444444
+    },
+    "host_latency_ms": {
+      "p50": 0.3691248130053282,
+      "p95": 0.38704206235706806
+    },
+    "promoted": false,
+    "decision_reason": "Test clip false accepts exceeded the provisional 2/48 guardrail; no real-speaker or continuous-negative evidence exists."
+  },
+  "command_policy_ablation": {
+    "acoustic_artifact": "vcm/models/vcm_ctc_model.me2",
+    "calibrated_artifact": "vcm/models/vcm_ctc_calibrated_2026-10-05.me2",
+    "parameters": 3652572,
+    "calibration_rows_used": 1454,
+    "official_test_used_for_policy_selection": false,
+    "uncalibrated_reused_test": {
+      "accuracy": 0.8910645959936979,
+      "macro_f1": 0.8682290822166946,
+      "oos_false_accepts": 20,
+      "oos_count": 76,
+      "wrong_accepted_commands": 148,
+      "in_scope_rejects": 316,
+      "in_scope_count": 4367,
+      "acceptance_coverage": 0.9162727886563133
+    },
+    "calibrated_reused_test": {
+      "accuracy": 0.8397479180733739,
+      "macro_f1": 0.8413954181040451,
+      "oos_false_accepts": 7,
+      "oos_count": 76,
+      "wrong_accepted_commands": 50,
+      "in_scope_rejects": 655,
+      "in_scope_count": 4367,
+      "acceptance_coverage": 0.8370470402880936
+    },
+    "promoted": false,
+    "decision_reason": "Macro F1 and acceptance coverage regressed beyond guardrails despite fewer OOS false accepts and wrong actions."
+  },
+  "pi_reporting": {
+    "schema": "config/command_schema_v1.json",
+    "schema_version": "hf-bfca0bbe-official-test-93-v1",
+    "supported_intents": 19,
+    "supported_command_variations": 93,
+    "authoritative_report": "reports/pi-evaluation-pending-2026-10-06/report.md",
+    "status": "not_run",
+    "reason": "No Raspberry Pi 5, held-out trial manifest, structured Pi event log, or Pi telemetry was available.",
+    "host_measurements_substituted": false
+  },
+  "verification": {
+    "tests_passed": 66,
+    "ruff_passed": true,
+    "artifact_load_smoke_passed": true
+  },
+  "selected_runtime_artifacts": {
+    "wake": "wake-word/models/wake_word_v3_binary_seed43_r1.me2",
+    "command": "vcm/models/vcm_ctc_model.me2"
+  },
+  "deployment_ready": false,
+  "evidence_status": {
+    "historical_results_distinguished": true,
+    "new_results_reproduced": true,
+    "wake_test_previously_inspected": true,
+    "command_test_previously_inspected": true,
+    "real_wake_speaker_test": false,
+    "continuous_false_activations_per_hour": false,
+    "raspberry_pi_benchmark": false
+  }
+}

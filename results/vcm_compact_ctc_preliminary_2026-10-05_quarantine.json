@@ -1,0 +1,350 @@
+[
+  {
+    "index": 10054,
+    "file": "audio/train_010571_SpeechCommands_v2_4435.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10055,
+    "file": "audio/train_010572_SpeechCommands_v2_1816.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10056,
+    "file": "audio/train_010573_SpeechCommands_v2_3331.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10057,
+    "file": "audio/train_010574_SpeechCommands_v2_796.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10058,
+    "file": "audio/train_010575_SpeechCommands_v2_651.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10059,
+    "file": "audio/train_010576_SpeechCommands_v2_4811.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10060,
+    "file": "audio/train_010577_SpeechCommands_v2_463.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10061,
+    "file": "audio/train_010578_SpeechCommands_v2_842.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10062,
+    "file": "audio/train_010579_SpeechCommands_v2_1561.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10063,
+    "file": "audio/train_010580_SpeechCommands_v2_167.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 10064,
+    "file": "audio/train_010581_SpeechCommands_v2_1057.wav",
+    "stage": "partition",
+    "reason": "missing_speaker_identity_empty_nonspeech"
+  },
+  {
+    "index": 30,
+    "item": "audio/train_000030_real_voice_play_owner_20260930-171408-217.wav",
+    "reason": "Audio has 115200 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 108,
+    "item": "audio/train_000132_SLURP_slurp_devel_5267_2421.wav",
+    "reason": "Audio has 81782 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 593,
+    "item": "audio/train_000785_real_voice_time_owner_20260930-130313-214.wav",
+    "reason": "Audio has 86400 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 983,
+    "item": "audio/train_001233_real_voice_lights_on_owner_20260930-161906-954.wav",
+    "reason": "Audio has 81600 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 1174,
+    "item": "audio/train_001470_SLURP_slurp_train_5155_2306_train-00004-.wav",
+    "reason": "Audio has 101337 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 1260,
+    "item": "audio/train_001565_real_voice_lights_off_owner_20260930-161914-663.wav",
+    "reason": "Audio has 89600 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 1283,
+    "item": "audio/train_001605_SNIPS_snips_smart-lights_2844_far.wav",
+    "reason": "Audio has 95920 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 2322,
+    "item": "audio/train_002688_real_voice_louder_owner_20260930-165415-118.wav",
+    "reason": "Audio has 108800 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 2859,
+    "item": "audio/train_003244_SLURP_slurp_train_2929_3430_train-00003-.wav",
+    "reason": "Audio has 108504 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 3101,
+    "item": "audio/train_003549_group_synthetic_CALL_s74_v2_clean.wav",
+    "reason": "Audio has 130582 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 3296,
+    "item": "audio/train_003778_SLURP_slurp_train_12995_4260_train-00002-.wav",
+    "reason": "Audio has 102361 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 3301,
+    "item": "audio/train_003796_SLURP_slurp_train_12995_4257_train-00002-.wav",
+    "reason": "Audio has 112598 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 5155,
+    "item": "audio/train_005672_SLURP_slurp_test_7181_3393.wav",
+    "reason": "Audio has 93243 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 5488,
+    "item": "audio/train_006005_real_voice_set_alarm_6am_owner_20260930-165306-783.wav",
+    "reason": "Audio has 118400 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 6516,
+    "item": "audio/train_007033_group_synthetic_TEMPERATURE_18_s75_v3_noisy.wav",
+    "reason": "Audio has 85103 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 6603,
+    "item": "audio/train_007120_real_voice_set_temperature_22_owner_20260930-165945-933.wav",
+    "reason": "Audio has 84800 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 6635,
+    "item": "audio/train_007152_group_synthetic_TEMPERATURE_22_s75_v3_clean.wav",
+    "reason": "Audio has 94558 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 7829,
+    "item": "audio/train_008346_SNIPS_snips_smart-lights_2505_far.wav",
+    "reason": "Audio has 86000 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 8718,
+    "item": "audio/train_009235_SNIPS_snips_smart-lights_2539_far.wav",
+    "reason": "Audio has 82000 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 9266,
+    "item": "audio/train_009783_real_voice_remind_study_owner_20260930-171228-124.wav",
+    "reason": "Audio has 108800 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 9962,
+    "item": "audio/train_010479_real_voice_remind_trash_owner_20260930-165432-121.wav",
+    "reason": "Audio has 115200 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10011,
+    "item": "audio/train_010528_real_voice_dim_lights_20_owner_20260930-130337-046.wav",
+    "reason": "Audio has 88000 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10015,
+    "item": "audio/train_010532_real_voice_next_owner_20260930-130515-123.wav",
+    "reason": "Audio has 84800 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10019,
+    "item": "audio/train_010536_real_voice_remind_trash_owner_20260930-130545-244.wav",
+    "reason": "Audio has 86400 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10049,
+    "item": "audio/train_010566_real_voice_play_owner_20260930-170546-602.wav",
+    "reason": "Audio has 107200 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10051,
+    "item": "audio/train_010568_real_voice_play_owner_20260930-172536-812.wav",
+    "reason": "Audio has 112000 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10066,
+    "item": "audio/train_010583_CommonVoice_en_common_voice_en_38102998.wav",
+    "reason": "Audio has 81974 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10067,
+    "item": "audio/train_010584_CommonVoice_en_common_voice_en_29248092.wav",
+    "reason": "Audio has 98431 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10071,
+    "item": "audio/train_010588_CommonVoice_en_common_voice_en_20015754.wav",
+    "reason": "Audio has 122600 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10073,
+    "item": "audio/train_010590_CommonVoice_en_common_voice_en_21087884.wav",
+    "reason": "Audio has 102502 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10076,
+    "item": "audio/train_010593_CommonVoice_en_common_voice_en_37565620.wav",
+    "reason": "Audio has 93851 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10077,
+    "item": "audio/train_010594_CommonVoice_en_common_voice_en_19669070.wav",
+    "reason": "Audio has 94892 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10079,
+    "item": "audio/train_010596_CommonVoice_en_common_voice_en_19161877.wav",
+    "reason": "Audio has 100349 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10082,
+    "item": "audio/train_010599_CommonVoice_en_common_voice_en_38103040.wav",
+    "reason": "Audio has 93927 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10083,
+    "item": "audio/train_010600_CommonVoice_en_common_voice_en_29248094.wav",
+    "reason": "Audio has 87450 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10086,
+    "item": "audio/train_010603_CommonVoice_en_common_voice_en_27004522.wav",
+    "reason": "Audio has 164818 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10087,
+    "item": "audio/train_010604_CommonVoice_en_common_voice_en_19734816.wav",
+    "reason": "Audio has 112369 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10088,
+    "item": "audio/train_010605_CommonVoice_en_common_voice_en_19680737.wav",
+    "reason": "Audio has 140313 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10090,
+    "item": "audio/train_010607_CommonVoice_en_common_voice_en_20015753.wav",
+    "reason": "Audio has 110711 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10091,
+    "item": "audio/train_010608_CommonVoice_en_common_voice_en_18730136.wav",
+    "reason": "Audio has 111464 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10094,
+    "item": "audio/train_010611_CommonVoice_en_common_voice_en_19669069.wav",
+    "reason": "Audio has 93742 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10096,
+    "item": "audio/train_010613_CommonVoice_en_common_voice_en_19161874.wav",
+    "reason": "Audio has 157064 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10107,
+    "item": "audio/train_010624_SLURP_slurp_test_16419_3632.wav",
+    "reason": "Audio has 86777 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10119,
+    "item": "audio/train_010636_SLURP_slurp_train_4195_857_train-00003-.wav",
+    "reason": "Audio has 97237 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10126,
+    "item": "audio/train_010643_SNIPS_snips_smart-lights_3088_far.wav",
+    "reason": "Audio has 82000 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10528,
+    "item": "audio/train_011045_group_synthetic_NEXT_s74_v3_clean.wav",
+    "reason": "Audio has 84681 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  },
+  {
+    "index": 10723,
+    "item": "audio/train_011240_group_synthetic_oos_OOS_s84_059_noisy.wav",
+    "reason": "Audio has 81336 samples after trimming, exceeding the configured maximum of 80000",
+    "stage": "audio"
+  }
+]

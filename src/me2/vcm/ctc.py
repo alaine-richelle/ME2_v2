@@ -23,13 +23,26 @@ CHARSET = "abcdefghijklmnopqrstuvwxyz0123456789 "
 TEXT_NORMALIZER_VERSION = "nfkd-ascii-alnum-space-v1"
 GRAMMAR_SCHEMA_VERSION = 1
 DECODER_VERSION = "ctc-prefix-logsumexp-v1"
-DECODER_RUNTIME_VERSION = "bounded-prefix-runtime-v2"
+DECODER_RUNTIME_VERSION = "bounded-prefix-runtime-v3-diagnostics"
 BLANK_ID = len(CHARSET)
 CHAR_TO_ID = {character: index for index, character in enumerate(CHARSET)}
 
 
 class DecoderBudgetError(RuntimeError):
     """System resource failure, never a terminal command or ordinary OOS."""
+
+    def __init__(self, reason: str, diagnostics: Mapping[str, Any] | None = None):
+        super().__init__(reason)
+        self.diagnostics = {**(diagnostics or {}), "budget_reason": reason}
+
+
+class InferenceInputError(ValueError):
+    """A categorized invalid runtime input; never an actionable command."""
+
+    def __init__(self, category: str, message: str, diagnostics=None):
+        super().__init__(message)
+        self.category = category
+        self.diagnostics = dict(diagnostics or {})
 
 
 @dataclass(frozen=True)
@@ -131,6 +144,7 @@ class CommandResult:
     stage_timings_ms: Mapping[str, float] = field(default_factory=dict)
     candidate_count: int = 0
     system_error: str | None = None
+    diagnostics: Mapping[str, Any] = field(default_factory=dict)
 
     @property
     def actionable_intent(self) -> str | None:
@@ -442,10 +456,12 @@ def prefix_beam_search(
     input_length: int | None = None,
     top_k: int = 8,
     limits: DecoderLimits | None = None,
+    diagnostics: dict | None = None,
 ) -> list[DecodeCandidate]:
     """Run full-utterance CTC prefix beam search constrained to a trie."""
 
     limits = limits or DecoderLimits()
+    diagnostics = diagnostics if diagnostics is not None else {}
     integer("beam_width", beam_width, 1, 256)
     integer("top_k", top_k, 1, 256)
     if not charset or len(set(charset)) != len(charset):
@@ -458,6 +474,11 @@ def prefix_beam_search(
     if sum(len(entry[0]) for entry in serialized) > limits.max_grammar_characters:
         raise DecoderBudgetError("decoder_grammar_budget_exhausted")
     children, terminals = _compile_grammar(serialized)
+    diagnostics.update(
+        beam_width=beam_width, grammar_terminal_count=len(terminals),
+        minimum_terminal_frames=min((required_ctc_frames(t) for t in terminals), default=0),
+        pruned_prefix_count=0, beam_pruning_observed=False,
+    )
     unsupported = sorted(
         {
             character
@@ -474,15 +495,20 @@ def prefix_beam_search(
     )
     expected_symbols = len(charset) + 1
     if frame_logits.ndim != 2 or frame_logits.shape[1] != expected_symbols:
-        raise ValueError(
+        raise InferenceInputError("invalid_logits_shape",
             f"Expected frame logits shaped [time, {expected_symbols}], got "
             f"{tuple(frame_logits.shape)}"
         )
+    if not frame_logits.shape[0]:
+        raise InferenceInputError("insufficient_valid_frames", "No CTC output frames")
     usable_length = frame_logits.shape[0] if input_length is None else input_length
     integer("input_length", usable_length, 1, frame_logits.shape[0])
+    diagnostics.update(output_frames=frame_logits.shape[0], valid_output_frames=usable_length)
     if usable_length > limits.max_frames:
-        raise DecoderBudgetError("decoder_frame_budget_exhausted")
+        raise DecoderBudgetError("decoder_frame_budget_exhausted", diagnostics)
     frame_logits = frame_logits[:usable_length]
+    if not np.isfinite(frame_logits).all():
+        raise InferenceInputError("invalid_nonfinite_logits", "CTC logits contain non-finite values", diagnostics)
 
     negative_infinity = float("-inf")
     beams: dict[str, tuple[float, float]] = {"": (0.0, negative_infinity)}
@@ -509,7 +535,9 @@ def prefix_beam_search(
         for prefix, (blank_score, nonblank_score) in beams.items():
             expansions += 1 + bool(prefix) + len(children[prefix])
             if expansions > limits.max_expansions:
-                raise DecoderBudgetError("decoder_work_budget_exhausted")
+                raise DecoderBudgetError("decoder_work_budget_exhausted", {
+                    **diagnostics, "expansions": expansions,
+                })
             total_score = _log_add(blank_score, nonblank_score)
             add(prefix, blank_score=total_score + frame[blank_id])
 
@@ -527,7 +555,14 @@ def prefix_beam_search(
         ranked = sorted(
             next_beams.items(),
             key=lambda item: (-_log_add(item[1][0], item[1][1]), item[0]),
-        )[:beam_width]
+        )
+        pruned = sum(
+            math.isfinite(_log_add(scores[0], scores[1]))
+            for _, scores in ranked[beam_width:]
+        )
+        diagnostics["pruned_prefix_count"] += pruned
+        diagnostics["beam_pruning_observed"] |= pruned > 0
+        ranked = ranked[:beam_width]
         beams = {
             prefix: (scores[0], scores[1]) for prefix, scores in ranked
         }
@@ -540,6 +575,13 @@ def prefix_beam_search(
                 (_log_add(blank_score, nonblank_score), prefix, terminal)
             )
     terminal_scores.sort(key=lambda item: (-item[0], item[1], item[2].semantic_key()))
+    finite_prefixes = [p for p, scores in beams.items() if math.isfinite(_log_add(*scores))]
+    diagnostics.update(
+        surviving_prefix_count=len(finite_prefixes),
+        nonempty_prefix_count=sum(bool(p) for p in finite_prefixes),
+        longest_surviving_prefix=max(map(len, finite_prefixes), default=0),
+        terminal_count=len(terminal_scores), expansions=expansions,
+    )
     if not terminal_scores:
         return []
 
@@ -581,6 +623,7 @@ def decode_command(
         if isinstance(acceptance_policy, AcceptancePolicy)
         else AcceptancePolicy.from_mapping(acceptance_policy)
     )
+    diagnostics: dict = {}
     candidates = prefix_beam_search(
         logits,
         entries,
@@ -590,6 +633,7 @@ def decode_command(
         input_length=input_length,
         top_k=max(beam_width, 2),
         limits=limits,
+        diagnostics=diagnostics,
     )
     if not candidates:
         return CommandResult(
@@ -605,6 +649,20 @@ def decode_command(
             rejection_reason="no_terminal_candidate",
             model_version=model_version,
             grammar_version=grammar_version,
+            diagnostics={
+                **diagnostics,
+                "diagnostic_category": (
+                    "insufficient_valid_frames"
+                    if diagnostics["valid_output_frames"] < diagnostics["minimum_terminal_frames"]
+                    else "legal_prefix_no_terminal"
+                    if diagnostics["nonempty_prefix_count"]
+                    else "no_legal_trie_path"
+                ),
+                # Pruning observed is evidence, not proof that a correct path
+                # was removed. Unsupported wording requires a known reference.
+                "phrase_support": "unknown_without_reference",
+                "next_action": "check_reference_grammar_capture_lengths_and_greedy_alignment",
+            },
         )
 
     best = candidates[0]
@@ -639,7 +697,29 @@ def decode_command(
         model_version=model_version,
         grammar_version=grammar_version,
         candidate_count=len(candidates),
+        diagnostics={
+            **diagnostics,
+            "diagnostic_category": "accepted" if accepted else "rejection_policy_failure",
+        },
     )
+
+
+def inspect_phrase_support(text: str, entries, *, output_frames: int | None = None) -> dict:
+    """Diagnostic only: a supplied trial phrase never alters grammar or scoring."""
+    normalized = normalize_transcript(text)
+    legal = {entry.text for entry in coerce_grammar_entries(entries)}
+    required = required_ctc_frames(normalized)
+    return {
+        "expected_phrase_supported": normalized in legal,
+        "normalization_changed": normalized != text,
+        "expected_required_frames": required,
+        "expected_alignment_feasible": None if output_frames is None else output_frames >= required,
+        "reference_diagnostic": (
+            "unsupported_or_normalization_mismatched_phrase" if normalized not in legal
+            else "insufficient_valid_frames" if output_frames is not None and output_frames < required
+            else "supported_grammar_terminal"
+        ),
+    }
 
 
 def decode_grammar(

@@ -4,6 +4,26 @@ Act as a senior speech/ML systems engineer responsible for integrating the
 ME2 wake-word and CTC voice-command system with the Atecco dashboard and
 validating it on a Raspberry Pi 5.
 
+## Current checkout status — 2026-10-15
+
+The 19-intent canonical action map and safe local demonstration behaviors are
+implemented in `src/me2/dashboard.py`; mapping, rejection, slot, duplicate,
+weather, and local audio behavior have automated coverage. Do not replace
+these with a second dispatcher or mutate a user's saved mappings while
+auditing them. The selected CTC bundle is a development fixture, not a
+deployment approval. The retained wake artifacts are not approved for
+unattended use; see `docs/MODEL_SELECTION_2026-10-15.md`.
+
+The current one-second onset profile is the baseline. A three-second onset
+profile has replay evidence but has not passed a new approved live laptop
+trial. Keep it a candidate until matched evidence supports promotion. The
+exact Pi target has not yet been contacted. Before any SSH connection, obtain
+the operator's reachable host/IP, SSH username, and explicit approval for
+that connection. Start with read-only inventory only. Request separate
+approval before transferring files or starting live microphone/speaker
+trials. Never request or place SSH passwords, private keys, or tokens in this
+repository.
+
 ## Objective
 
 Implement and test the path from an accepted voice command to one safe,
@@ -124,6 +144,11 @@ Obtain operator approval before each real microphone capture or speaker
 playback trial. Give the exact phrase/condition and an audible/visible “GO”
 cue, then wait for “DONE”. Never execute real calls, messages, GPIO actions,
 or shell commands.
+
+Do not assume a host name from an old runbook is the operator's current Pi.
+When Pi access details or permission are missing, finish file-based tests,
+prepare the versioned Pi runbook and report the exact remaining gate instead
+of attempting SSH.
 
 ## Deliverables
 

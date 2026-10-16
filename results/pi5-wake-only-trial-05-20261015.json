@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "trial_id": "pi5-wake-only-trial-05",
+  "date": "2026-10-15",
+  "host": "Raspberry Pi 5 at 10.68.208.235",
+  "status": "invalid_for_recognition_uncued_capture",
+  "protocol": {
+    "user_ready_received": true,
+    "assistant_go_cue_delivered_before_capture_ended": false,
+    "target_utterance_prompted": false,
+    "target_utterance_attempted": false,
+    "failure_owner": "assistant_execution_protocol",
+    "raw_audio_saved": false
+  },
+  "artifact": {
+    "path": "/home/rpiadmin/me2-pi5-20261015/wake-word/models/wake_word_v5_regularized_seed43.me2",
+    "sha256": "d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222",
+    "model_version": "wake-tiny-cnn-connected-a-teh-ko-wake-v5-connected-a-teh-ko-command-negatives-binary",
+    "deployment_ready": false
+  },
+  "capture": {
+    "backend": "arecord",
+    "device": "plughw:0,0",
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "format": "S16_LE",
+    "duration_limit_seconds": 30,
+    "captured_seconds": 30.0,
+    "samples_received": 480000,
+    "arecord_exit_status": 0,
+    "clipped_samples": 0,
+    "input_rms": 0.0011457221116870642,
+    "input_peak": 0.048675537109375,
+    "window_rms_p95": 0.0027308311313390733,
+    "raw_audio_saved": false
+  },
+  "wake_scoring": {
+    "mode": "buffered_after_capture",
+    "window_seconds": 2.0,
+    "hop_seconds": 0.25,
+    "windows_scored": 113,
+    "predicted_label_counts": {
+      "non_wake": 113
+    },
+    "ateko_class_and_threshold_windows": 0,
+    "ateko_probability_above_threshold_windows": 113,
+    "maximum_ateko_posterior": 0.07092861086130142,
+    "threshold": 0.00007743502646917477,
+    "smoothing_window": 3,
+    "required_hits": 2,
+    "smoothed_wake_events": 0,
+    "preprocessing_plus_model_p95_ms": 4.454674599037387,
+    "top_scored_windows": [
+      {"start_seconds": 10.0, "label": "non_wake", "ateko_probability": 0.07092861086130142},
+      {"start_seconds": 9.75, "label": "non_wake", "ateko_probability": 0.07070937752723694},
+      {"start_seconds": 10.5, "label": "non_wake", "ateko_probability": 0.06682273000478745},
+      {"start_seconds": 10.25, "label": "non_wake", "ateko_probability": 0.062799371778964},
+      {"start_seconds": 0.0, "label": "non_wake", "ateko_probability": 0.062458720058202744}
+    ]
+  },
+  "safety": {
+    "command_model_loaded_or_run": false,
+    "dispatcher_invoked": false,
+    "raw_audio_retained": false
+  },
+  "conclusion": "Do not interpret these scores as a wake miss: the user was never given GO before the capture ended. This records only that the bounded Pi microphone capture and buffered scoring path completed without clipping. No recognition conclusion is valid."
+}

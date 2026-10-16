@@ -13,6 +13,11 @@ by native device discovery; no actual Pi measurements are available.
 
 See the [measured hardening report](docs/HARDENING_2026-10-13.md) and
 [runtime validation, logging, rollback and Pi runbook](docs/RUNTIME_VALIDATION.md).
+The exact local model paths, hashes, matched metrics, and artifact retention
+decisions are in the [2026-10-15 model-selection inventory](docs/MODEL_SELECTION_2026-10-15.md).
+For the separate supervised laptop microphone/earphone walkthrough and a
+plain-language pipeline guide, see
+[the laptop operator guide](docs/LAPTOP_OPERATOR_GUIDE_2026-10-16.md).
 `python -m me2.health` is an offline operator/artifact check, not acoustic
 approval. Use explicit model/config paths for installed-package execution.
 The legacy selected grammar has no supported-slot metadata; the richer slot
@@ -323,6 +328,14 @@ Ubuntu image selected through **Use custom**, use
 It includes Ubuntu Server cloud-init templates and the revised installation,
 networking, audio and service workflow.
 
+For this deadline's operator-gated target check, see the
+[`2026-10-15 Pi SSH-safe validation handoff`](docs/PI5_SSH_SAFE_VALIDATION_2026-10-15.md).
+It records the unresolved target/approval gate, frozen artifact identities,
+offline checks, and telemetry steps without assuming an SSH host. For a new
+approved Pi setup, the user supplies a credential-free remote, branch/tag, and
+exact pushed SHA; the Pi clones and checks out that SHA detached rather than
+receiving a local tar/ZIP archive or working-tree copy.
+
 Try the included dashboard without a microphone:
 
 ```sh
@@ -347,6 +360,8 @@ the baseline's other settings fixed:
 validation and approved live testing support promotion. The engineer handoff
 prompt is
 [`AI231 ME2/ME2_Voice_Command_Dashboard_Mapping_and_Final_Model_Prompt.md`](AI231%20ME2/ME2_Voice_Command_Dashboard_Mapping_and_Final_Model_Prompt.md).
+The dated implementation evidence and unresolved release gates are in
+[`docs/DEADLINE_PLAN_PROGRESS_2026-10-15.md`](docs/DEADLINE_PLAN_PROGRESS_2026-10-15.md).
 
 Install inference-only dependencies on 64-bit Raspberry Pi OS with `pip install
 -e .`; add `.[microphone]` only for live input. Training dependencies are kept

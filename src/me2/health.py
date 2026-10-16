@@ -6,6 +6,7 @@ import argparse
 import importlib.metadata
 import json
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -105,8 +106,35 @@ def inspect_artifact(path: Path, *, expected_sha256=None, require_approved_wake=
     }
 
 
-def inspect_input_devices(device, sample_rate: int) -> dict:
-    """Native calls run only inside the bounded probe subprocess."""
+def inspect_input_devices(
+    device, sample_rate: int, *, audio_backend="sounddevice", alsa_device="default"
+) -> dict:
+    """Enumerate the configured input backend without opening a capture stream."""
+    if audio_backend == "arecord":
+        executable = shutil.which("arecord")
+        if executable is None:
+            return {"input_devices": [], "device_error": "arecord_not_installed"}
+        result = subprocess.run(
+            [executable, "-l"], capture_output=True, text=True, timeout=5, check=False
+        )
+        devices = [
+            line.strip() for line in result.stdout.splitlines()
+            if re.match(r"^\s*card \d+:", line)
+        ]
+        if result.returncode or not devices:
+            return {
+                "input_devices": devices,
+                "device_error": "alsa_device_listing_failed" if result.returncode else "no_input_devices",
+            }
+        return {
+            "audio_backend": audio_backend,
+            "input_devices": devices,
+            "alsa_device": alsa_device,
+            "device_listing_source": "arecord -l",
+            "device_format_check": "not_run_no_capture",
+        }
+    if audio_backend != "sounddevice":
+        return {"input_devices": [], "device_error": "unsupported_audio_backend"}
     import sounddevice as sd
 
     devices = [
@@ -121,14 +149,23 @@ def inspect_input_devices(device, sample_rate: int) -> dict:
     return {"input_devices": devices, "device_format_check": "passed_no_capture"}
 
 
-def probe_input_devices(device=None, sample_rate=16000, *, timeout_seconds=10) -> dict:
+def probe_input_devices(
+    device=None,
+    sample_rate=16000,
+    *,
+    audio_backend="sounddevice",
+    alsa_device="default",
+    timeout_seconds=10,
+) -> dict:
     """Contain native discovery hangs; no stream, recording, or audio file is created."""
     integer("sample_rate", sample_rate, 1, 192_000)
     child = subprocess.run(
         [sys.executable, "-c",
          ("import json,sys; from me2.health import inspect_input_devices; "
-          "print(json.dumps(inspect_input_devices(sys.argv[1], int(sys.argv[2]))))"),
-         "" if device is None else str(device), str(sample_rate)],
+          "print(json.dumps(inspect_input_devices(sys.argv[1], int(sys.argv[2]), "
+          "audio_backend=sys.argv[3], alsa_device=sys.argv[4])))"),
+         "" if device is None else str(device), str(sample_rate),
+         audio_backend, alsa_device],
         capture_output=True, text=True, timeout=timeout_seconds, check=True,
     )
     return json.loads(child.stdout)
@@ -144,6 +181,8 @@ def main() -> None:
     parser.add_argument("--require-approved-wake", action="store_true")
     parser.add_argument("--devices", action="store_true", help="Inspect input devices; no capture")
     parser.add_argument("--input-device")
+    parser.add_argument("--audio-backend", choices=("sounddevice", "arecord"))
+    parser.add_argument("--alsa-device")
     parser.add_argument("--sample-rate", type=int, default=16000)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -160,10 +199,38 @@ def main() -> None:
             or platform.machine() != "aarch64"
         ):
             raise ValueError("requires_actual_64bit_raspberry_pi5")
+        audio_backend = args.audio_backend
+        alsa_device = args.alsa_device
         if args.config:
             defaults = load_runtime_defaults(args.config)
             report["runtime_config_sha256"] = config_hash(defaults)
-            args.model.extend(defaults[k] for k in ("wake_model", "vcm_model") if k in defaults)
+            report["wake_policy"] = {
+                "primary_role": "v5_primary",
+                "primary_model": (
+                    file_sha256(defaults["wake_model"]) if "wake_model" in defaults else None
+                ),
+                "fallback_role": (
+                    "v3_fault_fallback"
+                    if "wake_fallback_model" in defaults
+                    else "not_configured"
+                ),
+                "fallback_model": (
+                    file_sha256(defaults["wake_fallback_model"])
+                    if "wake_fallback_model" in defaults
+                    else None
+                ),
+                "fallback_activation": "primary_load_or_inference_fault_only",
+            }
+            args.model.extend(
+                defaults[k]
+                for k in ("wake_model", "wake_fallback_model", "vcm_model")
+                if k in defaults
+            )
+            audio_backend = audio_backend or defaults.get("audio_backend", "sounddevice")
+            alsa_device = alsa_device or defaults.get("alsa_device", "default")
+        audio_backend = audio_backend or "sounddevice"
+        alsa_device = alsa_device or "default"
+        report["audio_backend"] = audio_backend
         if args.sha256 and len(args.model) != 1:
             raise ValueError("checksum_requires_exactly_one_artifact")
         for path in args.model:
@@ -172,7 +239,10 @@ def main() -> None:
                 require_approved_wake=args.require_approved_wake,
             ))
         if args.devices:
-            report.update(probe_input_devices(args.input_device, args.sample_rate))
+            report.update(probe_input_devices(
+                args.input_device, args.sample_rate,
+                audio_backend=audio_backend, alsa_device=alsa_device,
+            ))
             if report.get("device_error"):
                 raise RuntimeError(report["device_error"])
         report["rss_bytes"] = psutil.Process().memory_info().rss

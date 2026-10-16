@@ -1,0 +1,64 @@
+{
+  "benchmark_schema_version": 1,
+  "model": {
+    "path": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/wake-word/models/wake_word_v5_regularized_seed43.me2",
+    "task": "wake_word",
+    "architecture": "TinyAudioCNN",
+    "model_version": "wake-tiny-cnn-connected-a-teh-ko-wake-v5-connected-a-teh-ko-command-negatives-binary",
+    "grammar_version": "",
+    "parameters": 2858,
+    "artifact_bytes": 15537
+  },
+  "audio": {
+    "path": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/wake-word/data/v2/audition/927f756e547f_guide_connected.wav",
+    "source_sample_rate": 16000,
+    "usable_samples": 32000,
+    "usable_seconds": 2.0
+  },
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.3",
+    "torch": "2.14.1",
+    "torch_threads": 1,
+    "logical_cpus": 10
+  },
+  "run": {
+    "warmup_iterations": 10,
+    "measured_iterations": 100,
+    "process_cpu_percent_of_one_core": 100.00206646684902,
+    "rss_bytes_after_run": 288145408,
+    "total": {
+      "mean_ms": 0.3731662454083562,
+      "p50_ms": 0.3691248130053282,
+      "p95_ms": 0.38704206235706806,
+      "maximum_ms": 0.4665830638259649
+    },
+    "stages": {
+      "acoustic_model": {
+        "mean_ms": 0.22255530813708901,
+        "p50_ms": 0.22020796313881874,
+        "p95_ms": 0.232999911531806,
+        "maximum_ms": 0.26579201221466064
+      },
+      "frontend": {
+        "mean_ms": 0.14725951943546534,
+        "p50_ms": 0.14441600069403648,
+        "p95_ms": 0.15600002370774746,
+        "maximum_ms": 0.19412487745285034
+      }
+    }
+  },
+  "last_result": {
+    "accepted": true,
+    "decoded_text": "ateko",
+    "intent": "ateko",
+    "rejection_reason": null
+  },
+  "limitations": [
+    "RSS is process-wide, not model-only.",
+    "CPU percentage is measured over the active inference loop.",
+    "Temperature, throttling, idle CPU, and sustained-run power require target-hardware tools.",
+    "File decoding and endpoint wait time are outside the measured inference loop."
+  ]
+}

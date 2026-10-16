@@ -1,0 +1,708 @@
+{
+  "audit_schema_version": 1,
+  "manifest": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/wake-word/data/generated/manifest.csv",
+  "dataset_versions": {
+    "wake-v1-historical-unverified": 936
+  },
+  "rows": 936,
+  "labels": {
+    "a": 72,
+    "te": 72,
+    "ko": 72,
+    "ateko": 144,
+    "background": 576
+  },
+  "splits": {
+    "train": 546,
+    "validation": 156,
+    "test": 234
+  },
+  "speakers": 12,
+  "real_speakers": 0,
+  "sources": {
+    "macos_say_synthetic": 792,
+    "generated_noise": 144
+  },
+  "review_status": {
+    "pending": 792,
+    "accepted": 144
+  },
+  "speech_review_coverage": 0.0,
+  "positive_review_status": {
+    "pending": 144
+  },
+  "duration_seconds": {
+    "total": 733.26225,
+    "minimum": 0.126125,
+    "maximum": 10.6023125
+  },
+  "exact_duplicate_groups": [
+    {
+      "sha256": "079e9ffc8107388046a1caa9ad8cf11421d032ba5c9955bfab398e4145a38d77",
+      "recording_ids": [
+        "3f9fbb353b4054039f4b47ee7e1352f9",
+        "053e454d39fb5d8e9825e9228709e751"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "a10fbd0cb9f4f37fa4b5bdc32d97f0bf4581b15764ff111096af199c77ad760d",
+      "recording_ids": [
+        "91460d3bd13c5e9fafbefa396401b6ae",
+        "d125d95a8788519e8bf8ec7bf8678e87"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "abfeb673a57341dfff97c2fae4e17b07b1f731b721ec8fde49991b9f8e0a4583",
+      "recording_ids": [
+        "e4af78c1f18e53a9b775ff1492d4969b",
+        "8dffc05f9b2b52feaf62d54880ed740e"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "1976d581b888b2082be5eb68b76a403effc3b3d2061107c1214ea5ef3b3e7b3b",
+      "recording_ids": [
+        "b5a5b91bfb4d5cce9d2a6a34ffd07bae",
+        "8a480b69bc1c5a6c8d97cd381f4f49b0"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "138d2b215e53400631a5b3da2727c6ad0ff8ce972e6ba1d126cc6fc32a14ee20",
+      "recording_ids": [
+        "ad9824e0dab4590aa901b91963d7e463",
+        "24b52e4323825b7db9a197abe9afee7a"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "2e7593bfe3bbfec51d7900ac453183c3e69ef8157080f5092df230047c3e62ac",
+      "recording_ids": [
+        "9ef9a88b59245ba5a7f60b90931be07e",
+        "d6b4827a295b593dbbccbb9f3f49562c"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "bfb81fdb2d5e9b3696c2f30b7324643f995dd00957a5689bf3603a69a438d9eb",
+      "recording_ids": [
+        "a4b3fc0de8f954868a1810f948585d73",
+        "f9b3d9f9a8ba52c2b747525672a173ac"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "cf8000dd980c9e0db2afe338aa63eefc91d1b9fd24562bc3d32473b4132df6af",
+      "recording_ids": [
+        "3c90a1947fce5a75bcfc335d30fc59e9",
+        "d7eb88ca000351a89edabe90687c9715"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "52caad390b874c1383fcb1f46c95feef6ee0d1dcb4674d5f5777aa2f6ccba82b",
+      "recording_ids": [
+        "7be6771e41c35ef78453d954a9109790",
+        "e73f81cf891f570ea00014df17478af7"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "a9b6743f0aa503ee8edb5926c91b90be0ab988d19a99466d740b83b58108ac69",
+      "recording_ids": [
+        "986a777f44f355f786a37ebfd676a8a9",
+        "4840a97615b05452a25a89eb599881e7"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "8d5689464f120d03a1287b15f1dfe7da86d4c70fc021cf0976eb20babc010768",
+      "recording_ids": [
+        "21b3b00878df58f7b86a104873907b91",
+        "fb4b37e9b870553ca5ef4dee9dbc9e6a"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "f94a332262442fcc78dd5d225031e8bc471955dbb2457f08e137de1740c5a9b3",
+      "recording_ids": [
+        "ad75bf8c811053e1a50de73875b37d71",
+        "940615311002558588ecb92c588774ab"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "4b006fb29f0ecb19be2263ebf02a19807ccd99de33b7d8232cec6dd3ca63e97a",
+      "recording_ids": [
+        "e2b21ca2380d5976897a0522b79560b0",
+        "1e63add208c45766b0459d69b8efe1e1"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "4ec2a755f53df0fdb2126ebd4506ef08f5e548a2544327902e99d9fa1f3e2a83",
+      "recording_ids": [
+        "3d85c66e41835083bd60a07c26d6264b",
+        "7e2a298ae4be576685112b20fe160466"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "9739d2db86e7b14f42adfa89a810202d5571d00b0c8ce43455c09729d3339e1e",
+      "recording_ids": [
+        "26b8ee6a1c0c55b6979ad98aa892f2f4",
+        "e63e330726025f1e8a25c4e61ff61927"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "6dc7c25056a76a4a8f6c960ead9785adc789d574c63bccf84042991f13b697d4",
+      "recording_ids": [
+        "f1099d7477525dcf9124ff9b5d6d0f8e",
+        "bad4be86bea15b63b810d87f8657709a"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "2e4ead0652613524aa5ee8c9ff6aea11e46d82b2fafdfbbaae461b7bc54eab52",
+      "recording_ids": [
+        "3eeda43d805156799d55081297609725",
+        "ba137abad141544485188491c31e9c8a"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "01619d5f099a2de1a07ad88fdab1de289343fae7d47c54ef57593041e886c680",
+      "recording_ids": [
+        "63d84799878757aa8aab618004c46401",
+        "bd37c310d8a255f8b870a474db7364e2"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "570dfe43584781dd74adc194590508605bb87146a89c44679cd6fcc8b07880c3",
+      "recording_ids": [
+        "675aa0c040975ee5b86f9c7581f6faf1",
+        "eec3f955a6c35834a49301ec19ce2daf"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "20df89a3dc4a080f6b55558dd64345c86ba34cac8a09f2d60ae79df29f910a55",
+      "recording_ids": [
+        "529f221ea8e2550da059bfd34d085697",
+        "be13ff86a9155936b3e3e8263ffcca5b"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "305ec051244174f8a5f5139b6b01e94a60e657a28692073a7081c10f6faa542d",
+      "recording_ids": [
+        "93818feb48645431a4a2d52dbc65c3ed",
+        "b415ecb0f64857d280b38f23ea9caa45"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "a7bb8b75432f5b99e247be1486d544425a83eef258385bb5654cd515d5aff179",
+      "recording_ids": [
+        "bc32b48ae116564988c37c177a692183",
+        "1de09ed591d25ff28f97fe2747736c75"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "ca4eaba51574ac875cb6be6d7d7c2208780e6195fc99481ed958588225ffd91f",
+      "recording_ids": [
+        "e6af4a0e88d15d86985558d3df7c59a3",
+        "a2b8706e646651e4a13e79a3cf213433"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "a8cc766fb51b504d5146306b1122427e0c0991d035c0405199646287555190d4",
+      "recording_ids": [
+        "a25c29de6f465265b4ea1977f1fdbf88",
+        "c6dd4072283e55639dd77b0928fc2f97"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "4d76791bc52cb2bfb4001a12cc143f35d4a9f5e2470d5a9d7aab55d8976f56af",
+      "recording_ids": [
+        "33a31fe514655a5e81617c6ba939bae7",
+        "f6cdd3e6827457d98846fb2dfd6e0a9f"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "56c419fa183376cb049ec94b04db75a353dba17daed6e9127d04e1d1c391dbc4",
+      "recording_ids": [
+        "8dcf9c5392315fdaa75d97b1ae805eef",
+        "708940bebd13536b894550fd060b0180"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "d595dd4311fb35fa78e9a598b3137b8e68cbc5433fb7f0bbe4601e12862fd060",
+      "recording_ids": [
+        "0adde8d98e525b96bce3d5a9a34c3a5c",
+        "ce367171e7d1520d922fc9dbd8319619"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "14c4520cd74702428716e6a68c939affa070de10c31a964cf8424c34d5cc6195",
+      "recording_ids": [
+        "d001c04f42bd5f2890ac352aa313608c",
+        "90fb2790b9c357c5ad8d99816198ba26"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "72d82b3fe43cde8b6efdaf6b516b01635a884ac722c0d48c80b8966587218e06",
+      "recording_ids": [
+        "2f0d3b476e115d53b8d5ae1e0d0abbd4",
+        "66ae6735d4625f81bda36cf7b409fbdc"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "3d79ce3f62af4e4d2dd8c1729b21a5766445d744922230fbdc7d2173136ffc5e",
+      "recording_ids": [
+        "e18db948d68057bab6fb4d6227069ade",
+        "b5c0a9829e6b56f493392acaaa39743d"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "f5bff4244149698dde271c299c534fe750a4e272d3f00199d8a00c3fd223e11b",
+      "recording_ids": [
+        "fabbc39855de500c98d233700d9d56b9",
+        "a921d49639b653f7bf169623d797a00f"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "5a6b5a0b2f1917548087c899ef16408850afbaff50d4314a357d9ed662c00da5",
+      "recording_ids": [
+        "71263c36432552d49ce5f932742a5ed0",
+        "a6282d56d5a3524891ce0d878692c272"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "2a8b0a847df155a418ee8410618c8ea19a68bc758329e1c9a202510ff2949d85",
+      "recording_ids": [
+        "fecb76c586b658799982d217829b5eea",
+        "9362d7fa2d445b1f889b94aca1b3e991"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "a78d4b1f08329c56a6cead7d70750468e3c2886423ee3117da78ead23a90ad7e",
+      "recording_ids": [
+        "54d0340870ea5c78b7060610757bf48b",
+        "b9ecb74850805248847253b4792f6f74"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "b14e2e98dd9ccfd0215fccc70aade0c2778d2f40c528f6f7f354b61557c829aa",
+      "recording_ids": [
+        "5472454e11fd5f50bc961982d4094eb1",
+        "27ea96f9eed55b42be7a8328012cb8b5"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "51eed38be30875a6c52efd269f225cb27518a63e324bf06e186bffe418e2d27b",
+      "recording_ids": [
+        "6776f212c3f95bb9bea5c87978461933",
+        "6f0a502cc6165414b31b1082e6b2d5bf"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "402965d8c4ab33b86a4dcf6234b14483bc8815f0d4d249c1eaa21815b68c0473",
+      "recording_ids": [
+        "9feb118ab07a5a3db8d6a5b546913197",
+        "d88042d3740d59399500e21d9f1bfb56"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "1668eecdfec1a97fd0b5abcd243ef5525b1bb7b97b551f943b4c65a477cb5d97",
+      "recording_ids": [
+        "15802cf842b756fda2a9415a8efc9908",
+        "e196552728cb517297f061fc9f1973da"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "fcd1967a634441bcd0acc9f72af218b60bed930abeb6f8af92f7302dd38fda80",
+      "recording_ids": [
+        "eca8dccb7f2657a0bbe9a51f5b5cf68a",
+        "1441408d9e555564b38ce12c29da49cb"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "cbd921330f3a6394a5b876b507f28bd642d17ccac5e4d8de1b841bf0855f496e",
+      "recording_ids": [
+        "be580c69d7d75df3abfe095fffa9f671",
+        "d6118e0d9e19590c8419b19e85dd990b"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "ae80dd7dc517b314a0191516746085dff63217a7c3edfb6bc5cbfdd8dcd39129",
+      "recording_ids": [
+        "ca3839247ce655429bf639bf8a7ef779",
+        "f62eb68ed8cd52dea16c3f9952fa15e1"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "d796a3c447e934f5adac72bfe3eb1caf166770e8dfc5d8780fec4a628848c687",
+      "recording_ids": [
+        "4bc40b67b5e852cfb3d15940a90d1f36",
+        "e602c2fd88145933ba1a9bcfea5c5a88"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "0536ee54c01de97e6917521d9893e2b3baf6d1f859b7ccc9b5d645f71da7fd6d",
+      "recording_ids": [
+        "3a303c7b40905a709cd83873e2aef54d",
+        "7a57021d24e45d0b9903e07af1b4decc"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "318bacf1c8369ac2f5899383d7cddbf80d7097501be0860a53894833d58a7f9b",
+      "recording_ids": [
+        "37ee74a994a3543eb7e172200ba16c3e",
+        "8cbc90707ab154fe875ec8eae83166cf"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "dd5aee17b2aa9bb569d7e66da0d7f74d3bbb4798f185808d1a29e64a3cd93b14",
+      "recording_ids": [
+        "871dda0e89225e679246ff968b4cf229",
+        "fc7a2a3b829c522b90a9de269fe09b20"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "94629a2befb1d7ff62b4d64c1229a32a957be1ed54e293debdab092e94c85c75",
+      "recording_ids": [
+        "554df449e04952a59a60100d31f60074",
+        "48319d5681fb5c188d3672c7017111f6"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "d91fd36ba9b59d32ead3769f3110fb192b1a67cdbe4171f43fa8548ab6cfe3f5",
+      "recording_ids": [
+        "58650f236a9a52ecb8a6af093776717a",
+        "d6add5c679ec559cb1bcaa5005303ff3"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "767f4efc653498c50389adb5a8d3d191bf458c7b4be86a3534f58877871ccb31",
+      "recording_ids": [
+        "573cdf563c9e50df8e25751037f39624",
+        "55f49e7a30d85118a716dd039742972f"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "4c2508f03130399423c589759dd454a88ffa541c710e8ffa8d6a2fbdc5465f3e",
+      "recording_ids": [
+        "c251f88daac45f76a82d9c512653eb25",
+        "556f1044a6f65fa4ad91d23d4430c028"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "9321e7b04ea45cf56f586c89356d4d902a8a12aca28b6459e57ab6bb37df8aa0",
+      "recording_ids": [
+        "de2c2bc16257526d884c542f644fa64f",
+        "f2f728ad3f345aa9b54abb0cbb8c8037"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "71a933872f377a1f5fee1cd97272b3ef79729a8421525acf752e6aae1479bca6",
+      "recording_ids": [
+        "40f703a60e085f5bb80623edbec77621",
+        "f659e63ef45f5e14a2953fede8afce03"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "7aa9a02de139b5b591e6df073f00670b5074780cf6e6f96bf32a5636f831538e",
+      "recording_ids": [
+        "fcf301f35fbd55c9bc277b145c8d67db",
+        "7338d73801ee576ead3704544813a4e9"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "f1b688c1b9b92d9178b20c4b4a190d520c4e6ae2c4a09681d11a929499506e30",
+      "recording_ids": [
+        "abe79455e3c853c0871f0875f31dd7cc",
+        "8b75aa29154854069ec29a78951b96c2"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "4c4f628a16fb38d1ef8c63aadbebce38c1877fe5f7f2a022084cff9387fbed43",
+      "recording_ids": [
+        "5d271ea241235feb9a8ee13bea898347",
+        "1963a272d32c570b95d1e58555c66e86"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "623adad9a9c69d9da2f2b3c6978d0274c1728240f0ab72a95469009e4fee6768",
+      "recording_ids": [
+        "330fee35c15d5d08aad1529fa0675d06",
+        "c7a5bfe0528a5548a9cfd394cfdc3384"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "sha256": "533c28b451a975f6fe74312fbb59fdfb02cff478652b44f86423b3c07da2fcae",
+      "recording_ids": [
+        "8579e6a1d616578994b64cda8c1dec43",
+        "7184ea469d39580fb7693a3e6d2978e1"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "f9b8b3b9b298e37a671a27a05e6a3fa5aaa22f75f3893e261cbda9e53ce2d12d",
+      "recording_ids": [
+        "1d38f28abc405f4ab73289b3ac01b536",
+        "2089a1f54ac35c6cbced2f29216956e9"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "0f606ee5dbee4692c035872708df58e11a47126221fcff4378f9aafd59c3feea",
+      "recording_ids": [
+        "e455f230efb555d39b65504d53cfb4b9",
+        "1c5cc9fdf0b052b9ab87a37023af570e"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "b87e4fcb1db996b69c3c34106b2aa1c65718b4d5d1fa5873d68cfefae8f43bff",
+      "recording_ids": [
+        "1d860605498159e7a6a912a4b386973c",
+        "b916ac0ee3d3540596aedc730f3a5560"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "17104d5f38d0963b5c729b3b0ce674a36d9de1ef936455a0e982d3bfa9f3cc7a",
+      "recording_ids": [
+        "656a921377665055a5e425625c887c3d",
+        "4bacb86740a45b4ab552f5aecdbd87d2"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "0b85207e0d18cc9838d5fc8416abea58e1c795ea13834491133690a8fe15293b",
+      "recording_ids": [
+        "072db83b3d38582995e63dde4c4439c1",
+        "91004b66aa7b50699ac9bf1e6b0d6540"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "f8604bb22cf7d199ef5f7d352097c6b26ef0daf69679fc44912834415495af2f",
+      "recording_ids": [
+        "4016ab2e8898504d9489edea936305a8",
+        "c2b91d67c5be55e9b76e47b64eca5df3"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "7b2fd1db05f6bf6a634e6f779983aea552f492819ef47914b9285558745ded39",
+      "recording_ids": [
+        "eb9e29d0aa825dca99e81d78f7886df0",
+        "0b1df8868e40585ab994237199ecf6a7"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "b340494abbf9fe901ae098af5a089746bf36c73d6d27c312e0bb3659c372e3ae",
+      "recording_ids": [
+        "b694c00117b35e6bb6122fbdf4a45bd5",
+        "fee378bcc49e58198279c4d484da6318"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "26e1d26d11c453aeb12ad1715f3a9835cc58067924db9ae4082bf9069219bf60",
+      "recording_ids": [
+        "9cd2f0dbdf6a5b72833075e33a31c7f0",
+        "c7f1c9f706e55c06a16a6ec535bbd6d3"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "sha256": "0df462d699c28a7c66e72f2625553892a516a4ec310277a92783e2d1ce672da0",
+      "recording_ids": [
+        "c531db9c17a755fda9c525c17cabdeb7",
+        "e785ff9f001756babaa1537582c9466e"
+      ],
+      "splits": [
+        "validation"
+      ]
+    }
+  ],
+  "near_duplicate_group_count": 66,
+  "cross_split_exact_duplicates": [],
+  "speaker_split_leakage": {},
+  "parent_split_leakage": {},
+  "issues": [],
+  "trainable_approved_positives": 0,
+  "valid_for_training": true
+}

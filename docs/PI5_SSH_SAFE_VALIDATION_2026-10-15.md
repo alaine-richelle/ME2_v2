@@ -19,7 +19,7 @@ use the frozen config and exact package candidates in
 verified on the target.
 
 Only after separate approvals may the next operator perform a read-only
-preflight, disposable transfer/isolated-venv installation, binary package and
+preflight, a disposable detached Git checkout/isolated-venv installation, binary package and
 import verification, individual model replay, one supplied-WAV integrated
 replay, and a visual `python -m me2.dashboard --demo` review without
 `--autostart`. Live microphone, speaker, dashboard listening, Bluetooth,
@@ -401,21 +401,83 @@ If the target is not `aarch64`, 64-bit, and identified as Raspberry Pi 5,
 stop and report the mismatch. Record package/runtime versions on that target;
 do not copy the Mac's Python/Torch results as Pi versions.
 
-## Transfer and offline validation — separate write approval required
+## Git checkout and offline validation — separate write approval required
 
 The initial bundle and the specifically approved ALSA update have been
 transferred and verified. Any additional remote file change requires its own
-explicit approval. For a future approved transfer:
+explicit approval. Those historical transfer records are provenance only; they
+are not the procedure for a new run. A new run must not use a tar/ZIP archive
+or a copy of the local working tree.
 
-1. Create a new run directory on the Pi; do not overwrite the user's existing
-   checkout, active model, logs, or state.
-2. Transfer an explicitly reviewed source/config subset and only the two
-   selected `.me2` artifacts. Do not transfer `.venv`, pickles, full datasets,
-   raw recordings, SSH files, or the experiment archive.
-3. Verify artifact hashes on the target. Confirm the candidate config hashes
-   and resolved paths before inference.
-4. Run health/artifact smoke and file replay before live capture. Normal
-   inference startup must not fetch models or datasets.
+Before Pi setup, the user must push the reviewed local changes and provide:
+
+- A credential-free Git remote URL. Do not place passwords, personal access
+  tokens, private keys, or other secrets in the URL, shell history, logs, or
+  this document.
+- The exact containing branch or tag, written as a ref such as
+  `refs/heads/main` or `refs/tags/v5-final`.
+- The exact full commit SHA that the Pi must run.
+
+On the local machine, confirm remote reachability and identity before requesting
+the Pi write/package approval. The reference must resolve directly to the
+requested commit, or, for an annotated tag, its peeled `^{}` value must resolve
+to that commit:
+
+```sh
+export ME2_GIT_REMOTE='USER_PROVIDED_CREDENTIAL_FREE_REMOTE_URL'
+export ME2_GIT_REF='refs/heads/USER_PROVIDED_BRANCH_OR_TAG'
+export ME2_GIT_REV='USER_PROVIDED_FULL_PUSHED_COMMIT_SHA'
+
+git ls-remote --exit-code "$ME2_GIT_REMOTE" \
+  "$ME2_GIT_REF" "${ME2_GIT_REF}^{}"
+git ls-remote "$ME2_GIT_REMOTE" "$ME2_GIT_REF" "${ME2_GIT_REF}^{}" \
+  | awk -v expected="$ME2_GIT_REV" '$1 == expected { found = 1 } END { exit !found }'
+```
+
+Stop if either command fails, if the remote string contains credentials, or if
+the supplied branch/tag and SHA do not agree. Do not change remotes, push,
+force-push, or create a pull request as part of this procedure.
+
+Only after that confirmation and a separate explicit approval for Pi writes
+and package installation, create a new run directory and check out the exact
+commit detached. The run ID is operator chosen and should not identify a
+person:
+
+```sh
+export ME2_PI_TARGET='USER@HOST'
+export ME2_PI_RUN='/home/USER/me2-v5-final-RUN_ID'
+export ME2_RUN_ID='RUN_ID'
+
+ssh "$ME2_PI_TARGET" "set -eu
+  git clone --no-checkout '$ME2_GIT_REMOTE' '$ME2_PI_RUN'
+  git -C '$ME2_PI_RUN' fetch --depth 1 origin '$ME2_GIT_REV'
+  git -C '$ME2_PI_RUN' checkout --detach '$ME2_GIT_REV'
+  actual=\$(git -C '$ME2_PI_RUN' rev-parse HEAD)
+  test \"\$actual\" = '$ME2_GIT_REV'
+  test -z \"\$(git -C '$ME2_PI_RUN' branch --show-current)\"
+  git -C '$ME2_PI_RUN' ls-files --error-unmatch \
+    config/runtime.v5-final-supervised-20261015.json \
+    wake-word/models/wake_word_v5_regularized_seed43.me2 \
+    vcm/models/vcm_ctc_model.me2
+  mkdir -p '$ME2_PI_RUN/results'
+  printf 'remote=%s\\nrequested_ref=%s\\nrequested_commit=%s\\nchecked_out_commit=%s\\ndetached_head=true\\n' \
+    '$ME2_GIT_REMOTE' '$ME2_GIT_REF' '$ME2_GIT_REV' \"\$actual\" \
+    > '$ME2_PI_RUN/results/pi5-source-identity-$ME2_RUN_ID.txt'
+"
+```
+
+This source-identity record may contain only the credential-free remote,
+requested branch/tag, and commit identity. If the selected config, v5/CTC
+bundles, or approved replay fixtures are not present and hash-verifiable from
+the reviewed revision (or an explicitly approved published artifact source),
+stop. Do not fill the gap by copying an untracked local file. Do not transfer
+`.venv`, pickles, full datasets, raw recordings, SSH files, or the experiment
+archive.
+
+After the detached checkout, verify artifact hashes on the target, confirm the
+candidate config hashes and resolved paths before inference, and run
+health/artifact smoke and file replay before live capture. Normal inference
+startup must not fetch models or datasets.
 
 The target-side offline checks are:
 

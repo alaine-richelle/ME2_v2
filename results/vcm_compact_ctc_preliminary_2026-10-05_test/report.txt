@@ -1,0 +1,48 @@
+Evaluation report
+=================
+Accuracy: 0.0171
+Macro precision: 0.0009
+Macro recall: 0.0500
+Macro F1: 0.0017
+ROC-AUC: 0.5000
+
+Per-class performance (observed)
+alarm: support=423, precision=0.0000, recall=0.0000, f1=0.0000
+brightness: support=423, precision=0.0000, recall=0.0000, f1=0.0000
+call: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+color: support=423, precision=0.0000, recall=0.0000, f1=0.0000
+create_reminder: support=423, precision=0.0000, recall=0.0000, f1=0.0000
+light_off: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+light_on: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+list_reminders: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+message: support=137, precision=0.0000, recall=0.0000, f1=0.0000
+next: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+out_of_scope: support=76, precision=0.0171, recall=1.0000, f1=0.0336
+pause: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+play_music: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+stop: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+temperature: support=423, precision=0.0000, recall=0.0000, f1=0.0000
+time: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+timer: support=423, precision=0.0000, recall=0.0000, f1=0.0000
+volume_down: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+volume_up: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+weather: support=141, precision=0.0000, recall=0.0000, f1=0.0000
+
+Most frequent confusions (gold -> predicted)
+timer -> out_of_scope: 423
+temperature -> out_of_scope: 423
+create_reminder -> out_of_scope: 423
+color -> out_of_scope: 423
+brightness -> out_of_scope: 423
+alarm -> out_of_scope: 423
+weather -> out_of_scope: 141
+volume_up -> out_of_scope: 141
+volume_down -> out_of_scope: 141
+time -> out_of_scope: 141
+
+Model footprint (measured)
+Parameters: 203638
+Serialized model: 760529 bytes
+Input dimensions: [1, 40, 501]
+CPU inference mean/p95: 3.398/3.464 ms per example
+Process peak RSS: 1760804864 bytes (process-wide, not model-only)

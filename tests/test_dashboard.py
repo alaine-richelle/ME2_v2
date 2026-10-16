@@ -3,6 +3,7 @@ import json
 import sys
 import threading
 import time
+from pathlib import Path
 from types import SimpleNamespace
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -10,6 +11,7 @@ from urllib.request import Request, urlopen
 import numpy as np
 import pytest
 
+from me2.app import _load_vcm_wav, _model, _predict_vcm
 from me2.dashboard import (
     ACTIONS,
     DEFAULT_ACTION_BY_INTENT,
@@ -59,13 +61,103 @@ def test_rejected_diagnostic_intent_never_dispatches(dashboard):
 
 
 @pytest.mark.parametrize("intent", INTENTS)
-def test_every_canonical_intent_has_one_accepted_local_action(dashboard, intent, monkeypatch):
-    monkeypatch.setattr(dashboard, "_start_weather_lookup", lambda: None)
+def test_every_canonical_intent_traverses_result_event_dispatch_to_visible_state(
+    dashboard, intent, monkeypatch
+):
+    assert len(INTENTS) == 19
+    assert dashboard.mappings[intent] == {
+        "enabled": True, "action": DEFAULT_ACTION_BY_INTENT[intent]
+    }
+
+    def complete_weather():
+        dashboard.data["devices"]["weather"].update(
+            status="ready", city="Manila",
+            current={"condition": "Clear", "observation_time": "2026-10-15T12:00"},
+            cached_at="2026-10-15T12:00:00+00:00",
+        )
+        dashboard.data["last_action_status"] = "success"
+
+    monkeypatch.setattr(dashboard, "_start_weather_lookup", complete_weather)
     command = result(intent=intent, slots=DEMO_SLOTS.get(intent, {}))
-    action = dashboard.dispatch(command)
-    assert action == ACTIONS[intent]
-    assert dashboard.data["last_action_status"] == ("success" if intent != "weather" else None)
-    assert dashboard.mappings[intent]["action"] == DEFAULT_ACTION_BY_INTENT[intent]
+    dashboard.on_event(PipelineEvent(
+        PipelineState.ACCEPTED_OR_REJECTED, 100, "accepted", command,
+        utterance_id=f"accepted-{intent}",
+    ))
+    snapshot = dashboard.snapshot()
+    assert snapshot["last_result"]["actionable_intent"] == intent
+    assert snapshot["last_action"] == ACTIONS[intent]
+    assert snapshot["last_action_status"] == "success"
+    assert snapshot["counts"]["accepted"] == 1
+    devices = snapshot["devices"]
+    if intent in {"play_music", "pause", "stop"}:
+        assert devices["player"] == {
+            "play_music": "playing", "pause": "paused", "stop": "stopped",
+        }[intent]
+    elif intent == "next":
+        assert devices["track"] == 2
+    elif intent == "volume_up":
+        assert devices["volume"] == 60
+    elif intent == "volume_down":
+        assert devices["volume"] == 40
+    elif intent == "light_on":
+        assert devices["light"] is True
+    elif intent == "light_off":
+        assert devices["light"] is False
+    elif intent == "brightness":
+        assert devices["brightness"] == 60
+    elif intent == "color":
+        assert devices["color"] == "Blue"
+    elif intent == "temperature":
+        assert devices["thermostat_c"] == 22
+    elif intent == "time":
+        assert devices["time"]
+    elif intent == "weather":
+        assert devices["weather"]["status"] == "ready"
+    elif intent == "call":
+        assert "no call was placed" in devices["call_demo"]["message"]
+    elif intent == "message":
+        assert "not sent" in devices["message_demo"]["message"]
+    elif intent == "list_reminders":
+        assert devices["reminders_viewed_at"]
+    elif intent == "create_reminder":
+        assert devices["reminders"][-1]["text"] == "Drink water"
+    elif intent == "timer":
+        assert devices["timers"][-1]["seconds"] == 10
+    elif intent == "alarm":
+        assert devices["alarms"][-1]["time"] == "08:00"
+
+
+def test_file_based_vcm_result_reaches_dashboard_without_opening_speaker(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    model_path = root / "vcm/models/vcm_ctc_model.me2"
+    audio_path = root / "vcm/data/test_sample.wav"
+    if not model_path.is_file() or not audio_path.is_file():
+        pytest.skip("local selected VCM bundle or file fixture is not present")
+
+    model, bundle = _model(model_path, "vcm")
+    waveform, sample_length = _load_vcm_wav(bundle, audio_path)
+    command, _ = _predict_vcm(model, bundle, waveform, sample_length=sample_length)
+    assert command.accepted
+    assert command.actionable_intent == "play_music"
+
+    dashboard = Dashboard(
+        {
+            "mappings_file": tmp_path / "mappings.json",
+            "music": {"playback_enabled": False},
+        },
+        demo=False,
+    )
+    try:
+        dashboard.on_event(PipelineEvent(
+            PipelineState.ACCEPTED_OR_REJECTED, 100, "accepted", command,
+            utterance_id="file-inference-play-music",
+        ))
+        snapshot = dashboard.snapshot()
+        assert snapshot["devices"]["player"] == "playing"
+        assert snapshot["last_result"]["actionable_intent"] == "play_music"
+        assert snapshot["last_action_status"] == "success"
+    finally:
+        dashboard.close()
 
 
 def test_slot_dependent_action_rejects_missing_or_unsupported_value_without_mutation(dashboard):
@@ -77,6 +169,9 @@ def test_slot_dependent_action_rejects_missing_or_unsupported_value_without_muta
     assert "unsupported or unavailable color slot" in unsupported
     assert dashboard.data["devices"] == before
     assert dashboard.data["last_action_status"] == "failed"
+    unexpected = dashboard.dispatch(result(intent="light_on", slots={"value": "Red"}))
+    assert "unsupported slot" in unexpected
+    assert dashboard.data["devices"] == before
 
 
 def test_legacy_display_mappings_upgrade_in_memory_but_do_not_rewrite_user_file(tmp_path):
@@ -96,6 +191,35 @@ def test_unknown_accepted_intent_fails_closed(dashboard):
     assert action == "Failed · unknown intent"
     assert dashboard.data["devices"]["light"] is False
     assert dashboard.data["last_action_status"] == "failed"
+
+
+def test_system_error_result_never_mutates_devices(dashboard):
+    before = json.loads(json.dumps(dashboard.data["devices"]))
+    dashboard.on_event(PipelineEvent(
+        PipelineState.ACCEPTED_OR_REJECTED, 10, "system_error",
+        result(intent="light_on", system_error="RuntimeError"),
+        utterance_id="system-error-no-dispatch",
+    ))
+    assert dashboard.snapshot()["devices"] == before
+    assert dashboard.snapshot()["last_result"]["actionable_intent"] is None
+
+
+def test_player_action_failure_does_not_advance_visible_track(tmp_path):
+    dashboard = Dashboard(
+        {
+            "mappings_file": tmp_path / "mappings.json",
+            "music": {"playback_enabled": True},
+        },
+        demo=False,
+    )
+    dashboard.data["devices"]["player"] = "playing"
+    before = json.loads(json.dumps(dashboard.data["devices"]))
+    dashboard.audio_player.next_track = lambda: (_ for _ in ()).throw(OSError("unavailable"))
+    try:
+        assert "action unavailable" in dashboard.dispatch(result(intent="next"))
+        assert dashboard.data["devices"] == before
+    finally:
+        dashboard.close()
 
 
 def test_live_music_device_failure_does_not_change_dashboard_state(tmp_path):

@@ -1,0 +1,1700 @@
+{
+  "schema_version": 1,
+  "dataset_id": "airimonda/ai231-me2-voice-commands",
+  "dataset_revision": "bfca0bbebfe17e00d6a685d1da573615d29ecdce",
+  "protocol": "official_train/persisted_validation/class_balanced_regression_only",
+  "indices": [
+    5294,
+    4825,
+    4883,
+    5219,
+    5742,
+    7482,
+    7266,
+    7143,
+    7424,
+    7064,
+    10587,
+    3202,
+    3094,
+    2997,
+    3160,
+    8555,
+    8379,
+    7918,
+    8312,
+    7869,
+    9173,
+    9627,
+    9252,
+    9253,
+    9512,
+    1319,
+    10485,
+    1194,
+    1244,
+    1111,
+    1049,
+    918,
+    1044,
+    956,
+    826,
+    3652,
+    3503,
+    3600,
+    3779,
+    3792,
+    3263,
+    3204,
+    3280,
+    3474,
+    3441,
+    2104,
+    2285,
+    2194,
+    2005,
+    2095,
+    10015,
+    9996,
+    10670,
+    10038,
+    10664,
+    1539,
+    1621,
+    10500,
+    1391,
+    1443,
+    122,
+    195,
+    10205,
+    204,
+    16,
+    1859,
+    1860,
+    1954,
+    1844,
+    1651,
+    5942,
+    6155,
+    6422,
+    6258,
+    5912,
+    673,
+    625,
+    585,
+    688,
+    488,
+    3900,
+    4591,
+    4755,
+    4202,
+    9812,
+    2814,
+    2625,
+    2627,
+    2908,
+    2836,
+    2594,
+    2545,
+    2315,
+    2369,
+    2319,
+    10334,
+    375,
+    398,
+    281,
+    276
+  ],
+  "supports": {
+    "alarm": 5,
+    "brightness": 5,
+    "call": 5,
+    "color": 5,
+    "create_reminder": 5,
+    "light_off": 5,
+    "light_on": 5,
+    "list_reminders": 5,
+    "message": 5,
+    "next": 5,
+    "out_of_scope": 5,
+    "pause": 5,
+    "play_music": 5,
+    "stop": 5,
+    "temperature": 5,
+    "time": 5,
+    "timer": 5,
+    "volume_down": 5,
+    "volume_up": 5,
+    "weather": 5
+  },
+  "speakers": 23,
+  "partition_sha256": "a87cc271b766465300077640fc0994f2b86e241bb8fcb1fb44589edbec1677eb",
+  "shards": {
+    "ai231-me2-voice-commands-train-00000-of-00002.arrow": "ba4311c54335f601380d49729e138d8ff1b8b019da416b978705a33dd361a539",
+    "ai231-me2-voice-commands-train-00001-of-00002.arrow": "1a116c5e058873300747136bb3ff6ed615e56c7502c147ac5e5adfa63697ea9b"
+  },
+  "git_commit": "e3aa9f8bedf25aec64a7eeb033bd506ae133a46e",
+  "repository_path": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2",
+  "branch": "master",
+  "script_sha256": "6eb01a46b0c9fd5ea61756a8a90f945503c406b68a37c172a86d036ff21a6f99",
+  "git_tracked_diff_sha256": "0c2d195fd1293d34f51c2e5a6ad03621d08ca6588db9ff27ee87245883a890bf",
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.14.3",
+    "torch": "2.14.1",
+    "numpy": "2.5.3",
+    "threads": 2
+  },
+  "models": [
+    {
+      "artifact": "vcm_ctc_model.me2",
+      "sha256": "b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac",
+      "weights_sha256": "1cafdcb1f6945fe9ca65c790be1a55c3dc7231a6ef832ade366539fb443db789",
+      "load_ms": 65.35954214632511,
+      "model_version": "legacy-character-audio-cnn-v1",
+      "grammar_version": "legacy-training-transcripts",
+      "acceptance_policy": {
+        "min_candidate_posterior": 0.0,
+        "min_margin": -1e+30,
+        "min_normalized_log_score": -1e+30,
+        "version": "legacy-uncalibrated"
+      },
+      "parameters": 3652572,
+      "artifact_bytes": 13550852,
+      "labels": [
+        "alarm",
+        "brightness",
+        "call",
+        "color",
+        "create_reminder",
+        "light_off",
+        "light_on",
+        "list_reminders",
+        "message",
+        "next",
+        "out_of_scope",
+        "pause",
+        "play_music",
+        "stop",
+        "temperature",
+        "time",
+        "timer",
+        "volume_down",
+        "volume_up",
+        "weather"
+      ],
+      "accuracy": 0.78,
+      "macro_f1": 0.802781747238269,
+      "oos_count": 5,
+      "oos_false_accepts": 1,
+      "in_scope_count": 95,
+      "in_scope_rejects": 14,
+      "wrong_accepted": 7,
+      "coverage": 0.82,
+      "p50_ms": 7.614749949425459,
+      "p95_ms": 12.466449942439791,
+      "active_cpu_percent_one_core": 104.09008601649307,
+      "rss_bytes": 1213956096,
+      "predictions": [
+        {
+          "source_index": 5294,
+          "gold_intent": "alarm",
+          "accepted": true,
+          "predicted_intent": "alarm",
+          "candidate": "wake me up at am",
+          "rejection_reason": null,
+          "score": -0.05808179933674575,
+          "timings_ms": {
+            "frontend": 0.567625043913722,
+            "acoustic_model": 3.8729580119252205,
+            "decoder_and_rejection": 5.704124923795462
+          },
+          "total_ms": 10.199999902397394
+        },
+        {
+          "source_index": 4825,
+          "gold_intent": "alarm",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.7516660261899233,
+            "acoustic_model": 2.5037499144673347,
+            "decoder_and_rejection": 4.734499845653772
+          },
+          "total_ms": 8.030541939660907
+        },
+        {
+          "source_index": 4883,
+          "gold_intent": "alarm",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.64437510445714,
+            "acoustic_model": 2.677083946764469,
+            "decoder_and_rejection": 5.045958096161485
+          },
+          "total_ms": 8.402667008340359
+        },
+        {
+          "source_index": 5219,
+          "gold_intent": "alarm",
+          "accepted": true,
+          "predicted_intent": "alarm",
+          "candidate": "wake me up at am",
+          "rejection_reason": null,
+          "score": -0.014289548290999193,
+          "timings_ms": {
+            "frontend": 0.6096248980611563,
+            "acoustic_model": 2.6015830226242542,
+            "decoder_and_rejection": 4.722125129774213
+          },
+          "total_ms": 7.972999941557646
+        },
+        {
+          "source_index": 5742,
+          "gold_intent": "alarm",
+          "accepted": true,
+          "predicted_intent": "alarm",
+          "candidate": "set an alarm for pm",
+          "rejection_reason": null,
+          "score": -0.01899963942991704,
+          "timings_ms": {
+            "frontend": 0.6599170155823231,
+            "acoustic_model": 2.8849998489022255,
+            "decoder_and_rejection": 5.7669999077916145
+          },
+          "total_ms": 9.347083047032356
+        },
+        {
+          "source_index": 7482,
+          "gold_intent": "brightness",
+          "accepted": true,
+          "predicted_intent": "brightness",
+          "candidate": "brightness level percent",
+          "rejection_reason": null,
+          "score": -0.07786486449598835,
+          "timings_ms": {
+            "frontend": 0.6262499373406172,
+            "acoustic_model": 3.064375137910247,
+            "decoder_and_rejection": 5.649834172800183
+          },
+          "total_ms": 9.395709028467536
+        },
+        {
+          "source_index": 7266,
+          "gold_intent": "brightness",
+          "accepted": true,
+          "predicted_intent": "brightness",
+          "candidate": "adjust brightness to percent",
+          "rejection_reason": null,
+          "score": -0.09181650653116644,
+          "timings_ms": {
+            "frontend": 0.9217909537255764,
+            "acoustic_model": 3.040666924789548,
+            "decoder_and_rejection": 5.3812500555068254
+          },
+          "total_ms": 9.383999975398183
+        },
+        {
+          "source_index": 7143,
+          "gold_intent": "brightness",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.5883330013602972,
+            "acoustic_model": 3.5167080350220203,
+            "decoder_and_rejection": 6.075582932680845
+          },
+          "total_ms": 10.214291047304869
+        },
+        {
+          "source_index": 7424,
+          "gold_intent": "brightness",
+          "accepted": true,
+          "predicted_intent": "brightness",
+          "candidate": "adjust brightness to percent",
+          "rejection_reason": null,
+          "score": -0.1465093812102265,
+          "timings_ms": {
+            "frontend": 0.5580410361289978,
+            "acoustic_model": 3.4427500795572996,
+            "decoder_and_rejection": 5.611042026430368
+          },
+          "total_ms": 9.64433397166431
+        },
+        {
+          "source_index": 7064,
+          "gold_intent": "brightness",
+          "accepted": true,
+          "predicted_intent": "brightness",
+          "candidate": "brightness percent",
+          "rejection_reason": null,
+          "score": -0.07682930728953857,
+          "timings_ms": {
+            "frontend": 0.5314159207046032,
+            "acoustic_model": 3.0765829142183065,
+            "decoder_and_rejection": 4.970040870830417
+          },
+          "total_ms": 8.606583811342716
+        },
+        {
+          "source_index": 10587,
+          "gold_intent": "call",
+          "accepted": true,
+          "predicted_intent": "call",
+          "candidate": "call",
+          "rejection_reason": null,
+          "score": -0.039061457818453535,
+          "timings_ms": {
+            "frontend": 0.5347919650375843,
+            "acoustic_model": 1.9744171295315027,
+            "decoder_and_rejection": 3.5552920307964087
+          },
+          "total_ms": 6.095583084970713
+        },
+        {
+          "source_index": 3202,
+          "gold_intent": "call",
+          "accepted": true,
+          "predicted_intent": "call",
+          "candidate": "make a phone call",
+          "rejection_reason": null,
+          "score": -0.0322332207722273,
+          "timings_ms": {
+            "frontend": 0.5333749577403069,
+            "acoustic_model": 2.2195829078555107,
+            "decoder_and_rejection": 4.38633281737566
+          },
+          "total_ms": 7.174374768510461
+        },
+        {
+          "source_index": 3094,
+          "gold_intent": "call",
+          "accepted": true,
+          "predicted_intent": "call",
+          "candidate": "make a call",
+          "rejection_reason": null,
+          "score": -0.06181920674719768,
+          "timings_ms": {
+            "frontend": 0.788375036790967,
+            "acoustic_model": 2.395374933257699,
+            "decoder_and_rejection": 4.399999976158142
+          },
+          "total_ms": 7.618374889716506
+        },
+        {
+          "source_index": 2997,
+          "gold_intent": "call",
+          "accepted": true,
+          "predicted_intent": "call",
+          "candidate": "call",
+          "rejection_reason": null,
+          "score": -0.02670797398336667,
+          "timings_ms": {
+            "frontend": 0.5548328626900911,
+            "acoustic_model": 1.6299157869070768,
+            "decoder_and_rejection": 3.660916117951274
+          },
+          "total_ms": 5.876332987099886
+        },
+        {
+          "source_index": 3160,
+          "gold_intent": "call",
+          "accepted": true,
+          "predicted_intent": "call",
+          "candidate": "make a phone call",
+          "rejection_reason": null,
+          "score": -0.0774181390156269,
+          "timings_ms": {
+            "frontend": 0.5281248595565557,
+            "acoustic_model": 1.8510001245886087,
+            "decoder_and_rejection": 3.9689168334007263
+          },
+          "total_ms": 6.373916985467076
+        },
+        {
+          "source_index": 8555,
+          "gold_intent": "color",
+          "accepted": true,
+          "predicted_intent": "color",
+          "candidate": "set color to red",
+          "rejection_reason": null,
+          "score": -0.08998127737578639,
+          "timings_ms": {
+            "frontend": 0.5117079708725214,
+            "acoustic_model": 2.46095797047019,
+            "decoder_and_rejection": 4.403583938255906
+          },
+          "total_ms": 7.410000078380108
+        },
+        {
+          "source_index": 8379,
+          "gold_intent": "color",
+          "accepted": true,
+          "predicted_intent": "light_on",
+          "candidate": "turn on the lights",
+          "rejection_reason": null,
+          "score": -0.5638069052735334,
+          "timings_ms": {
+            "frontend": 0.5283339414745569,
+            "acoustic_model": 5.1948330365121365,
+            "decoder_and_rejection": 8.152958936989307
+          },
+          "total_ms": 13.909958070144057
+        },
+        {
+          "source_index": 7918,
+          "gold_intent": "color",
+          "accepted": true,
+          "predicted_intent": "color",
+          "candidate": "change color to red",
+          "rejection_reason": null,
+          "score": -0.1823655711271183,
+          "timings_ms": {
+            "frontend": 0.7576670031994581,
+            "acoustic_model": 2.597833052277565,
+            "decoder_and_rejection": 4.223875002935529
+          },
+          "total_ms": 7.611125009134412
+        },
+        {
+          "source_index": 8312,
+          "gold_intent": "color",
+          "accepted": true,
+          "predicted_intent": "color",
+          "candidate": "switch color to blue",
+          "rejection_reason": null,
+          "score": -0.18064620917316923,
+          "timings_ms": {
+            "frontend": 0.5296659655869007,
+            "acoustic_model": 2.000916050747037,
+            "decoder_and_rejection": 4.271582933142781
+          },
+          "total_ms": 6.832167040556669
+        },
+        {
+          "source_index": 7869,
+          "gold_intent": "color",
+          "accepted": true,
+          "predicted_intent": "color",
+          "candidate": "change color to red",
+          "rejection_reason": null,
+          "score": -0.1773436599576071,
+          "timings_ms": {
+            "frontend": 0.5815839394927025,
+            "acoustic_model": 2.444416983053088,
+            "decoder_and_rejection": 4.601458087563515
+          },
+          "total_ms": 7.6587500516325235
+        },
+        {
+          "source_index": 9173,
+          "gold_intent": "create_reminder",
+          "accepted": true,
+          "predicted_intent": "create_reminder",
+          "candidate": "remind me to drink water",
+          "rejection_reason": null,
+          "score": -0.1479883367539634,
+          "timings_ms": {
+            "frontend": 0.5739580374211073,
+            "acoustic_model": 3.2195420935750008,
+            "decoder_and_rejection": 6.280374946072698
+          },
+          "total_ms": 10.102958185598254
+        },
+        {
+          "source_index": 9627,
+          "gold_intent": "create_reminder",
+          "accepted": true,
+          "predicted_intent": "create_reminder",
+          "candidate": "create a reminder to study",
+          "rejection_reason": null,
+          "score": -0.11583080449856376,
+          "timings_ms": {
+            "frontend": 0.5262501072138548,
+            "acoustic_model": 2.537250053137541,
+            "decoder_and_rejection": 4.799125017598271
+          },
+          "total_ms": 7.889207918196917
+        },
+        {
+          "source_index": 9252,
+          "gold_intent": "create_reminder",
+          "accepted": true,
+          "predicted_intent": "light_on",
+          "candidate": "turn the lights on",
+          "rejection_reason": null,
+          "score": -0.4252382389389929,
+          "timings_ms": {
+            "frontend": 0.5591660737991333,
+            "acoustic_model": 3.6183330230414867,
+            "decoder_and_rejection": 7.321750046685338
+          },
+          "total_ms": 11.530125048011541
+        },
+        {
+          "source_index": 9253,
+          "gold_intent": "create_reminder",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.601958017796278,
+            "acoustic_model": 3.6186669021844864,
+            "decoder_and_rejection": 6.765082944184542
+          },
+          "total_ms": 11.017750017344952
+        },
+        {
+          "source_index": 9512,
+          "gold_intent": "create_reminder",
+          "accepted": true,
+          "predicted_intent": "create_reminder",
+          "candidate": "create a reminder to drink water",
+          "rejection_reason": null,
+          "score": -0.11505302032526947,
+          "timings_ms": {
+            "frontend": 0.5557918921113014,
+            "acoustic_model": 2.780207898467779,
+            "decoder_and_rejection": 4.7815409488976
+          },
+          "total_ms": 8.145458064973354
+        },
+        {
+          "source_index": 1319,
+          "gold_intent": "light_off",
+          "accepted": true,
+          "predicted_intent": "light_off",
+          "candidate": "shut off the lights",
+          "rejection_reason": null,
+          "score": -0.42597519853518023,
+          "timings_ms": {
+            "frontend": 0.587790971621871,
+            "acoustic_model": 2.0897078793495893,
+            "decoder_and_rejection": 3.9575831033289433
+          },
+          "total_ms": 6.666667060926557
+        },
+        {
+          "source_index": 10485,
+          "gold_intent": "light_off",
+          "accepted": true,
+          "predicted_intent": "light_off",
+          "candidate": "shut off the lights",
+          "rejection_reason": null,
+          "score": -0.18497142329654137,
+          "timings_ms": {
+            "frontend": 0.5722080823034048,
+            "acoustic_model": 2.6496248319745064,
+            "decoder_and_rejection": 4.732209024950862
+          },
+          "total_ms": 7.987125078216195
+        },
+        {
+          "source_index": 1194,
+          "gold_intent": "light_off",
+          "accepted": true,
+          "predicted_intent": "light_off",
+          "candidate": "kill the lights",
+          "rejection_reason": null,
+          "score": -0.3019653484194996,
+          "timings_ms": {
+            "frontend": 0.5563339218497276,
+            "acoustic_model": 2.2628328297287226,
+            "decoder_and_rejection": 4.137957934290171
+          },
+          "total_ms": 6.982209160923958
+        },
+        {
+          "source_index": 1244,
+          "gold_intent": "light_off",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.5392921157181263,
+            "acoustic_model": 2.015958074480295,
+            "decoder_and_rejection": 4.149833926931024
+          },
+          "total_ms": 6.73495908267796
+        },
+        {
+          "source_index": 1111,
+          "gold_intent": "light_off",
+          "accepted": true,
+          "predicted_intent": "light_on",
+          "candidate": "lights on",
+          "rejection_reason": null,
+          "score": -0.11494287701595982,
+          "timings_ms": {
+            "frontend": 0.5593330133706331,
+            "acoustic_model": 1.765791792422533,
+            "decoder_and_rejection": 3.8996669463813305
+          },
+          "total_ms": 6.252666935324669
+        },
+        {
+          "source_index": 1049,
+          "gold_intent": "light_on",
+          "accepted": true,
+          "predicted_intent": "light_on",
+          "candidate": "turn on the lights",
+          "rejection_reason": null,
+          "score": -0.7282452184215061,
+          "timings_ms": {
+            "frontend": 0.5733328871428967,
+            "acoustic_model": 1.9820418674498796,
+            "decoder_and_rejection": 3.9126251358538866
+          },
+          "total_ms": 6.4959588926285505
+        },
+        {
+          "source_index": 918,
+          "gold_intent": "light_on",
+          "accepted": true,
+          "predicted_intent": "light_on",
+          "candidate": "power on the lights",
+          "rejection_reason": null,
+          "score": -0.12417627914632216,
+          "timings_ms": {
+            "frontend": 0.543166883289814,
+            "acoustic_model": 2.0469590090215206,
+            "decoder_and_rejection": 4.021000117063522
+          },
+          "total_ms": 6.643957924097776
+        },
+        {
+          "source_index": 1044,
+          "gold_intent": "light_on",
+          "accepted": true,
+          "predicted_intent": "light_on",
+          "candidate": "turn on the lights",
+          "rejection_reason": null,
+          "score": -0.21659420323546627,
+          "timings_ms": {
+            "frontend": 0.5675419233739376,
+            "acoustic_model": 2.301208907738328,
+            "decoder_and_rejection": 4.19083284214139
+          },
+          "total_ms": 7.090625120326877
+        },
+        {
+          "source_index": 956,
+          "gold_intent": "light_on",
+          "accepted": true,
+          "predicted_intent": "light_on",
+          "candidate": "power on the lights",
+          "rejection_reason": null,
+          "score": -0.17515177779254254,
+          "timings_ms": {
+            "frontend": 0.5517918616533279,
+            "acoustic_model": 2.4239998310804367,
+            "decoder_and_rejection": 4.343166947364807
+          },
+          "total_ms": 7.346207974478602
+        },
+        {
+          "source_index": 826,
+          "gold_intent": "light_on",
+          "accepted": true,
+          "predicted_intent": "light_off",
+          "candidate": "please turn lights off",
+          "rejection_reason": null,
+          "score": -0.291659261077317,
+          "timings_ms": {
+            "frontend": 0.539958942681551,
+            "acoustic_model": 4.176500020548701,
+            "decoder_and_rejection": 6.629792042076588
+          },
+          "total_ms": 11.37608289718628
+        },
+        {
+          "source_index": 3652,
+          "gold_intent": "list_reminders",
+          "accepted": true,
+          "predicted_intent": "list_reminders",
+          "candidate": "show my reminders",
+          "rejection_reason": null,
+          "score": -0.25381616416873537,
+          "timings_ms": {
+            "frontend": 0.5626250058412552,
+            "acoustic_model": 2.0487080328166485,
+            "decoder_and_rejection": 3.911792067810893
+          },
+          "total_ms": 6.548582809045911
+        },
+        {
+          "source_index": 3503,
+          "gold_intent": "list_reminders",
+          "accepted": true,
+          "predicted_intent": "list_reminders",
+          "candidate": "reminders",
+          "rejection_reason": null,
+          "score": -0.19074300455668455,
+          "timings_ms": {
+            "frontend": 0.5256670992821455,
+            "acoustic_model": 1.8709579017013311,
+            "decoder_and_rejection": 3.849040949717164
+          },
+          "total_ms": 6.277959095314145
+        },
+        {
+          "source_index": 3600,
+          "gold_intent": "list_reminders",
+          "accepted": true,
+          "predicted_intent": "list_reminders",
+          "candidate": "reminders",
+          "rejection_reason": null,
+          "score": -0.24968190700098977,
+          "timings_ms": {
+            "frontend": 0.5781659856438637,
+            "acoustic_model": 1.8835831433534622,
+            "decoder_and_rejection": 3.4789580386132
+          },
+          "total_ms": 5.971916951239109
+        },
+        {
+          "source_index": 3779,
+          "gold_intent": "list_reminders",
+          "accepted": true,
+          "predicted_intent": "list_reminders",
+          "candidate": "list my reminders",
+          "rejection_reason": null,
+          "score": -0.17619495226418166,
+          "timings_ms": {
+            "frontend": 0.559499952942133,
+            "acoustic_model": 2.1951671224087477,
+            "decoder_and_rejection": 4.214041167870164
+          },
+          "total_ms": 7.002042140811682
+        },
+        {
+          "source_index": 3792,
+          "gold_intent": "list_reminders",
+          "accepted": true,
+          "predicted_intent": "list_reminders",
+          "candidate": "list my reminders",
+          "rejection_reason": null,
+          "score": -0.18971802470688498,
+          "timings_ms": {
+            "frontend": 0.5505408626049757,
+            "acoustic_model": 2.2408340591937304,
+            "decoder_and_rejection": 4.131833091378212
+          },
+          "total_ms": 6.953082978725433
+        },
+        {
+          "source_index": 3263,
+          "gold_intent": "message",
+          "accepted": true,
+          "predicted_intent": "message",
+          "candidate": "message",
+          "rejection_reason": null,
+          "score": -1.2740594078338916,
+          "timings_ms": {
+            "frontend": 0.5360408686101437,
+            "acoustic_model": 1.646165968850255,
+            "decoder_and_rejection": 3.2286669593304396
+          },
+          "total_ms": 5.435790866613388
+        },
+        {
+          "source_index": 3204,
+          "gold_intent": "message",
+          "accepted": true,
+          "predicted_intent": "message",
+          "candidate": "message",
+          "rejection_reason": null,
+          "score": -0.6654349888961032,
+          "timings_ms": {
+            "frontend": 0.5161671433597803,
+            "acoustic_model": 1.8148329108953476,
+            "decoder_and_rejection": 3.8397500757128
+          },
+          "total_ms": 6.194791989400983
+        },
+        {
+          "source_index": 3280,
+          "gold_intent": "message",
+          "accepted": true,
+          "predicted_intent": "message",
+          "candidate": "message",
+          "rejection_reason": null,
+          "score": -0.5509372357075643,
+          "timings_ms": {
+            "frontend": 0.5637090653181076,
+            "acoustic_model": 1.765542197972536,
+            "decoder_and_rejection": 13.531917007640004
+          },
+          "total_ms": 15.894042095169425
+        },
+        {
+          "source_index": 3474,
+          "gold_intent": "message",
+          "accepted": true,
+          "predicted_intent": "message",
+          "candidate": "send my message",
+          "rejection_reason": null,
+          "score": -0.35876983703219484,
+          "timings_ms": {
+            "frontend": 0.6295419298112392,
+            "acoustic_model": 2.254334045574069,
+            "decoder_and_rejection": 4.365209024399519
+          },
+          "total_ms": 7.280291989445686
+        },
+        {
+          "source_index": 3441,
+          "gold_intent": "message",
+          "accepted": true,
+          "predicted_intent": "message",
+          "candidate": "send my message",
+          "rejection_reason": null,
+          "score": -0.3630447713918419,
+          "timings_ms": {
+            "frontend": 0.5748339463025331,
+            "acoustic_model": 2.3230421356856823,
+            "decoder_and_rejection": 4.267416894435883
+          },
+          "total_ms": 7.193333003669977
+        },
+        {
+          "source_index": 2104,
+          "gold_intent": "next",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "audio_exceeds_artifact_duration",
+          "score": null,
+          "timings_ms": {},
+          "total_ms": null
+        },
+        {
+          "source_index": 2285,
+          "gold_intent": "next",
+          "accepted": true,
+          "predicted_intent": "next",
+          "candidate": "play next song",
+          "rejection_reason": null,
+          "score": -0.08687691274562113,
+          "timings_ms": {
+            "frontend": 0.5782910156995058,
+            "acoustic_model": 2.04454199410975,
+            "decoder_and_rejection": 4.123917082324624
+          },
+          "total_ms": 6.774957990273833
+        },
+        {
+          "source_index": 2194,
+          "gold_intent": "next",
+          "accepted": true,
+          "predicted_intent": "next",
+          "candidate": "skip song",
+          "rejection_reason": null,
+          "score": -0.1523082666657963,
+          "timings_ms": {
+            "frontend": 0.5646669305860996,
+            "acoustic_model": 1.6776248812675476,
+            "decoder_and_rejection": 3.608749946579337
+          },
+          "total_ms": 5.8778750244528055
+        },
+        {
+          "source_index": 2005,
+          "gold_intent": "next",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.556624960154295,
+            "acoustic_model": 1.6129168216139078,
+            "decoder_and_rejection": 3.9319999050348997
+          },
+          "total_ms": 6.129750050604343
+        },
+        {
+          "source_index": 2095,
+          "gold_intent": "next",
+          "accepted": true,
+          "predicted_intent": "next",
+          "candidate": "skip",
+          "rejection_reason": null,
+          "score": -0.015300547381201034,
+          "timings_ms": {
+            "frontend": 0.555708073079586,
+            "acoustic_model": 4.065416986122727,
+            "decoder_and_rejection": 8.092291885986924
+          },
+          "total_ms": 12.74454197846353
+        },
+        {
+          "source_index": 10015,
+          "gold_intent": "out_of_scope",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "audio_exceeds_artifact_duration",
+          "score": null,
+          "timings_ms": {},
+          "total_ms": null
+        },
+        {
+          "source_index": 9996,
+          "gold_intent": "out_of_scope",
+          "accepted": true,
+          "predicted_intent": "pause",
+          "candidate": "pause",
+          "rejection_reason": null,
+          "score": -0.05235628577116158,
+          "timings_ms": {
+            "frontend": 0.5513331852853298,
+            "acoustic_model": 3.9642080664634705,
+            "decoder_and_rejection": 7.515582954511046
+          },
+          "total_ms": 12.055209139361978
+        },
+        {
+          "source_index": 10670,
+          "gold_intent": "out_of_scope",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.5387919954955578,
+            "acoustic_model": 3.1442500185221434,
+            "decoder_and_rejection": 5.319375079125166
+          },
+          "total_ms": 9.030499961227179
+        },
+        {
+          "source_index": 10038,
+          "gold_intent": "out_of_scope",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.5954999942332506,
+            "acoustic_model": 4.041749984025955,
+            "decoder_and_rejection": 9.40191582776606
+          },
+          "total_ms": 14.06725007109344
+        },
+        {
+          "source_index": 10664,
+          "gold_intent": "out_of_scope",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.5532919894903898,
+            "acoustic_model": 2.707415958866477,
+            "decoder_and_rejection": 4.595624981448054
+          },
+          "total_ms": 7.8881660010665655
+        },
+        {
+          "source_index": 1539,
+          "gold_intent": "pause",
+          "accepted": true,
+          "predicted_intent": "pause",
+          "candidate": "pause audio",
+          "rejection_reason": null,
+          "score": -0.3788713558272659,
+          "timings_ms": {
+            "frontend": 0.5385838449001312,
+            "acoustic_model": 1.7852499149739742,
+            "decoder_and_rejection": 3.8134579081088305
+          },
+          "total_ms": 6.172874942421913
+        },
+        {
+          "source_index": 1621,
+          "gold_intent": "pause",
+          "accepted": true,
+          "predicted_intent": "pause",
+          "candidate": "pause song",
+          "rejection_reason": null,
+          "score": -0.10835406930619682,
+          "timings_ms": {
+            "frontend": 0.5802081432193518,
+            "acoustic_model": 2.322291024029255,
+            "decoder_and_rejection": 5.150708835572004
+          },
+          "total_ms": 8.091374998912215
+        },
+        {
+          "source_index": 10500,
+          "gold_intent": "pause",
+          "accepted": true,
+          "predicted_intent": "pause",
+          "candidate": "pause song",
+          "rejection_reason": null,
+          "score": -0.1583473923638436,
+          "timings_ms": {
+            "frontend": 0.5600000731647015,
+            "acoustic_model": 2.0836249459534883,
+            "decoder_and_rejection": 5.438084015622735
+          },
+          "total_ms": 8.11045803129673
+        },
+        {
+          "source_index": 1391,
+          "gold_intent": "pause",
+          "accepted": true,
+          "predicted_intent": "pause",
+          "candidate": "pause",
+          "rejection_reason": null,
+          "score": -0.049758344703726934,
+          "timings_ms": {
+            "frontend": 0.5443750414997339,
+            "acoustic_model": 1.8236669711768627,
+            "decoder_and_rejection": 4.947707988321781
+          },
+          "total_ms": 7.34729110263288
+        },
+        {
+          "source_index": 1443,
+          "gold_intent": "pause",
+          "accepted": true,
+          "predicted_intent": "pause",
+          "candidate": "pause",
+          "rejection_reason": null,
+          "score": -0.19756515088617974,
+          "timings_ms": {
+            "frontend": 0.5558750126510859,
+            "acoustic_model": 1.5295420307666063,
+            "decoder_and_rejection": 3.6536669358611107
+          },
+          "total_ms": 5.767333088442683
+        },
+        {
+          "source_index": 122,
+          "gold_intent": "play_music",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.5280000623315573,
+            "acoustic_model": 3.3760000951588154,
+            "decoder_and_rejection": 6.29616598598659
+          },
+          "total_ms": 10.234959190711379
+        },
+        {
+          "source_index": 195,
+          "gold_intent": "play_music",
+          "accepted": true,
+          "predicted_intent": "play_music",
+          "candidate": "play some music",
+          "rejection_reason": null,
+          "score": -0.035820231158144526,
+          "timings_ms": {
+            "frontend": 0.5632920656353235,
+            "acoustic_model": 1.8892090301960707,
+            "decoder_and_rejection": 4.212208092212677
+          },
+          "total_ms": 6.692459108307958
+        },
+        {
+          "source_index": 10205,
+          "gold_intent": "play_music",
+          "accepted": true,
+          "predicted_intent": "play_music",
+          "candidate": "start music",
+          "rejection_reason": null,
+          "score": -0.014284492217528389,
+          "timings_ms": {
+            "frontend": 0.614166958257556,
+            "acoustic_model": 2.4214170407503843,
+            "decoder_and_rejection": 4.449165891855955
+          },
+          "total_ms": 7.515416014939547
+        },
+        {
+          "source_index": 204,
+          "gold_intent": "play_music",
+          "accepted": true,
+          "predicted_intent": "play_music",
+          "candidate": "play some music",
+          "rejection_reason": null,
+          "score": -0.1995199337112665,
+          "timings_ms": {
+            "frontend": 0.5560829304158688,
+            "acoustic_model": 1.8791670445352793,
+            "decoder_and_rejection": 4.015207989141345
+          },
+          "total_ms": 6.479916861280799
+        },
+        {
+          "source_index": 16,
+          "gold_intent": "play_music",
+          "accepted": true,
+          "predicted_intent": "play_music",
+          "candidate": "play",
+          "rejection_reason": null,
+          "score": -0.020042046797488465,
+          "timings_ms": {
+            "frontend": 0.6155830342322588,
+            "acoustic_model": 3.0560828745365143,
+            "decoder_and_rejection": 6.710750050842762
+          },
+          "total_ms": 10.417500045150518
+        },
+        {
+          "source_index": 1859,
+          "gold_intent": "stop",
+          "accepted": true,
+          "predicted_intent": "stop",
+          "candidate": "stop playing",
+          "rejection_reason": null,
+          "score": -0.21604730880213804,
+          "timings_ms": {
+            "frontend": 0.5437498912215233,
+            "acoustic_model": 2.0795827731490135,
+            "decoder_and_rejection": 6.15766691043973
+          },
+          "total_ms": 8.815875044092536
+        },
+        {
+          "source_index": 1860,
+          "gold_intent": "stop",
+          "accepted": true,
+          "predicted_intent": "stop",
+          "candidate": "stop playing",
+          "rejection_reason": null,
+          "score": -0.357461949194868,
+          "timings_ms": {
+            "frontend": 0.5973749794065952,
+            "acoustic_model": 2.1900420542806387,
+            "decoder_and_rejection": 20.742208929732442
+          },
+          "total_ms": 23.563875118270516
+        },
+        {
+          "source_index": 1954,
+          "gold_intent": "stop",
+          "accepted": true,
+          "predicted_intent": "stop",
+          "candidate": "end playback",
+          "rejection_reason": null,
+          "score": -0.15120750328776933,
+          "timings_ms": {
+            "frontend": 0.5611670203506947,
+            "acoustic_model": 2.210416831076145,
+            "decoder_and_rejection": 4.235750064253807
+          },
+          "total_ms": 7.033625151962042
+        },
+        {
+          "source_index": 1844,
+          "gold_intent": "stop",
+          "accepted": true,
+          "predicted_intent": "stop",
+          "candidate": "stop playing",
+          "rejection_reason": null,
+          "score": -0.10001741446430594,
+          "timings_ms": {
+            "frontend": 0.5018329247832298,
+            "acoustic_model": 1.8494580872356892,
+            "decoder_and_rejection": 4.1551669128239155
+          },
+          "total_ms": 6.5290420316159725
+        },
+        {
+          "source_index": 1651,
+          "gold_intent": "stop",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.49516698345541954,
+            "acoustic_model": 3.7981660570949316,
+            "decoder_and_rejection": 7.770583964884281
+          },
+          "total_ms": 12.083542067557573
+        },
+        {
+          "source_index": 5942,
+          "gold_intent": "temperature",
+          "accepted": true,
+          "predicted_intent": "temperature",
+          "candidate": "temperature degrees",
+          "rejection_reason": null,
+          "score": -0.12923643742713595,
+          "timings_ms": {
+            "frontend": 0.4756248090416193,
+            "acoustic_model": 2.7599590830504894,
+            "decoder_and_rejection": 5.2452078089118
+          },
+          "total_ms": 8.50095902569592
+        },
+        {
+          "source_index": 6155,
+          "gold_intent": "temperature",
+          "accepted": true,
+          "predicted_intent": "temperature",
+          "candidate": "change the temperature to degrees",
+          "rejection_reason": null,
+          "score": -0.045980493829539365,
+          "timings_ms": {
+            "frontend": 0.47087506391108036,
+            "acoustic_model": 3.5819588229060173,
+            "decoder_and_rejection": 6.068208022043109
+          },
+          "total_ms": 10.141375008970499
+        },
+        {
+          "source_index": 6422,
+          "gold_intent": "temperature",
+          "accepted": true,
+          "predicted_intent": "temperature",
+          "candidate": "change the temperature to degrees",
+          "rejection_reason": null,
+          "score": -0.06746694501381163,
+          "timings_ms": {
+            "frontend": 0.4874998703598976,
+            "acoustic_model": 3.236624877899885,
+            "decoder_and_rejection": 5.720458924770355
+          },
+          "total_ms": 9.463333059102297
+        },
+        {
+          "source_index": 6258,
+          "gold_intent": "temperature",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.462499912828207,
+            "acoustic_model": 2.4675829336047173,
+            "decoder_and_rejection": 4.9940000753849745
+          },
+          "total_ms": 7.943459087982774
+        },
+        {
+          "source_index": 5912,
+          "gold_intent": "temperature",
+          "accepted": true,
+          "predicted_intent": "temperature",
+          "candidate": "temperature degrees",
+          "rejection_reason": null,
+          "score": -0.17940094497314166,
+          "timings_ms": {
+            "frontend": 0.49574999138712883,
+            "acoustic_model": 2.776707988232374,
+            "decoder_and_rejection": 5.471374839544296
+          },
+          "total_ms": 8.774374844506383
+        },
+        {
+          "source_index": 673,
+          "gold_intent": "time",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.6059589795768261,
+            "acoustic_model": 1.8125418573617935,
+            "decoder_and_rejection": 3.6365000996738672
+          },
+          "total_ms": 6.086665904149413
+        },
+        {
+          "source_index": 625,
+          "gold_intent": "time",
+          "accepted": true,
+          "predicted_intent": "time",
+          "candidate": "what time is it now",
+          "rejection_reason": null,
+          "score": -0.6056150022846211,
+          "timings_ms": {
+            "frontend": 0.5932089406996965,
+            "acoustic_model": 2.4780419189482927,
+            "decoder_and_rejection": 4.6054169069975615
+          },
+          "total_ms": 7.701291004195809
+        },
+        {
+          "source_index": 585,
+          "gold_intent": "time",
+          "accepted": true,
+          "predicted_intent": "light_on",
+          "candidate": "turn on lights",
+          "rejection_reason": null,
+          "score": -0.5713929440613276,
+          "timings_ms": {
+            "frontend": 0.5155408289283514,
+            "acoustic_model": 3.1449589878320694,
+            "decoder_and_rejection": 6.588916992768645
+          },
+          "total_ms": 10.285417083650827
+        },
+        {
+          "source_index": 688,
+          "gold_intent": "time",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.5680001340806484,
+            "acoustic_model": 1.7725001089274883,
+            "decoder_and_rejection": 3.698459127917886
+          },
+          "total_ms": 6.067833863198757
+        },
+        {
+          "source_index": 488,
+          "gold_intent": "time",
+          "accepted": true,
+          "predicted_intent": "play_music",
+          "candidate": "play song",
+          "rejection_reason": null,
+          "score": -0.985347086345889,
+          "timings_ms": {
+            "frontend": 0.5053339991718531,
+            "acoustic_model": 1.9041248597204685,
+            "decoder_and_rejection": 3.9585421327501535
+          },
+          "total_ms": 6.390082882717252
+        },
+        {
+          "source_index": 3900,
+          "gold_intent": "timer",
+          "accepted": true,
+          "predicted_intent": "timer",
+          "candidate": "timer seconds",
+          "rejection_reason": null,
+          "score": -0.18106991146574075,
+          "timings_ms": {
+            "frontend": 0.5086669698357582,
+            "acoustic_model": 2.1028330083936453,
+            "decoder_and_rejection": 4.409959074109793
+          },
+          "total_ms": 7.043207995593548
+        },
+        {
+          "source_index": 4591,
+          "gold_intent": "timer",
+          "accepted": true,
+          "predicted_intent": "timer",
+          "candidate": "start a timer for seconds",
+          "rejection_reason": null,
+          "score": -0.07936656972841269,
+          "timings_ms": {
+            "frontend": 0.5359160713851452,
+            "acoustic_model": 2.9104577843099833,
+            "decoder_and_rejection": 5.663374904543161
+          },
+          "total_ms": 9.140459122136235
+        },
+        {
+          "source_index": 4755,
+          "gold_intent": "timer",
+          "accepted": true,
+          "predicted_intent": "timer",
+          "candidate": "start timer for minute",
+          "rejection_reason": null,
+          "score": -0.1983059784867849,
+          "timings_ms": {
+            "frontend": 0.5806670524179935,
+            "acoustic_model": 2.6317499577999115,
+            "decoder_and_rejection": 5.13266702182591
+          },
+          "total_ms": 8.372250013053417
+        },
+        {
+          "source_index": 4202,
+          "gold_intent": "timer",
+          "accepted": true,
+          "predicted_intent": "timer",
+          "candidate": "countdown for seconds",
+          "rejection_reason": null,
+          "score": -0.11699743986131751,
+          "timings_ms": {
+            "frontend": 0.534208957105875,
+            "acoustic_model": 2.8271249029785395,
+            "decoder_and_rejection": 5.18845790065825
+          },
+          "total_ms": 8.575541898608208
+        },
+        {
+          "source_index": 9812,
+          "gold_intent": "timer",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.573707977309823,
+            "acoustic_model": 3.5465830005705357,
+            "decoder_and_rejection": 6.973583018407226
+          },
+          "total_ms": 11.120999930426478
+        },
+        {
+          "source_index": 2814,
+          "gold_intent": "volume_down",
+          "accepted": true,
+          "predicted_intent": "volume_down",
+          "candidate": "lower the volume",
+          "rejection_reason": null,
+          "score": -0.010974158951106393,
+          "timings_ms": {
+            "frontend": 0.5079170223325491,
+            "acoustic_model": 1.9712920766323805,
+            "decoder_and_rejection": 3.9847500156611204
+          },
+          "total_ms": 6.487958831712604
+        },
+        {
+          "source_index": 2625,
+          "gold_intent": "volume_down",
+          "accepted": true,
+          "predicted_intent": "volume_up",
+          "candidate": "volume up",
+          "rejection_reason": null,
+          "score": -0.0743923497282799,
+          "timings_ms": {
+            "frontend": 0.5090418271720409,
+            "acoustic_model": 2.629250055179,
+            "decoder_and_rejection": 5.0778749864548445
+          },
+          "total_ms": 8.241042029112577
+        },
+        {
+          "source_index": 2627,
+          "gold_intent": "volume_down",
+          "accepted": true,
+          "predicted_intent": "volume_down",
+          "candidate": "volume down",
+          "rejection_reason": null,
+          "score": -0.0331482258785858,
+          "timings_ms": {
+            "frontend": 0.5455838982015848,
+            "acoustic_model": 3.0474159866571426,
+            "decoder_and_rejection": 5.572542082518339
+          },
+          "total_ms": 9.192875120788813
+        },
+        {
+          "source_index": 2908,
+          "gold_intent": "volume_down",
+          "accepted": true,
+          "predicted_intent": "volume_down",
+          "candidate": "turn the volume down",
+          "rejection_reason": null,
+          "score": -0.007267623620440476,
+          "timings_ms": {
+            "frontend": 0.5349579732865095,
+            "acoustic_model": 2.3090001195669174,
+            "decoder_and_rejection": 4.324707901105285
+          },
+          "total_ms": 7.190375123172998
+        },
+        {
+          "source_index": 2836,
+          "gold_intent": "volume_down",
+          "accepted": true,
+          "predicted_intent": "volume_down",
+          "candidate": "lower the volume",
+          "rejection_reason": null,
+          "score": -0.028191285371760466,
+          "timings_ms": {
+            "frontend": 0.5109589546918869,
+            "acoustic_model": 1.9197501242160797,
+            "decoder_and_rejection": 4.150416003540158
+          },
+          "total_ms": 6.602459121495485
+        },
+        {
+          "source_index": 2594,
+          "gold_intent": "volume_up",
+          "accepted": true,
+          "predicted_intent": "volume_up",
+          "candidate": "turn the volume up",
+          "rejection_reason": null,
+          "score": -0.016781379488942438,
+          "timings_ms": {
+            "frontend": 0.5383328534662724,
+            "acoustic_model": 1.8688328564167023,
+            "decoder_and_rejection": 3.983499947935343
+          },
+          "total_ms": 6.449125008657575
+        },
+        {
+          "source_index": 2545,
+          "gold_intent": "volume_up",
+          "accepted": false,
+          "predicted_intent": null,
+          "candidate": "",
+          "rejection_reason": "no_terminal_candidate",
+          "score": null,
+          "timings_ms": {
+            "frontend": 0.5833751056343317,
+            "acoustic_model": 3.14724980853498,
+            "decoder_and_rejection": 6.247792160138488
+          },
+          "total_ms": 10.003416799008846
+        },
+        {
+          "source_index": 2315,
+          "gold_intent": "volume_up",
+          "accepted": true,
+          "predicted_intent": "volume_up",
+          "candidate": "louder",
+          "rejection_reason": null,
+          "score": -0.07400158417497783,
+          "timings_ms": {
+            "frontend": 0.550583004951477,
+            "acoustic_model": 3.8955421186983585,
+            "decoder_and_rejection": 7.180416956543922
+          },
+          "total_ms": 11.649749940261245
+        },
+        {
+          "source_index": 2369,
+          "gold_intent": "volume_up",
+          "accepted": true,
+          "predicted_intent": "volume_up",
+          "candidate": "volume up",
+          "rejection_reason": null,
+          "score": -0.014317412877068628,
+          "timings_ms": {
+            "frontend": 0.5080830305814743,
+            "acoustic_model": 1.8271668814122677,
+            "decoder_and_rejection": 3.6480410490185022
+          },
+          "total_ms": 6.003750022500753
+        },
+        {
+          "source_index": 2319,
+          "gold_intent": "volume_up",
+          "accepted": true,
+          "predicted_intent": "volume_up",
+          "candidate": "volume up",
+          "rejection_reason": null,
+          "score": -0.12102012059156918,
+          "timings_ms": {
+            "frontend": 0.5100828129798174,
+            "acoustic_model": 4.618707811459899,
+            "decoder_and_rejection": 7.2707911022007465
+          },
+          "total_ms": 12.417374877259135
+        },
+        {
+          "source_index": 10334,
+          "gold_intent": "weather",
+          "accepted": true,
+          "predicted_intent": "weather",
+          "candidate": "tell me the weather",
+          "rejection_reason": null,
+          "score": -0.16237795004516103,
+          "timings_ms": {
+            "frontend": 0.5252498667687178,
+            "acoustic_model": 1.8667499534785748,
+            "decoder_and_rejection": 3.7403330206871033
+          },
+          "total_ms": 6.151417037472129
+        },
+        {
+          "source_index": 375,
+          "gold_intent": "weather",
+          "accepted": true,
+          "predicted_intent": "weather",
+          "candidate": "what s the weather",
+          "rejection_reason": null,
+          "score": -0.08932333426213279,
+          "timings_ms": {
+            "frontend": 0.5034999921917915,
+            "acoustic_model": 2.0302908960729837,
+            "decoder_and_rejection": 4.095915937796235
+          },
+          "total_ms": 6.654125172644854
+        },
+        {
+          "source_index": 398,
+          "gold_intent": "weather",
+          "accepted": true,
+          "predicted_intent": "weather",
+          "candidate": "what s the weather",
+          "rejection_reason": null,
+          "score": -0.17809644847885214,
+          "timings_ms": {
+            "frontend": 0.5371249280869961,
+            "acoustic_model": 2.257124986499548,
+            "decoder_and_rejection": 4.093666095286608
+          },
+          "total_ms": 6.910583004355431
+        },
+        {
+          "source_index": 281,
+          "gold_intent": "weather",
+          "accepted": true,
+          "predicted_intent": "weather",
+          "candidate": "weather",
+          "rejection_reason": null,
+          "score": -0.15735188608217363,
+          "timings_ms": {
+            "frontend": 0.5217089783400297,
+            "acoustic_model": 1.7094581853598356,
+            "decoder_and_rejection": 3.845416009426117
+          },
+          "total_ms": 6.095583084970713
+        },
+        {
+          "source_index": 276,
+          "gold_intent": "weather",
+          "accepted": true,
+          "predicted_intent": "weather",
+          "candidate": "weather",
+          "rejection_reason": null,
+          "score": -0.3054865269538638,
+          "timings_ms": {
+            "frontend": 0.5148749332875013,
+            "acoustic_model": 1.3992500025779009,
+            "decoder_and_rejection": 3.095583990216255
+          },
+          "total_ms": 5.028165876865387
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Small class-balanced regression sample, not a final assessment.",
+    "Legacy training ancestry is incomplete; speaker independence from its weights is unproven.",
+    "No test/holdout, no tuning, no training, no microphone or Pi measurements.",
+    "Timing excludes capture/endpointing; RSS includes resident dataset mappings."
+  ]
+}

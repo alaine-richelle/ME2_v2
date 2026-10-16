@@ -4,6 +4,14 @@ Use a separate release directory and explicit artifact/configuration paths.
 Do not overwrite baseline artifacts. `config/runtime.example.json` is a
 **controlled engineering** configuration, not a deployment approval.
 
+For the pause/long-command investigation, see
+[CAPTURE_TIMING_2026-10-14.md](CAPTURE_TIMING_2026-10-14.md). The separate
+natural-pause profiles are provisional: offline timing failures are repaired,
+but a development replay exposed an additional OOS accept and a quiet-command
+rejection. Do not promote them based on model-only accuracy. Use
+`scripts/laptop_capture_trial.py` for separately approved, bounded microphone
+trials with fresh privacy-safe logs; it also supports the preserved baseline.
+
 ## Configuration and compatibility
 
 Settings precedence is built-in `RuntimeSettings` defaults, then
@@ -60,6 +68,11 @@ Silence/OOS rejection tests are synthetic functional tests; the selected
 uncalibrated artifact is not assumed to reject all actual silence or speech.
 
 Small batch regression, using existing cache only:
+
+As of 2026-10-15, the calibrated comparison bundle referenced by this
+historical command was pruned after its saved metrics failed the promotion
+guardrails. Regenerate it with `python -m me2.vcm.calibrate` before including
+that third `--model`; the baseline and selected CTC bundles remain available.
 
 ```sh
 PYTHONPATH=src python scripts/runtime_validation.py \

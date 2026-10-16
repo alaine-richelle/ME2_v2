@@ -91,6 +91,12 @@ The result confirms that rejection can suppress dangerous confusions, but a
 single global threshold is too blunt; class/phrase-aware calibration or a
 trained OOS head needs new development data.
 
+Retention update (2026-10-15): the calibrated `.me2` comparison bundle was
+pruned after the saved official-test and calibration reports were audited.
+Those metrics, prediction files, calibration outputs, and the reproduction
+command below remain. Rerun calibration before running its historical
+evaluation command.
+
 ## Reliability and integration
 
 - Safe bundle writes now remove temporary archives after injected atomic

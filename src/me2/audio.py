@@ -15,6 +15,18 @@ from me2.contracts import finite, integer
 LOGGER = logging.getLogger(__name__)
 
 
+class AudioDurationError(ValueError):
+    """The complete utterance exceeds the artifact contract; no samples cropped."""
+
+    def __init__(self, observed: int, maximum: int):
+        super().__init__(f"Audio has {observed} samples after trimming, exceeding the configured maximum of {maximum}")
+        self.diagnostics = {
+            "diagnostic_category": "input_duration_exceeded",
+            "usable_samples": observed, "artifact_maximum_samples": maximum,
+            "capture_truncated": False, "capture_discarded": True,
+        }
+
+
 @dataclass(frozen=True)
 class AudioConfig:
     sample_rate: int = 16_000
@@ -80,10 +92,7 @@ def prepare_audio_sequence(
     waveform = _trim_and_normalize(samples, source_rate, config)
     target = config.sample_count
     if waveform.size > target:
-        raise ValueError(
-            f"Audio has {waveform.size} samples after trimming, exceeding the "
-            f"configured maximum of {target}"
-        )
+        raise AudioDurationError(waveform.size, target)
     usable_samples = int(waveform.size)
     waveform = np.pad(waveform, (0, target - waveform.size))
     return (

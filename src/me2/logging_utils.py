@@ -21,8 +21,50 @@ _FIELDS = {
     "grammar_version", "artifact_sha256", "config_sha256", "decoder_version",
     "parameters", "artifact_bytes", "deployment_ready", "threads", "rss_bytes",
     "error_type", "wake_detected", "score", "debug_sensitive", "skipped_count",
+    "diagnostics", "trial_id", "input_device_index", "mock_dispatch",
+    "implementation_sha256", "accepted_intent",
 }
 _TOKEN = re.compile(r"^[A-Za-z0-9_.:+-]{1,160}$")
+_DIAGNOSTIC_FIELDS = {
+    "wake_sample_index", "speech_start_sample_index", "onset_timeout_ms",
+    "onset_wait_ms", "speech_observed", "speech_ms", "speech_span_ms",
+    "captured_samples", "pre_roll_ms", "endpoint_silence_ms",
+    "trailing_silence_ms", "maximum_command_ms", "minimum_speech_ms",
+    "capture_truncated", "capture_discarded", "capture_end_reason",
+    "diagnostic_category", "next_action", "budget_reason", "usable_samples",
+    "artifact_maximum_samples", "padded_samples", "feature_frames",
+    "valid_feature_frames", "output_frames", "valid_output_frames", "beam_width",
+    "grammar_terminal_count", "minimum_terminal_frames", "pruned_prefix_count",
+    "beam_pruning_observed", "surviving_prefix_count", "nonempty_prefix_count",
+    "longest_surviving_prefix", "terminal_count", "expansions", "phrase_support",
+    "wake_class_is_ateko", "chunk_rms", "chunk_peak", "clipped_samples",
+    "speech_active", "queue_delay_ms", "adc_time_seconds", "channels",
+    "sample_format", "stream_latency_seconds", "callback_status_count",
+    "queue_drop_count", "queue_depth_chunks", "queue_capacity_chunks",
+    "callback_frames_total", "callback_count", "queue_delay_p95_ms",
+    "feed_p95_ms", "queue_depth_mean", "queue_depth_max",
+    "queue_depth_start", "queue_depth_end", "chunks_consumed",
+    "stream_age_seconds", "flush",
+    "command_decision_ms", "expected_phrase_supported", "normalization_changed",
+    "expected_required_frames", "expected_alignment_feasible", "reference_diagnostic",
+    "onset_boundary_verified", "pre_onset_dropped_samples", "pre_onset_dropped_rms",
+    "frontend_ms", "wake_model_ms", "wake_pipeline_ms",
+    "wake_primary_role", "wake_fallback_role", "wake_mode",
+    "wake_primary_status", "wake_fallback_status",
+    "wake_primary_failure", "wake_fallback_failure",
+    "wake_primary_artifact_sha256", "wake_fallback_artifact_sha256",
+    "wake_primary_label", "wake_primary_score", "wake_primary_model_ms",
+    "wake_primary_detected", "wake_fallback_label", "wake_fallback_score",
+    "wake_fallback_model_ms", "wake_fallback_detected", "wake_fallback_disagreement",
+}
+
+
+def _safe_field(key, value):
+    if key == "diagnostics":
+        return {
+            k: _safe(v) for k, v in value.items() if k in _DIAGNOSTIC_FIELDS
+        } if isinstance(value, dict) else {}
+    return _safe(value)
 
 
 class LogWriteError(OSError):
@@ -74,6 +116,16 @@ def runtime_revision() -> str:
         return "unknown"
 
 
+def runtime_source_hash() -> str:
+    """Identify uncommitted or installed runtime code independently of Git HEAD."""
+    root = Path(__file__).resolve().parent
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*.py")):
+        digest.update(str(path.relative_to(root)).encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
 def log_event(logger: logging.Logger, event: str, *, level=logging.INFO, **fields) -> None:
     logger.log(level, event, extra={
         "event": event, "structured_fields": {k: v for k, v in fields.items() if k in _FIELDS},
@@ -92,7 +144,7 @@ class _JsonLogFormatter(logging.Formatter):
             "component": _safe(record.name),
             **_CONTEXT,
             "event": _safe(getattr(record, "event", "legacy_diagnostic")),
-            **{k: _safe(v) for k, v in getattr(record, "structured_fields", {}).items()
+            **{k: _safe_field(k, v) for k, v in getattr(record, "structured_fields", {}).items()
                if k in _FIELDS},
         }
         if record.exc_info:
@@ -116,6 +168,7 @@ def configure_logging(
         "log_schema_version": 2,
         "run_id": uuid.uuid4().hex,
         "git_commit": runtime_revision(),
+        "implementation_sha256": runtime_source_hash(),
         **{k: _safe(v) for k, v in (context or {}).items() if k in _FIELDS},
     }
     formatter = _JsonLogFormatter(debug_sensitive=debug_sensitive)

@@ -1,0 +1,49 @@
+{
+  "audit_schema_version": 1,
+  "manifest": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/wake-word/data/v2/synthetic/manifest.csv",
+  "dataset_versions": {
+    "wake-v2-a-teh-ko": 432
+  },
+  "rows": 432,
+  "labels": {
+    "a": 24,
+    "te": 24,
+    "ko": 24,
+    "ateko": 48,
+    "background": 312
+  },
+  "splits": {
+    "train": 270,
+    "validation": 54,
+    "test": 54,
+    "calibration": 54
+  },
+  "speakers": 8,
+  "real_speakers": 0,
+  "sources": {
+    "macos_say_synthetic": 336,
+    "generated_noise": 96
+  },
+  "review_status": {
+    "pending": 336,
+    "accepted": 96
+  },
+  "speech_review_coverage": 0.0,
+  "positive_review_status": {
+    "pending": 48
+  },
+  "duration_seconds": {
+    "total": 429.1135,
+    "minimum": 0.2683125,
+    "maximum": 2.0
+  },
+  "exact_duplicate_groups": [],
+  "near_duplicate_group_count": 0,
+  "cross_split_exact_duplicates": [],
+  "speaker_split_leakage": {},
+  "parent_split_leakage": {},
+  "issues": [],
+  "trainable_approved_positives": 0,
+  "structurally_valid": true,
+  "valid_for_training": false
+}

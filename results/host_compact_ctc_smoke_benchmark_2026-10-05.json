@@ -1,0 +1,69 @@
+{
+  "benchmark_schema_version": 1,
+  "model": {
+    "path": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/vcm/models/vcm_ctc_smoke.me2",
+    "architecture": "CompactCTCModel",
+    "model_version": "compact-ctc-v1",
+    "grammar_version": "adc3d14ce314f0229614685b0f7a1694c464ab754cb166416a718016561649ce",
+    "parameters": 203638,
+    "artifact_bytes": 756222
+  },
+  "audio": {
+    "path": "/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2/vcm/data/test_sample.wav",
+    "source_sample_rate": 16000,
+    "usable_samples": 74315,
+    "usable_seconds": 4.6446875
+  },
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.3",
+    "torch": "2.14.1",
+    "torch_threads": 2,
+    "logical_cpus": 10
+  },
+  "run": {
+    "warmup_iterations": 3,
+    "measured_iterations": 30,
+    "process_cpu_percent_of_one_core": 102.83530566760379,
+    "rss_bytes_after_run": 292110336,
+    "total": {
+      "mean_ms": 12.963861133903265,
+      "p50_ms": 12.87566707469523,
+      "p95_ms": 13.480333145707846,
+      "maximum_ms": 13.957499992102385
+    },
+    "stages": {
+      "acoustic_model": {
+        "mean_ms": 3.298147302120924,
+        "p50_ms": 3.2912499736994505,
+        "p95_ms": 3.6516659893095493,
+        "maximum_ms": 3.806833876296878
+      },
+      "decoder_and_rejection": {
+        "mean_ms": 9.312256937846541,
+        "p50_ms": 9.357834002003074,
+        "p95_ms": 9.594375034794211,
+        "maximum_ms": 9.694959037005901
+      },
+      "frontend": {
+        "mean_ms": 0.3382915708546837,
+        "p50_ms": 0.3304588608443737,
+        "p95_ms": 0.37770788185298443,
+        "maximum_ms": 0.4344999324530363
+      }
+    }
+  },
+  "last_result": {
+    "accepted": false,
+    "decoded_text": "",
+    "intent": null,
+    "rejection_reason": "no_terminal_candidate"
+  },
+  "limitations": [
+    "RSS is process-wide, not model-only.",
+    "CPU percentage is measured over the active inference loop.",
+    "Temperature, throttling, idle CPU, and sustained-run power require target-hardware tools.",
+    "File decoding and endpoint wait time are outside the measured inference loop."
+  ]
+}
