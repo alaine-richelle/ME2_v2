@@ -219,11 +219,11 @@ ssh me2@192.168.1.50 \
 rsync -av --exclude '__pycache__' --exclude '*.egg-info' \
   pyproject.toml README.md src config docs deploy \
   me2@192.168.1.50:/home/me2/ME2_v2/
-rsync -av wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
+rsync -av wake-word/models/wake_word_v5_regularized_seed43.me2 \
   me2@192.168.1.50:/home/me2/ME2_v2/wake-word/models/
 rsync -av vcm/models/vcm_ctc_model.me2 \
   me2@192.168.1.50:/home/me2/ME2_v2/vcm/models/
-shasum -a 256 wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
+shasum -a 256 wake-word/models/wake_word_v5_regularized_seed43.me2 \
   vcm/models/vcm_ctc_model.me2 > deployment-models.sha256
 scp deployment-models.sha256 me2@192.168.1.50:/home/me2/ME2_v2/
 ```
@@ -307,7 +307,7 @@ Run the existing file check:
 
 ```sh
 .venv/bin/python -m me2.app --interactive \
-  --wake-model wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
+  --wake-model wake-word/models/wake_word_v5_regularized_seed43.me2 \
   --vcm-model vcm/models/vcm_ctc_model.me2 \
   --wake-audio fixtures/wake.wav --command-audio fixtures/command.wav
 ```
@@ -414,7 +414,7 @@ Benchmark both models on the actual Pi:
 
 ```sh
 .venv/bin/python -m me2.benchmark fixtures/wake.wav \
-  --model wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
+  --model wake-word/models/wake_word_v5_regularized_seed43.me2 \
   --iterations 200 --threads 2 --output results/pi5_ubuntu_wake_benchmark.json
 .venv/bin/python -m me2.benchmark fixtures/command.wav \
   --model vcm/models/vcm_ctc_model.me2 \

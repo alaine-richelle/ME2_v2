@@ -5,6 +5,7 @@ import subprocess
 import sys
 import threading
 import zipfile
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -174,6 +175,31 @@ def test_runtime_config_precedence_and_path_resolution(tmp_path):
     path.write_text('{"schema_version":1,"runtime":{"threadz":2}}')
     with pytest.raises(SystemExit):
         parse_args(["--vcm", "--config", str(path)])
+    path.write_text(json.dumps({
+        "schema_version": 1,
+        "paths": {"wake_fallback_model": "retired-v3.me2"},
+    }))
+    with pytest.raises(SystemExit):
+        parse_args(["--interactive", "--config", str(path)])
+    with pytest.raises(SystemExit):
+        parse_args(["--interactive", "--wake-fallback-model", "retired-v3.me2"])
+
+
+def test_shipped_wake_profiles_select_v5_without_a_fallback():
+    config_dir = Path(__file__).resolve().parents[1] / "config"
+    profile_paths = sorted(
+        path
+        for path in config_dir.glob("*.json")
+        if "wake_model" in json.loads(path.read_text(encoding="utf-8"))
+        or "wake_model" in json.loads(path.read_text(encoding="utf-8")).get("paths", {})
+    )
+
+    assert profile_paths
+    for path in profile_paths:
+        config = json.loads(path.read_text(encoding="utf-8"))
+        model_paths = config.get("paths", config)
+        assert model_paths["wake_model"].endswith("wake_word_v5_regularized_seed43.me2")
+        assert "wake_fallback_model" not in model_paths
 
 
 def test_arecord_stream_converts_pcm_and_terminates_process(monkeypatch):
@@ -319,7 +345,8 @@ def test_logs_default_does_not_retain_private_message_trace_or_fields():
             logger.exception("transcript: call Alice secret-token")
         log_event(logger, "command_result", accepted=False, utterance_id="abc123",
                   reason="no_terminal_candidate", transcript="call Alice",
-                  model_version="/Users/private/model.me2")
+                  model_version="/Users/private/model.me2",
+                  accepted_intent="play_music", decoded_text="call Alice")
     finally:
         logger.removeHandler(handler)
     rendered = output.getvalue()
@@ -329,6 +356,8 @@ def test_logs_default_does_not_retain_private_message_trace_or_fields():
     assert rows[1]["reason"] == "no_terminal_candidate"
     assert rows[1]["utterance_id"] == "abc123"
     assert rows[1]["accepted"] is False
+    assert rows[1]["accepted_intent"] == "play_music"
+    assert "decoded_text" not in rows[1]
     record = logging.LogRecord("test", logging.DEBUG, "", 1, "call Alice", (), None)
     assert "call Alice" in _JsonLogFormatter(debug_sensitive=True).format(record)
 

@@ -68,7 +68,6 @@ function render(data) {
     text("wake-ack-message", acknowledgement.message || "Yes? Listening for your command.");
     const role = {
       v5_primary: "v5 primary wake accepted",
-      v3_fault_fallback: "Degraded mode · v3 fault fallback accepted",
       synthetic_demo: "Synthetic demo acknowledgement",
     }[acknowledgement.model_role] || "Wake acknowledgement";
     const audio = {
@@ -97,8 +96,7 @@ function render(data) {
   if (data.wake) {
     text("wake-score", data.wake.score.toFixed(3));
     const wakeMode = data.wake_policy?.mode;
-    const modeLabel = wakeMode === "fallback_active" ? "v3 fault fallback"
-      : wakeMode === "both_failed" ? "wake fault"
+    const modeLabel = wakeMode === "both_failed" ? "wake fault"
         : wakeMode === "primary" ? "v5 primary" : null;
     text("wake-detail", `${data.wake.label} · ${data.mode === "demo" ? "simulated" : `${data.wake.inference_ms.toFixed(1)} ms`}${modeLabel ? ` · ${modeLabel}` : ""}`);
   } else { text("wake-score", "—"); text("wake-detail", "Waiting for a window"); }

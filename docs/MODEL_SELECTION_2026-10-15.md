@@ -3,12 +3,12 @@
 ## Result
 
 The checkout intentionally assigns distinct roles rather than globally
-promoting one wake artifact. V3 remains the dashboard file-replay fixture; v5
-is the final **supervised runtime/trial candidate** because the protected
-T01–T13 microphone logs used it and it has higher comparable wake recall. V3
-is also scored side by side as a diagnostic and may be a fault-only fallback
-after a v5 load/inference fault; a healthy v5 non-wake remains non-wake. The
-CTC command bundle remains the command-development model in every
+promoting one wake artifact. V3 remains a separate diagnostic/file-replay
+fixture; v5 is the final **supervised runtime/trial candidate** because the
+protected T01–T13 microphone logs used it and it has higher comparable wake
+recall. The canonical runtime has no v3 fallback: a healthy v5 non-wake stays
+non-wake and any wake fault fails closed without command capture. The CTC
+command bundle remains the command-development model in every
 dashboard/runtime profile. Neither wake artifact is deployment-ready.
 
 No candidate meets the wake promotion guardrail. On the shared small synthetic
@@ -29,11 +29,10 @@ recorded in `V5_FINALIZATION_2026-10-15.md`.
 
 | Entry point/config | Resolved wake artifact | Resolved VCM artifact |
 |---|---|---|
-| `config/dashboard.json` | `wake-word/models/wake_word_v3_binary_seed43_r1.me2` | `vcm/models/vcm_ctc_model.me2` |
-| `config/dashboard.natural-pause.json` | `wake-word/models/wake_word_v3_binary_seed43_r1.me2` | `vcm/models/vcm_ctc_model.me2` |
+| `config/dashboard.json`, `config/dashboard.natural-pause.json` | `wake-word/models/wake_word_v5_regularized_seed43.me2` | `vcm/models/vcm_ctc_model.me2` |
 | `config/runtime.example.json`, `runtime.natural-pause.json`, `runtime.onset-3s.json`, `runtime.pi5.natural-pause.json`, `runtime.v5-final-supervised-20261015.json` | `wake-word/models/wake_word_v5_regularized_seed43.me2` | `vcm/models/vcm_ctc_model.me2` |
-| `config/runtime.laptop-dual-wake.json` | v5 primary plus v3 diagnostic/fault fallback | `vcm/models/vcm_ctc_model.me2` |
-| `python -m me2.app` without explicit model/config overrides | `wake-word/models/wake_word_model.me2` (legacy five-class fallback) | `vcm/models/vcm_ctc_model.me2` |
+| `config/runtime.laptop.json`, `config/dashboard.laptop.json`, and `config/dashboard.pi5.json` | v5 only; faults fail closed | `vcm/models/vcm_ctc_model.me2` |
+| `python -m me2.app` without explicit model/config overrides | `wake-word/models/wake_word_v5_regularized_seed43.me2` | `vcm/models/vcm_ctc_model.me2` |
 
 The laptop command used a runtime config and explicitly permitted the
 unverified wake bundle, so its wake artifact was v5. No Pi inference was run.
@@ -124,3 +123,27 @@ matched official-test metrics materially exceed the preserved classifier
 baseline. Its 20/76 OOS false accepts, legacy grammar without slot metadata,
 and unverified Pi performance are explicit release blockers. Raspberry Pi 5
 performance and live long-command acceptance remain unmeasured.
+
+## 2026-10-22 local fine-tuning cleanup ledger
+
+The following untracked human-recording fine-tuning trial files were traced
+before removal. They were not referenced by any active runtime configuration,
+source module, script, test, or retained selection record; the active runtime
+continues to use v5 regularized plus the retained CTC model. They are not a
+baseline, protected microphone evidence, or selected artifact. Their small
+one-speaker, non-continuous-negative cohort is not comparable promotion
+evidence for the retained v5/v3 frozen comparison.
+
+| Removed path | SHA-256 | Reason and observed metric evidence |
+| --- | --- | --- |
+| `wake-word/models/wake_word_v5_finetuned_v6_real_speakers_seed43.me2` | `9cbfd01b862ef60e7e8acda5365e1c225c8b870ca5e3d3f20f059afbfb3597f7` | Unselected fine-tuning bundle; 3/12 wake recall, 0/32 false accepts, no continuous-negative duration. |
+| `wake-word/models/wake_word_v6_real_speaker_seed43.me2` | `45015d24bc411f7ff05d0f10db1143ef81532effae955270205800efd4d485bb` | Unselected fine-tuning bundle; 9/12 wake recall but 5/32 false accepts, no continuous-negative duration. |
+| `logs/wake_v5_finetuned_v6_real_speakers_seed43_training.jsonl` | `4f43ae4baf517116ec5742dfd112551cd7e9432ac87963db91b978bb750dc179` | Direct training log for the unselected fine-tuned v5 trial. |
+| `logs/wake_v6_real_speaker_seed43_training.jsonl` | `271ebf1887efa42c3a66b45503769b0f0640da56c902396e9e340810439bb267` | Direct training log for the unselected v6 trial. |
+| `results/wake_v5_finetuned_v6_real_speakers_seed43_test/` | Metrics `6f80a8473ddc7a39fc961411eae0bedda741991a41050b4280d671c33609e112` | Direct test/report/prediction output for the unselected fine-tuned v5 trial. |
+| `results/wake_v6_real_speaker_seed43_test/` | Metrics `19e83a2afeaf11cd696a42cb95c2c2ec821f0c352f41b99daf76c7a5396d5a68` | Direct test/report/prediction output for the unselected v6 trial. |
+
+No datasets, retained model bundles, v3 fixture, protected live-trial logs,
+or historical selected-model evidence were removed. Regeneration would require
+the corresponding local human-recording experiment inputs, which are not part
+of the active runtime workflow.

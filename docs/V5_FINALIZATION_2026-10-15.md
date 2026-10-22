@@ -19,15 +19,15 @@ not tested, and there are no Pi live-inference quality or timing measurements.
 | Role | Artifact | SHA-256 | Comparable evidence and disposition |
 |---|---|---|---|
 | Final supervised runtime/trial wake candidate | `wake-word/models/wake_word_v5_regularized_seed43.me2` | `d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222` | Frozen `test` report: 2/3 wake events, 4/48 false accepts, 0.9020 accuracy, 0.6953 macro F1. Primary decision source; retain only for supervised trials. |
-| Dashboard fixture and diagnostic/fault fallback | `wake-word/models/wake_word_v3_binary_seed43_r1.me2` | `35ec56088979aea4d16f547dfcda047fac969b8f9d46a60176ee1703d853170b` | Same frozen `test` cohort: 0/3 wake events, 0/48 false accepts, 0.9216 accuracy, 0.6458 macro F1. Score beside v5 for diagnostics and use only after a v5 load/inference fault; never accept a v3 disagreement as an OR rule. |
+| Historical dashboard fixture | `wake-word/models/wake_word_v3_binary_seed43_r1.me2` | `35ec56088979aea4d16f547dfcda047fac969b8f9d46a60176ee1703d853170b` | Same frozen `test` cohort: 0/3 wake events, 0/48 false accepts, 0.9216 accuracy, 0.6458 macro F1. Retained for historical replay only; it is not a runtime fallback. |
 | Command-development model | `vcm/models/vcm_ctc_model.me2` | `b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac` | Matched official `test`: 0.8911 accuracy, 0.8682 macro F1, 20/76 OOS false accepts, 316/4,367 in-scope rejections. Retain for command development, not Pi approval. |
 
 The wake reports are small synthetic clip cohorts (3 positive and 48 negative
 rows, one independent speaker). They do not provide false-activations-per-hour
 or live-stream evidence. The selected CTC uses legacy grammar and an
 uncalibrated acceptance policy. Do not set `deployment_ready=true`, relax
-thresholds, replace the v3 dashboard fixture, or overwrite fallback/baseline
-bundles or protected T01–T13 evidence.
+thresholds, replace the historical v3 fixture, or overwrite baseline bundles
+or protected T01–T13 evidence.
 
 ## 2026-10-16 wake training-readiness check
 
@@ -64,23 +64,20 @@ settings of `config/runtime.example.json`, points to v5 and the selected CTC
 bundle, and writes only a distinct runtime log. Its SHA-256 is recorded after
 local verification as
 `9bca207c37b6bea8abb102be38ef876f7a8364c5e7fed4db3e95493c8130105e`.
-`config/runtime.laptop-dual-wake.json` is the separate, explicit dual-wake
-profile for supervised laptop evaluation. It is not a default-path replacement
-or deployment configuration.
+`config/runtime.laptop.json` is the v5-only laptop profile for supervised
+evaluation. It is not a deployment configuration.
 
 Rollback/reference artifacts remain:
 
 - `config/dashboard.json` and `config/dashboard.natural-pause.json` retain
-  the v3 dashboard fixture.
+  the v5 runtime candidate.
 - `wake-word/models/wake_word_model.me2` remains the legacy fallback.
 - `config/runtime.example.json` remains the generic runtime example.
 
-The dual-wake policy is fail-closed: both models score each prepared wake
-window using their own embedded threshold and smoothing policy. A healthy v5
-non-wake remains non-wake even if v3 disagrees. V3 becomes active only after a
-v5 load or inference/system fault; two failures do not capture a command or
-dispatch an action. Redacted logs, CLI state, dashboard status, and health
-output expose the primary/fallback roles and degraded state.
+The v5-only policy is fail-closed: a healthy v5 non-wake remains non-wake, and
+a v5 load, frontend, or inference fault blocks command capture and dispatch.
+Redacted logs, CLI state, dashboard status, and health output expose the
+primary model state without activating another wake artifact.
 
 ## Raspberry Pi package compatibility
 
@@ -208,7 +205,7 @@ The release remains not deployment-ready until separate comparable wake/OOS
 evidence, calibrated command rejection, approved live Pi trials, sustained
 stream measurements, and physical audio validation meet documented guardrails.
 
-The student-facing, supervised laptop microphone/earphone procedure is
+The student-facing, controlled built-in-microphone laptop preflight procedure is
 `LAPTOP_OPERATOR_GUIDE_2026-10-16.md`. It is deliberately separate from the
 Pi direct-model/demo-only runbook and no hardware command was run while
 preparing it.

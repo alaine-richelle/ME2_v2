@@ -209,21 +209,13 @@ def main() -> None:
                 "primary_model": (
                     file_sha256(defaults["wake_model"]) if "wake_model" in defaults else None
                 ),
-                "fallback_role": (
-                    "v3_fault_fallback"
-                    if "wake_fallback_model" in defaults
-                    else "not_configured"
-                ),
-                "fallback_model": (
-                    file_sha256(defaults["wake_fallback_model"])
-                    if "wake_fallback_model" in defaults
-                    else None
-                ),
-                "fallback_activation": "primary_load_or_inference_fault_only",
+                "fallback_role": "not_supported",
+                "fallback_model": None,
+                "fallback_activation": "not_supported_fail_closed",
             }
             args.model.extend(
                 defaults[k]
-                for k in ("wake_model", "wake_fallback_model", "vcm_model")
+                for k in ("wake_model", "vcm_model")
                 if k in defaults
             )
             audio_backend = audio_backend or defaults.get("audio_backend", "sounddevice")

@@ -17,8 +17,8 @@ fonts, CDN assets, or additional web framework dependency.
 ## 1. Finish training and choose a release
 
 **Current status, 2026-10-06:** no wake artifact has passed deployment review.
-The supplied `config/dashboard.json` deliberately identifies the retained,
-preliminary `wake_word_v3_binary_seed43_r1.me2`, whose
+The supplied `config/dashboard.json` identifies the preliminary
+`wake_word_v5_regularized_seed43.me2`, whose
 `deployment_ready=false` blocks live listening by default. The selected
 `vcm_ctc_model.me2` is the legacy `CharacterAudioCNN`, not the preliminary
 compact CTC model. See `IMPROVEMENT_CYCLE_2026-10-06.md`.
@@ -122,7 +122,7 @@ ssh me2@ateko-pi.local \
 rsync -av --exclude '__pycache__' --exclude '*.egg-info' \
   pyproject.toml README.md src config docs deploy \
   me2@ateko-pi.local:/home/me2/ME2_v2/
-rsync -av wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
+rsync -av wake-word/models/wake_word_v5_regularized_seed43.me2 \
   me2@ateko-pi.local:/home/me2/ME2_v2/wake-word/models/
 rsync -av vcm/models/vcm_ctc_model.me2 \
   me2@ateko-pi.local:/home/me2/ME2_v2/vcm/models/
@@ -142,7 +142,7 @@ datasets, legacy pickles, or experimental model collection.
 Record hashes for the exact selected bundles on the workstation (macOS):
 
 ```sh
-shasum -a 256 wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
+shasum -a 256 wake-word/models/wake_word_v5_regularized_seed43.me2 \
   vcm/models/vcm_ctc_model.me2 > deployment-models.sha256
 scp deployment-models.sha256 me2@ateko-pi.local:/home/me2/ME2_v2/
 ```
@@ -229,7 +229,7 @@ On the Pi, always pass both model paths explicitly for CLI replay:
 
 ```sh
 .venv/bin/python -m me2.app --interactive \
-  --wake-model wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
+  --wake-model wake-word/models/wake_word_v5_regularized_seed43.me2 \
   --vcm-model vcm/models/vcm_ctc_model.me2 \
   --wake-audio fixtures/wake.wav \
   --command-audio fixtures/command.wav
@@ -243,7 +243,7 @@ Benchmark both artifacts on the actual Pi:
 
 ```sh
 .venv/bin/python -m me2.benchmark fixtures/wake.wav \
-  --model wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
+  --model wake-word/models/wake_word_v5_regularized_seed43.me2 \
   --iterations 200 --threads 2 --output results/pi5_wake_benchmark.json
 .venv/bin/python -m me2.benchmark fixtures/command.wav \
   --model vcm/models/vcm_ctc_model.me2 \

@@ -123,6 +123,9 @@ def test_bundle_round_trip_and_cli_modes(tmp_path):
     assert loaded_bundle["labels"] == bundle["labels"]
     assert parameter_count(loaded_model) == parameter_count(model)
     assert build_parser().parse_args(["--interactive", "--wake-audio", "wake.wav"]).interactive
+    assert build_parser().parse_args(["--wake-word"]).wake_model.name == (
+        "wake_word_v5_regularized_seed43.me2"
+    )
     assert _bundle_frontend(loaded_bundle) is _bundle_frontend(loaded_bundle)
 
 

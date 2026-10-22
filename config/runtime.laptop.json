@@ -14,8 +14,7 @@
   },
   "paths": {
     "wake_model": "../wake-word/models/wake_word_v5_regularized_seed43.me2",
-    "wake_fallback_model": "../wake-word/models/wake_word_v3_binary_seed43_r1.me2",
     "vcm_model": "../vcm/models/vcm_ctc_model.me2",
-    "log_file": "../logs/laptop-dual-wake-runtime.jsonl"
+    "log_file": "../logs/laptop-runtime.jsonl"
   }
 }

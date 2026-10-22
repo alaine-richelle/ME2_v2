@@ -3,7 +3,7 @@
   "runtime": {
     "threads": 2,
     "audio_backend": "arecord",
-    "alsa_device": "plughw:0,0",
+    "alsa_device": "plughw:CARD=Device,DEV=0",
     "stream_chunk_ms": 100,
     "wake_hop_ms": 250,
     "pre_roll_ms": 250,

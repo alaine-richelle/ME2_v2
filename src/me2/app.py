@@ -9,7 +9,7 @@ import sys
 import threading
 import time
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
@@ -64,80 +64,6 @@ def _model(path: Path, expected_task: str):
         deployment_ready=bundle.get("deployment_ready"),
     )
     return model, bundle
-
-
-@dataclass(frozen=True)
-class WakePair:
-    """Explicit primary wake model plus a fault-only diagnostic fallback."""
-
-    primary_model: object | None
-    primary_bundle: dict | None
-    fallback_model: object | None
-    fallback_bundle: dict | None
-    primary_load_error: str | None = None
-    fallback_load_error: str | None = None
-
-    @property
-    def active_bundle(self) -> dict:
-        bundle = self.primary_bundle or self.fallback_bundle
-        if bundle is None:
-            raise RuntimeError("dual_wake_no_usable_model")
-        return bundle
-
-
-def load_wake_pair(
-    primary_path: Path,
-    fallback_path: Path | None = None,
-    *,
-    loader=_model,
-) -> WakePair:
-    """Load v5 primary and optional v3 fallback without changing acceptance policy."""
-
-    primary_model = primary_bundle = fallback_model = fallback_bundle = None
-    primary_error = fallback_error = None
-    try:
-        primary_model, primary_bundle = loader(primary_path, "wake_word")
-    except Exception as error:  # model fault enables only the explicit fallback.
-        primary_error = type(error).__name__
-        if fallback_path is None:
-            raise
-        log_event(
-            LOGGER,
-            "wake_primary_load_failed",
-            level=logging.WARNING,
-            diagnostics={
-                "wake_primary_role": "v5_primary",
-                "wake_primary_status": "load_failed",
-                "wake_primary_failure": primary_error,
-            },
-        )
-
-    if fallback_path is not None:
-        try:
-            fallback_model, fallback_bundle = loader(fallback_path, "wake_word")
-        except Exception as error:  # noqa: BLE001 - diagnostics must not break the primary path.
-            fallback_error = type(error).__name__
-            log_event(
-                LOGGER,
-                "wake_fallback_load_failed",
-                level=logging.WARNING,
-                diagnostics={
-                    "wake_fallback_role": "v3_fault_fallback",
-                    "wake_fallback_status": "load_failed",
-                    "wake_fallback_failure": fallback_error,
-                },
-            )
-
-    if primary_bundle is None and fallback_bundle is None:
-        raise RuntimeError("dual_wake_no_usable_model")
-    return WakePair(
-        primary_model,
-        primary_bundle,
-        fallback_model,
-        fallback_bundle,
-        primary_error,
-        fallback_error,
-    )
 
 
 def _require_live_wake_readiness(
@@ -280,20 +206,17 @@ def _run_vcm(args: argparse.Namespace) -> None:
     result, elapsed = _predict_vcm(model, bundle, waveform, sample_length=sample_length)
     _print_vcm_result(result, debug_sensitive=args.debug_sensitive)
     _log_command(result, bundle, total_ms=elapsed)
-    LOGGER.debug("Decoded text=%s input=%s", result.decoded_text, args.audio)
 
 
 def _run_interactive(args: argparse.Namespace) -> None:
-    wake_pair = load_wake_pair(args.wake_model, args.wake_fallback_model)
-    wake_model, wake_bundle = wake_pair.primary_model, wake_pair.primary_bundle
-    fallback_model, fallback_bundle = wake_pair.fallback_model, wake_pair.fallback_bundle
+    wake_model, wake_bundle = _model(args.wake_model, "wake_word")
     vcm_model, vcm_bundle = _model(args.vcm_model, "vcm")
     microphone = args.wake_audio is None
     if microphone and args.command_audio:
         raise ValueError("--command-audio requires --wake-audio for file-based pipeline testing")
     if microphone:
         _require_live_wake_readiness(
-            wake_pair.active_bundle,
+            wake_bundle,
             allow_unverified=args.allow_unverified_wake_model,
         )
         _run_continuous_interactive(
@@ -302,14 +225,9 @@ def _run_interactive(args: argparse.Namespace) -> None:
             wake_bundle,
             vcm_model,
             vcm_bundle,
-            fallback_model=fallback_model,
-            fallback_bundle=fallback_bundle,
-            primary_load_error=wake_pair.primary_load_error,
         )
         return
 
-    if wake_model is None or wake_bundle is None:
-        raise RuntimeError("file_replay_requires_loaded_primary_wake_model")
     while True:
         print("[LISTENING] Waiting for wake word...")
         if args.wake_audio:
@@ -373,29 +291,11 @@ def _run_continuous_interactive(
     wake_bundle: dict,
     vcm_model,
     vcm_bundle: dict,
-    *,
-    fallback_model=None,
-    fallback_bundle: dict | None = None,
-    primary_load_error: str | None = None,
 ) -> None:
-    last_wake_fault: tuple[str, str | None] | None = None
-
     def on_wake(label, score, elapsed, detected, status) -> None:
-        nonlocal last_wake_fault
         del label, score, elapsed, detected
-        fault = (status["mode"], status.get("primary_failure"))
-        if status["mode"] in {"fallback_active", "both_failed"} and fault != last_wake_fault:
-            if status["mode"] == "fallback_active":
-                print(
-                    "[DEGRADED_WAKE] v5 fault; v3 is now the fault-only fallback "
-                    f"({status['primary_failure']})."
-                )
-            else:
-                print(
-                    "[DEGRADED_WAKE] v5 and v3 wake evaluation failed; "
-                    "remaining in wake listening without command capture."
-                )
-        last_wake_fault = fault
+        if status["mode"] == "both_failed":
+            print("[DEGRADED_WAKE] v5 wake evaluation failed; command capture is blocked.")
 
     def on_event(event: PipelineEvent) -> None:
         if event.state == PipelineState.CAPTURING_COMMAND:
@@ -416,21 +316,9 @@ def _run_continuous_interactive(
         wake_bundle,
         vcm_model,
         vcm_bundle,
-        fallback_model=fallback_model,
-        fallback_bundle=fallback_bundle,
-        primary_load_error=primary_load_error,
         on_event=on_event,
         on_wake=on_wake,
     )
-    if primary_load_error is not None:
-        print(
-            "[DEGRADED_WAKE] v5 failed to load; v3 is the active fault fallback "
-            f"({primary_load_error})."
-        )
-    elif fallback_bundle is not None:
-        print("[WAKE_POLICY] v5 primary; v3 diagnostic and fault-only fallback.")
-    else:
-        print("[DEGRADED_WAKE] v5 unavailable; no v3 fallback is available.")
     print("[LISTENING_FOR_WAKE] Waiting for ateko...")
     stop_event = threading.Event()
     timer = (
@@ -460,16 +348,13 @@ def build_streaming_pipeline(
     vcm_model,
     vcm_bundle: dict,
     *,
-    fallback_model=None,
-    fallback_bundle: dict | None = None,
-    primary_load_error: str | None = None,
     on_event=None,
     on_wake=None,
 ) -> StreamingPipeline:
     """Share the CLI's audio and calibrated wake policy with the dashboard."""
-    active_wake_bundle = wake_bundle or fallback_bundle
-    if active_wake_bundle is None:
-        raise RuntimeError("dual_wake_no_usable_model")
+    if wake_bundle is None:
+        raise RuntimeError("wake_model_unavailable")
+    active_wake_bundle = wake_bundle
     sample_rate = int(active_wake_bundle["audio"]["sample_rate"])
     if sample_rate != int(vcm_bundle["audio"]["sample_rate"]):
         raise ValueError("Wake and command models must use the same microphone sample rate")
@@ -501,29 +386,24 @@ def build_streaming_pipeline(
         speech_rms_threshold=args.speech_rms_threshold,
         queue_chunks=args.queue_chunks,
     )
-    def detector_for(bundle: dict | None) -> WakeEventDetector | None:
-        if bundle is None:
-            return None
-        streaming = bundle.get("streaming_policy", {})
-        return WakeEventDetector(
-            WakeSmoothingPolicy(
-                threshold=float(bundle.get("threshold", 0.7)),
-                smoothing_window=int(streaming.get("smoothing_window", 1)),
-                required_hits=int(streaming.get("required_hits", 1)),
-            )
-        )
-
-    primary_detector = detector_for(wake_bundle)
-    fallback_detector = detector_for(fallback_bundle)
+    streaming = wake_bundle.get("streaming_policy", {})
+    primary_detector = WakeEventDetector(WakeSmoothingPolicy(
+        threshold=float(wake_bundle.get("threshold", 0.7)),
+        smoothing_window=int(streaming.get("smoothing_window", 1)),
+        required_hits=int(streaming.get("required_hits", 1)),
+    ))
     wake_status = {
         "primary_role": "v5_primary",
-        "fallback_role": "v3_fault_fallback" if fallback_bundle is not None else "not_configured",
-        "mode": "fallback_active" if primary_load_error is not None else "primary",
-        "primary_status": "load_failed" if primary_load_error is not None else "ready",
-        "fallback_status": "ready" if fallback_bundle is not None else "not_configured",
-        "primary_failure": primary_load_error,
+        "fallback_role": "not_supported",
+        "mode": "primary",
+        "primary_status": "ready",
+        "primary_failure": None,
+        "fallback_status": "not_supported",
         "fallback_failure": None,
     }
+    # Compatibility variables keep the existing diagnostic shape stable while
+    # making every fallback branch unreachable in the v5-only runtime.
+    fallback_model = fallback_bundle = fallback_detector = primary_load_error = None
 
     def wake_predictor(window: np.ndarray) -> bool:
         pipeline_started = time.perf_counter()
@@ -726,15 +606,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--wake-model",
         type=Path,
-        default=ROOT / "wake-word/models/wake_word_model.me2",
-    )
-    parser.add_argument(
-        "--wake-fallback-model",
-        type=Path,
-        help=(
-            "Explicit diagnostic/fault fallback wake model. It is scored beside the "
-            "primary model but may trigger only after a primary load or inference fault."
-        ),
+        default=ROOT / "wake-word/models/wake_word_v5_regularized_seed43.me2",
     )
     parser.add_argument(
         "--vcm-model",
@@ -801,8 +673,6 @@ def parse_args(argv=None):
         parser.error("--wake-audio is only valid with --interactive")
     if args.command_audio and not args.interactive:
         parser.error("--command-audio is only valid with --interactive")
-    if args.wake_fallback_model and not args.interactive:
-        parser.error("--wake-fallback-model is only valid with --interactive")
     if args.input_device and args.input_device.isdecimal():
         args.input_device = int(args.input_device)
     return args

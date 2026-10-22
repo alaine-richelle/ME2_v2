@@ -54,7 +54,7 @@ def load_runtime_defaults(path: Path) -> dict:
     runtime = asdict(RuntimeSettings(**value.get("runtime", {})))
     paths = value.get("paths", {})
     if not isinstance(paths, dict) or set(paths) - {
-        "wake_model", "wake_fallback_model", "vcm_model", "log_file",
+        "wake_model", "vcm_model", "log_file",
     }:
         raise ValueError("Unknown runtime path setting")
     for key, raw_path in paths.items():

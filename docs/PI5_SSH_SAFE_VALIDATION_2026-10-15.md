@@ -18,6 +18,43 @@ use the frozen config and exact package candidates in
 `V5_FINALIZATION_2026-10-15.md`; the configuration and artifact hashes must be
 verified on the target.
 
+## Current canonical operator path
+
+The current runtime is v5-only: V3 is a separate diagnostic fixture and is
+not configured as a fallback. A healthy v5 non-wake must not open VCM capture;
+a v5, frontend, stream, decoder, or log fault fails closed. Do not use a
+standalone VCM microphone command as an end-to-end test. Leave
+`--debug-sensitive` off so prompts, decoded text, paths, and raw audio are not
+retained in logs.
+
+After a read-only preflight and hash check, deterministic supplied-WAV checks
+are the only routine Pi checks:
+
+```sh
+export ME2_WAKE_WAV='APPROVED_CONNECTED_WAKE_WAV'
+export ME2_COMMAND_WAV='APPROVED_SUPPORTED_COMMAND_WAV'
+sha256sum wake-word/models/wake_word_v5_regularized_seed43.me2 \
+  vcm/models/vcm_ctc_model.me2
+ME2_WAKE_WAV="$ME2_WAKE_WAV" scripts/pi5_check_wake_model.sh
+ME2_COMMAND_WAV="$ME2_COMMAND_WAV" scripts/pi5_check_vcm_model.sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
+  --interactive --config config/runtime.pi5.natural-pause.json \
+  --wake-audio "$ME2_WAKE_WAV" --command-audio "$ME2_COMMAND_WAV" \
+  --threads 2 --log-file logs/pi5-gated-replay.jsonl
+```
+
+Only a separately authorized, bounded, mock-only microphone session may open
+the device. It must use the combined pipeline, never retain a WAV, and does
+not validate deployment or promote a model:
+
+```sh
+timeout 30s env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python \
+  -m me2.app --interactive --config config/runtime.pi5.natural-pause.json \
+  --audio-backend arecord --alsa-device 'plughw:CARD=Device,DEV=0' \
+  --threads 2 --session-seconds 30 --allow-unverified-wake-model \
+  --log-file logs/pi5-gated-supervised-live.jsonl
+```
+
 Only after separate approvals may the next operator perform a read-only
 preflight, a disposable detached Git checkout/isolated-venv installation, binary package and
 import verification, individual model replay, one supplied-WAV integrated
@@ -84,31 +121,167 @@ Pi-local evidence is retained under
 redacted JSONL logs, and dashboard status responses. These generated files are
 not source changes and were not pushed.
 
-## Wake acknowledgment implementation — pending a new reviewed Pi revision
+## Wake acknowledgment implementation — verified Pi demo revision
 
-The direct Pi result above predates the dashboard wake-acknowledgment source
-change. It remains valid only for the cited detached commit and does not
-verify this new feature. Before a Pi review, commit and push the reviewed
-change, then clone that exact new commit into a fresh detached run directory;
-do not overwrite the existing evidence directory.
+The direct Pi result above remains evidence only for
+`050f5c34f5f6930fa0a4d79e13fc9202f04c03a5`. On 2026-10-16, GitHub
+`refs/heads/master` was independently resolved to the reviewed
+wake-acknowledgment revision
+`0075a542efd1bd5bbd766aa1da15a63849727012`. The existing isolated checkout
+was updated in place only after archiving the prior run's generated evidence
+to:
 
-`config/dashboard.pi5-dual-wake.json` is the versioned Pi profile for the
-feature. It uses the direct `arecord` ALSA microphone backend to avoid the
-headless SSH PulseAudio limitation. Its `wake_acknowledgement` chime is
-disabled by default. A valid smoothed v5 wake, or a v3 wake only while v5 has
-a load/inference fault, produces the visible **“Yes? Listening for your
-command.”** pulse and starts normal command capture. A healthy v5/v3
-disagreement, rejected wake, duplicate event, and system failure do not
-acknowledge or chime.
+```text
+/home/rpiadmin/me2-pi5-evidence-050f5c3-20261016T073921Z.tar.gz
+```
 
-When the wired speaker is physically available and an operator separately
-approves live playback, run `aplay -l`, select the confirmed wired
-`plughw:CARD,DEVICE` entry, then set that exact value plus `"enabled": true`
-in the profile. Do not infer the device from card number, use Bluetooth/HDMI,
-or enable it as part of the file-only deadline check. The chime is generated
-in memory and sent to `aplay` with argument-list execution, a short timeout,
-and no saved audio. Playback failure is non-fatal and is logged only as the
-redacted `acknowledgement_audio_failed` event.
+Its adjacent `.sha256` file preserves the archive checksum. The new source
+record is
+`results/pi5-source-update-20261016T074006Z.txt` in
+`/home/rpiadmin/me2-pi5-20261016-050f5c3`. It records the old and new commits,
+the remote/fetched/resolved identity, CPython 3.14.4, `pip check`, and the
+verified model/config hashes. No generated evidence was removed.
+
+`config/dashboard.pi5.json` is the versioned Pi profile for the
+feature. The `0075a54` Pi demo used hash
+`7332cc4bc2c4d012dd5f97f2b18ec548c799d4b81b8c231cb10a872b049b9c71`.
+The later local ALSA-identifier revision has hash
+`9adbb9ccc778509d82896222d7e6fe31de2a35bb454a0e2d09ec7fa6451a1176`
+and awaits a reviewed push before Pi deployment. It uses direct `arecord`
+ALSA capture for a future separately approved live session, keeps V5 primary
+with V3 as a fault-only fallback, and has
+`wake_acknowledgement.enabled=false`. That setting was preserved for this
+review: no microphone stream, speaker output, chime, Bluetooth, or dashboard
+listening was started.
+
+The updated dashboard was run only as:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.dashboard \
+  --demo --config config/dashboard.pi5.json --port 8765 --threads 2
+```
+
+It bound only `127.0.0.1:8765`, returned a successful local status API
+response, and the existing local SSH forward returned HTTP 200. The Pi-side
+result is
+`results/pi5-dashboard-dual-wake-demo-20261016T074059Z-summary.txt`. Demo
+mode has no model predictions or microphone use, so this proves only dashboard
+configuration, startup, and localhost reachability for the new revision.
+
+For a future separately approved wired-speaker test, choose a confirmed
+`plughw:CARD,DEVICE` entry and set that exact value plus `"enabled": true`.
+Do not infer a device from card number, use Bluetooth/HDMI, or enable the
+chime as part of a file-only review. The generated in-memory chime remains
+non-fatal and is reported only through a redacted
+`acknowledgement_audio_failed` event.
+
+## 2026-10-16 ALSA identifier inventory and bounded live-audio checks
+
+A read-only `arecord -l`, `aplay -l`, `/proc/asound/cards`, and ALSA PCM
+inventory found one USB audio interface exposing both capture and playback as
+`CARD=Device,DEV=0`; the two HDMI cards remain separate playback devices.
+No capture or playback stream was opened. This is hardware-path visibility
+only, not evidence of speech recognition, audibility, model quality, or
+deployment readiness.
+
+The pending local configuration revision uses the stable enumerated identifier
+`plughw:CARD=Device,DEV=0` for dashboard capture and for the disabled
+acknowledgment output. `config/runtime.pi5.natural-pause.json` uses the same
+capture identifier, carries V5 as primary, and now declares the V3
+fault-only fallback. Its local SHA-256 is
+`f419d7841106f2d5777e6902195af54f761b81f8f580588e3a822bf259cc425c`.
+The named card avoids relying on a mutable numeric card index; it does not
+enable the chime.
+
+After explicit approval, the following bounded checks were run against the
+already deployed `0075a542efd1bd5bbd766aa1da15a63849727012` checkout. That
+checkout still uses its committed numeric capture alias `plughw:0,0`, which
+the immediately preceding inventory resolved to the same USB `CARD=Device,
+DEV=0` interface. The local stable-name revision above remains unpushed and
+was not transferred to the Pi.
+
+```sh
+# Run on the deployed checkout. Without the explicit engineering override,
+# the expected fail-closed wake-approval gate prevents microphone capture.
+timeout 30s env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python \
+  -m me2.dashboard --config config/dashboard.pi5.json \
+  --autostart --port 8765 --threads 2 \
+  --log-file logs/pi5-dashboard-live-20261016T095721Z.jsonl
+
+# Three-second wired-speaker routing check only.
+timeout 3s speaker-test -D plughw:CARD=Device,DEV=0 -t sine -f 880 -c 1 -l 1
+```
+
+The speaker check opened `plughw:CARD=Device,DEV=0` successfully with a
+48-kHz, S16_LE, mono stream and generated the requested 880-Hz sine wave.
+`timeout` ended it after three seconds with exit code 124, as intended. The
+Pi-side record is
+`results/pi5-wired-speaker-routing-20261016T095331Z.txt`. This validates ALSA
+routing only; physical audibility remains unconfirmed unless the operator
+reports hearing the tone.
+
+The dashboard process ran under its 30-second outer timeout and left
+`results/pi5-dashboard-live-20261016T095721Z.txt` plus
+`logs/pi5-dashboard-live-20261016T095721Z.jsonl`. V5, its V3 fault-only
+fallback, and the legacy CTC bundle all loaded with their expected recorded
+hashes. It then failed closed before opening a microphone stream because the
+active V5 bundle has `deployment_ready=false` and the command deliberately
+omitted `--allow-unverified-wake-model`. The result is a controlled startup
+and safety-gate observation, not a live recognition result: no wake,
+command, simulated dashboard action, chime, Bluetooth, raw audio file, or
+model promotion occurred.
+
+## 2026-10-16 supervised live integrated microphone result
+
+GitHub `master` and the Pi checkout were re-confirmed at
+`0075a542efd1bd5bbd766aa1da15a63849727012` immediately before the live
+session. The USB microphone was again enumerated as card 0/device 0, and the
+frozen deployed dashboard profile used `audio_backend=arecord`,
+`alsa_device=plughw:0,0`, and `wake_acknowledgement.enabled=false`. The
+numeric alias was independently confirmed to resolve to the USB Audio Device;
+the local stable-name configuration revision was neither committed nor copied
+to the Pi.
+
+The explicitly authorized 52-second controlled engineering run was:
+
+```sh
+timeout 52s env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python \
+  -m me2.dashboard --config config/dashboard.pi5.json \
+  --allow-unverified-wake-model --autostart --port 8765 --threads 2 \
+  --log-file logs/pi5-live-integrated-20261016T100113Z.jsonl
+```
+
+The override was required because V5 remains marked
+`deployment_ready=false`; it enabled this experiment only and did not modify
+the artifact or its approval state. The run opened the 16-kHz mono microphone
+stream successfully and ran until the outer timeout ended it with code 124.
+No raw audio was written or retained. The durable Pi evidence consists of a
+run summary, a redacted structured log, and a sanitized status trace:
+
+```text
+results/pi5-live-integrated-20261016T100113Z.txt
+logs/pi5-live-integrated-20261016T100113Z.jsonl
+results/pi5-live-integrated-20261016T100113Z-sanitized-status.jsonl
+```
+
+The fixed model identities were V5
+`d7a4898afdc5a5a52fcd305424df4b62582d7bdeea58451d2a90e62646a49222`,
+V3 fallback
+`35ec56088979aea4d16f547dfcda047fac969b8f9d46a60176ee1703d853170b`,
+and CTC
+`b5a358e2815ee2471f29956e63936af87c4359bf28b21c21ab420c21e128eeac`.
+V5 was healthy and remained the active primary. V3 was healthy and remained
+available only for a V5 load or inference fault; it was not used.
+
+The sanitized observer collected 46 status samples (two early startup polls
+were unavailable), then saw `STARTING` and `LISTENING_FOR_WAKE`. The only
+pipeline event was `listening_started`; wake, accepted, rejected, and duplicate
+counts all remained zero. Consequently the visual **“Yes? Listening for your
+command”** acknowledgement, command capture, decoder outcome, simulated action,
+and cooldown path were not observed. This is not a positive or negative
+accuracy measurement: no valid wake was detected during the bounded session.
+The chime stayed disabled, no Bluetooth/HDMI path or external action was used,
+and no deployment or promotion claim follows from this result.
 
 ## Status and release decision
 

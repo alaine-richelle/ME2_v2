@@ -405,14 +405,6 @@ def test_wake_acknowledgement_lifecycle_and_primary_chime_request(live_dashboard
     assert acknowledgement["timestamp"] is None
 
 
-def test_acknowledgement_uses_v3_only_for_active_v5_fault_fallback(live_dashboard):
-    live_dashboard.on_wake("ateko", 0.91, 4.0, True, _wake_policy("fallback_active"))
-    live_dashboard.on_event(_wake_event("fallback-wake"))
-    acknowledgement = live_dashboard.snapshot()["wake_acknowledgement"]
-    assert acknowledgement["visible"] is True
-    assert acknowledgement["model_role"] == "v3_fault_fallback"
-
-
 def test_disabled_chime_keeps_the_visual_acknowledgement(live_dashboard):
     live_dashboard.on_wake("ateko", 0.91, 4.0, True, _wake_policy())
     live_dashboard.on_event(_wake_event("no-speaker-yet"))
@@ -439,7 +431,7 @@ def test_wake_acknowledgement_rejects_non_active_wake_paths(live_dashboard, poli
     assert requests == []
 
 
-def test_healthy_v3_disagreement_without_a_wake_event_never_chimes(dashboard):
+def test_healthy_non_wake_never_chimes(dashboard):
     requests = []
     dashboard.wake_chime.enabled = True
     dashboard.wake_chime.request = lambda: requests.append("requested") or True

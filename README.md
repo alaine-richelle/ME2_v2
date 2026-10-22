@@ -15,8 +15,8 @@ See the [measured hardening report](docs/HARDENING_2026-10-13.md) and
 [runtime validation, logging, rollback and Pi runbook](docs/RUNTIME_VALIDATION.md).
 The exact local model paths, hashes, matched metrics, and artifact retention
 decisions are in the [2026-10-15 model-selection inventory](docs/MODEL_SELECTION_2026-10-15.md).
-For the separate supervised laptop microphone/earphone walkthrough and a
-plain-language pipeline guide, see
+For the controlled built-in-microphone laptop preflight and plain-language
+pipeline guide, see
 [the laptop operator guide](docs/LAPTOP_OPERATOR_GUIDE_2026-10-16.md).
 `python -m me2.health` is an offline operator/artifact check, not acoustic
 approval. Use explicit model/config paths for installed-package execution.
@@ -383,7 +383,7 @@ recording:
 
 ```sh
 python -m me2.benchmark path/to/approved-a-teh-ko.wav \
-  --model wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
+  --model wake-word/models/wake_word_v5_regularized_seed43.me2 \
   --iterations 200 \
   --threads 2 \
   --output results/pi5_wake_benchmark.json

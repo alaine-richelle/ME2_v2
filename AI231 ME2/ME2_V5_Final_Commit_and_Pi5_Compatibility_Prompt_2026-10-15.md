@@ -78,7 +78,7 @@ approval. Do not perform them without another explicit user instruction.
 When the user separately approves a future Raspberry Pi 5 speaker test, use
 the wired USB/ALSA speaker output identified by the approved device inventory
 (for example, the confirmed `plughw:CARD,DEVICE` value). Do not use Bluetooth,
-wireless earphones, HDMI, or a guessed card/device index. First list the
+HDMI, or a guessed card/device index. First list the
 available ALSA playback devices, state the exact selected wired device and
 bounded playback command to the user, then wait for approval. A successful
 software playback command establishes only the wired ALSA output path; ask the
@@ -126,20 +126,17 @@ audibility, endpoint latency, sustained streaming, or deployment readiness.
 Record all of those as explicitly deferred rather than failed, passed, or
 implied by the file tests or demo UI.
 
-## New scope — supervised laptop microphone and earphone validation
+## New scope — controlled built-in-microphone laptop preflight
 
-The operator will attach a microphone as the laptop input and wireless
-earphones as the laptop output. Add a separate, human-readable laptop
-validation walkthrough. This is an engineering test with the operator
+Use the built-in MacBook Pro Microphone for a separate, human-readable laptop
+preflight walkthrough. This is controlled local evidence with the operator
 present, not a deployment approval. It must use bounded sessions, create no
 raw recordings, avoid credentials and transcripts in shared logs, and keep
-the dashboard dispatcher local/simulated.
+Pi validation as the primary operational workflow.
 
 The walkthrough must explain that:
 
-- the microphone is needed for the live wake-to-command path;
-- the wireless earphones are needed only to hear the local `play_music`
-  demonstration action, not for wake or command recognition;
+- the built-in MacBook Pro Microphone is used for bounded local checks;
 - the command-line application itself prints recognition state to the
   terminal; it does not speak a voice response;
 - the dashboard's `call` and `message` actions remain simulations, and no
@@ -149,7 +146,11 @@ The walkthrough must explain that:
   evidence. Do not alter thresholds or mark a model ready merely to obtain a
   more convenient demonstration result.
 
-## Required dual-wake implementation
+## Superseded dual-wake implementation
+
+The following historical request is superseded. The implemented policy is
+v5-only: V3 is not scored or loaded by the runtime, and a v5 load, frontend,
+or inference fault blocks command capture rather than activating a fallback.
 
 Implement the two retained wake artifacts as a clearly documented
 **primary-plus-fallback pair**:
@@ -178,8 +179,7 @@ automatic OR rule. Implement and test the following policy:
 6. Do not change either bundle, readiness flag, threshold, smoothing,
    cooldown, CTC model, grammar, or command acceptance policy.
 
-Use an explicit versioned dual-wake configuration and/or explicit
-`--wake-fallback-model` CLI option. Do not silently overload the existing
+Use the explicit v5-only runtime configuration. Do not silently overload the existing
 single-model path. Make the primary/fallback order visible in the CLI,
 dashboard status, health output, and redacted logs. Add focused tests for
 normal v5 selection, dual-score diagnostics, v5 model-load failure, v5
@@ -426,19 +426,18 @@ Include a plain-language capability/limitation table:
 | Component | What it can demonstrate now | What it cannot establish yet |
 | --- | --- | --- |
 | v5 wake candidate | File loading/replay and supervised laptop trials | Reliable unattended detection or low false-trigger rate |
-| v3 wake fallback/fixture | File replay, side-by-side diagnostics, and v5-fault fallback | Reliable live detection; its comparable test detected 0/3 wakes |
+| v3 wake fixture | File replay and side-by-side diagnostics | Reliable live detection; its comparable test detected 0/3 wakes |
 | CTC command model | Recognition/rejection for phrases represented by its legacy grammar | Robust open-ended speech, semantic slots, or zero OOS acceptance |
-| Laptop dashboard | Local simulated actions and local `play_music` output after recognition | Physical-device control, calls/messages, or model-quality proof |
+| Laptop preflight | Built-in-microphone device visibility and controlled replay | Pi readiness, physical-device control, or model-quality proof |
 | Raspberry Pi 5 | Package/import, deterministic model replay, and demo-dashboard reachability | Deployment readiness from deferred live hardware tests |
 
 ### 6. Provide a separate laptop test walkthrough
 
 Do not run the following hardware commands yourself. Prepare them in the
-human guide for the operator to run one at a time after attaching the intended
-microphone and pairing the wireless earphones. Each command must use a new
-log/result path and must never retain raw audio. Tell the operator to select
-the wireless earphones as the macOS system output device in Control Center
-before the speaker check; the wake and command models use the microphone only.
+human guide for the operator to run one at a time using the built-in MacBook
+Pro Microphone. Each command must use a new log/result path and must never
+retain raw audio. These are local preflight checks; Pi supplied-WAV and
+approved combined live checks remain the operational workflow.
 
 From the repository root, prepare the local environment and choose the
 microphone by its stable name:
@@ -450,15 +449,14 @@ cd '/Users/alaineramos/Documents/2025 Files - Mac/School/AI231/ME2_v2'
 uv venv --python 3.14 .venv
 uv pip install --python .venv/bin/python -e '.[dev,microphone]'
 
-# Find the exact microphone name; do not rely on a numeric index.
+# Confirm that macOS exposes the built-in microphone without capturing audio.
 .venv/bin/python -c 'import sounddevice as sd; print(sd.query_devices())'
-export ME2_MIC='EXACT MICROPHONE NAME FROM THE LIST'
 
 # Device visibility only: this does not capture audio.
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.health \
   --config config/runtime.example.json \
   --devices \
-  --input-device "$ME2_MIC" \
+  --input-device 'MacBook Pro Microphone' \
   --output results/laptop-device-check-20261016.json
 ```
 
@@ -495,8 +493,8 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
   --log-file logs/laptop-v5-integrated-file-replay-20261016.jsonl
 ```
 
-After dual-wake support is implemented, provide these supervised microphone
-tests. State the phrase before each command, start one command only, and stop
+Provide these controlled built-in-microphone tests. State the phrase before
+each command, start one command only, and stop
 a wake-only command with `Ctrl-C` after the intended attempts. Do not change
 thresholds/configuration while comparing v5 and v3.
 
@@ -505,62 +503,37 @@ thresholds/configuration while comparing v5 and v3.
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
   --wake-word --config config/runtime.example.json \
   --wake-model wake-word/models/wake_word_v5_regularized_seed43.me2 \
-  --input-device "$ME2_MIC" --allow-unverified-wake-model \
+  --input-device 'MacBook Pro Microphone' --allow-unverified-wake-model \
   --log-file logs/laptop-v5-wake-live-20261016.jsonl
 
 # Repeat with the same phrase/device for v3 only.
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
   --wake-word --config config/runtime.example.json \
   --wake-model wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
-  --input-device "$ME2_MIC" --allow-unverified-wake-model \
+  --input-device 'MacBook Pro Microphone' --allow-unverified-wake-model \
   --log-file logs/laptop-v3-wake-live-20261016.jsonl
 
-# Dual-wake full path: say “a-teh-ko”, then a supported command such as
-# “play music”. It must show the v5 primary and v3 diagnostic outcomes.
+# Canonical gated path: say “a-teh-ko”, then a supported command.
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
-  --interactive --config config/runtime.laptop-dual-wake.json \
-  --wake-fallback-model wake-word/models/wake_word_v3_binary_seed43_r1.me2 \
-  --input-device "$ME2_MIC" --threads 2 \
+  --interactive --config config/runtime.example.json \
+  --input-device 'MacBook Pro Microphone' --threads 2 \
   --session-seconds 30 --allow-unverified-wake-model \
-  --log-file logs/laptop-dual-wake-live-20261016.jsonl
+  --log-file logs/laptop-v5-gated-live-20261016.jsonl
 ```
-
-Add and test a small, explicitly user-invoked output diagnostic that plays a
-bounded local tone or generated sample track to the selected macOS output
-without opening the microphone, using a network service, or changing
-dashboard state. Its documented command must be:
-
-```sh
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python \
-  scripts/laptop_output_check.py --seconds 3 --speaker-approved
-```
-
-Implement that command and test bounded duration, no-microphone behavior, and
-safe missing-output failure. This is the standalone wireless-earphone check;
-if it fails, select the earphones as macOS output and retry. Do not attribute
-speaker routing problems to a wake or command model.
 
 Finally, document the visual dashboard checks:
 
 ```sh
-# UI-only review: no microphone, model, or speaker output.
+# UI-only review: no microphone or model input.
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.dashboard \
   --demo --port 8765 --threads 2 \
   --log-file logs/laptop-dashboard-demo-20261016.log
 
-# Live local dashboard: run only after the separate mic and earphone checks.
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.dashboard \
-  --config config/dashboard.laptop-dual-wake.json \
-  --input-device "$ME2_MIC" --allow-unverified-wake-model \
-  --port 8765 --threads 2 \
-  --log-file logs/laptop-dashboard-live-20261016.log
 ```
 
-For the live dashboard command, open `http://127.0.0.1:8765`, use its visible
-control to start listening, say the wake word and the supported `play music`
-command, then check that music reaches the selected wireless earphones. If
-recognition fails, report the displayed state and redacted log outcome; never
-use a dashboard demo event as proof that the microphone/model path works.
+The dashboard demo is local UI review only. Use the Pi supplied-WAV and,
+after explicit approval, bounded combined live command for operational
+validation; never use a laptop dashboard event as model or Pi evidence.
 
 ### 7. Verify and prepare a focused final commit
 

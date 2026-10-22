@@ -28,7 +28,6 @@ from me2.app import (
     _model,
     _require_live_wake_readiness,
     build_streaming_pipeline,
-    load_wake_pair,
 )
 from me2.app import build_parser as inference_parser
 from me2.dashboard_audio import DashboardAudioPlayer, WakeChimePlayer
@@ -155,10 +154,7 @@ def load_settings(path: Path) -> dict:
         value = Path(config[key]).expanduser()
         config[key] = value if value.is_absolute() else (path.parent / value).resolve()
     if "wake_fallback_model" in config:
-        value = Path(config["wake_fallback_model"]).expanduser()
-        config["wake_fallback_model"] = (
-            value if value.is_absolute() else (path.parent / value).resolve()
-        )
+        raise ValueError("wake_fallback_model is not supported; wake faults fail closed")
     config.setdefault("weather", {})
     config.setdefault("music", {})
     if not isinstance(config["weather"], dict) or not isinstance(config["music"], dict):
@@ -317,11 +313,7 @@ class Dashboard:
             "wake_acknowledgement": self._hidden_acknowledgement(),
             "wake_policy": {
                 "primary_role": "v5_primary",
-                "fallback_role": (
-                    "v3_fault_fallback"
-                    if settings.get("wake_fallback_model") is not None
-                    else "not_configured"
-                ),
+                "fallback_role": "not_supported",
                 "mode": "not_started",
             },
             "models": {},
@@ -390,12 +382,6 @@ class Dashboard:
             model_role = "synthetic_demo"
         elif policy.get("mode") == "primary" and policy.get("primary_status") == "ready":
             model_role = "v5_primary"
-        elif (
-            policy.get("mode") == "fallback_active"
-            and policy.get("primary_status") in {"load_failed", "inference_failed"}
-            and policy.get("fallback_status") == "ready"
-        ):
-            model_role = "v3_fault_fallback"
         else:
             return
         if not event.utterance_id or not self._remember_acknowledgement(event.utterance_id):
@@ -822,9 +808,7 @@ class Dashboard:
                     raise ValueError(f"Unknown streaming setting: {key}")
                 setattr(args, key, value)
             wake_path, vcm_path = self.settings["wake_model"], self.settings["vcm_model"]
-            fallback_path = self.settings.get("wake_fallback_model")
-            wake_pair = load_wake_pair(wake_path, fallback_path, loader=_model)
-            wake_model, wake_bundle = wake_pair.primary_model, wake_pair.primary_bundle
+            wake_model, wake_bundle = _model(wake_path, "wake_word")
             vcm_model, vcm_bundle = _model(vcm_path, "vcm")
             if vcm_bundle.get("grammar"):
                 grammar = coerce_grammar_entries(vcm_bundle["grammar"])
@@ -854,33 +838,13 @@ class Dashboard:
                     "status": "ready" if model is not None else "load_failed",
                     "load_error": load_error,
                 }
-            if wake_bundle is not None:
-                add_model("wake_primary", "v5_primary", wake_path, wake_model, wake_bundle)
-            else:
-                models["wake_primary"] = {
-                    "role": "v5_primary", "status": "load_failed",
-                    "load_error": wake_pair.primary_load_error,
-                }
-            if fallback_path is not None:
-                if wake_pair.fallback_bundle is not None:
-                    add_model(
-                        "wake_fallback",
-                        "v3_fault_fallback",
-                        fallback_path,
-                        wake_pair.fallback_model,
-                        wake_pair.fallback_bundle,
-                    )
-                else:
-                    models["wake_fallback"] = {
-                        "role": "v3_fault_fallback", "status": "load_failed",
-                        "load_error": wake_pair.fallback_load_error,
-                    }
+            add_model("wake_primary", "v5_primary", wake_path, wake_model, wake_bundle)
             add_model("command", "command_development", vcm_path, vcm_model, vcm_bundle)
             with self.lock:
                 self.data.update(models=models, supported_intents=intents)
                 self.data["grammar"] = examples
             _require_live_wake_readiness(
-                wake_pair.active_bundle, allow_unverified=self.allow_unverified
+                wake_bundle, allow_unverified=self.allow_unverified
             )
             args.audio_backend = self.settings.get("audio_backend", "sounddevice")
             args.alsa_device = self.settings.get("alsa_device", "default")
@@ -889,7 +853,7 @@ class Dashboard:
 
                 sd.check_input_settings(
                     device=args.input_device, channels=1, dtype="float32",
-                    samplerate=int(wake_pair.active_bundle["audio"]["sample_rate"]),
+                    samplerate=int(wake_bundle["audio"]["sample_rate"]),
                 )
                 device = sd.query_devices(args.input_device, kind="input")["name"]
             else:
@@ -900,9 +864,6 @@ class Dashboard:
                 wake_bundle,
                 vcm_model,
                 vcm_bundle,
-                fallback_model=wake_pair.fallback_model,
-                fallback_bundle=wake_pair.fallback_bundle,
-                primary_load_error=wake_pair.primary_load_error,
                 on_event=self.on_event, on_wake=self.on_wake,
             )
             with self.lock:
@@ -911,10 +872,10 @@ class Dashboard:
                     wake_policy=dict(pipeline.wake_status),
                     notice=(
                         (
-                            "Engineering override · v5 primary, v3 fault-only fallback; "
-                            "wake model has not passed deployment review"
+                            "Engineering override · v5-only wake model has not passed "
+                            "deployment review"
                         )
-                        if wake_pair.active_bundle.get("deployment_ready") is False
+                        if wake_bundle.get("deployment_ready") is False
                         else "Live microphone · actions update simulated dashboard devices"
                     ),
                 )
