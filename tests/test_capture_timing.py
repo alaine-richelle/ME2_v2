@@ -320,13 +320,18 @@ def test_continuous_cli_installs_and_cancels_stop_timer(monkeypatch):
             calls.append("cancel")
     monkeypatch.setattr(app.threading, "Timer", Timer)
     monkeypatch.setattr(app, "build_streaming_pipeline", lambda *a, **k: object())
+    def select(args, sample_rate):
+        assert sample_rate == 16_000
+        args.audio_backend = "sounddevice"
+        args.alsa_device = "default"
+    monkeypatch.setattr(app, "_select_capture_for_args", select)
     def run(pipeline, *, input_device, audio_backend, alsa_device, stop_event):
         assert audio_backend == "sounddevice" and alsa_device == "default"
         assert stop_event.is_set()
         calls.append("run")
     monkeypatch.setattr(app, "run_microphone_stream", run)
     app._run_continuous_interactive(parse_args(["--interactive", "--session-seconds", "20"]),
-                                   None, {}, None, {})
+                                   None, {"audio": {"sample_rate": 16_000}}, None, {})
     assert calls == ["start", "run", "cancel"]
 
 

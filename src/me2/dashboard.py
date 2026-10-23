@@ -30,6 +30,7 @@ from me2.app import (
     build_streaming_pipeline,
 )
 from me2.app import build_parser as inference_parser
+from me2.audio_devices import resolve_alsa_device, select_capture_input, validate_alsa_device
 from me2.dashboard_audio import DashboardAudioPlayer, WakeChimePlayer
 from me2.logging_utils import configure_logging, log_event
 from me2.streaming import (
@@ -186,8 +187,8 @@ def load_settings(path: Path) -> dict:
     if isinstance(output_device, str) and output_device.isdecimal():
         config["music"]["output_device"] = int(output_device)
     audio_backend = config.get("audio_backend", "sounddevice")
-    if audio_backend not in {"sounddevice", "arecord"}:
-        raise ValueError("audio_backend must be 'sounddevice' or 'arecord'")
+    if audio_backend not in {"auto", "sounddevice", "arecord"}:
+        raise ValueError("audio_backend must be auto, sounddevice, or arecord")
     config["audio_backend"] = audio_backend
     alsa_device = config.get("alsa_device", "default")
     if not isinstance(alsa_device, str) or not _ALSA_DEVICE.fullmatch(alsa_device):
@@ -846,18 +847,36 @@ class Dashboard:
             _require_live_wake_readiness(
                 wake_bundle, allow_unverified=self.allow_unverified
             )
-            args.audio_backend = self.settings.get("audio_backend", "sounddevice")
-            args.alsa_device = self.settings.get("alsa_device", "default")
-            if args.audio_backend == "sounddevice":
+            selection = select_capture_input(
+                self.settings.get("audio_backend", "auto"),
+                input_device=args.input_device,
+                alsa_device=self.settings.get("alsa_device", "auto"),
+                sample_rate=int(wake_bundle["audio"]["sample_rate"]),
+            )
+            args.audio_backend = selection.backend
+            args.input_device = selection.input_device
+            args.alsa_device = selection.alsa_device or self.settings.get("alsa_device", "auto")
+            if args.audio_backend == "arecord":
+                validate_alsa_device("capture", args.alsa_device)
+                device = f"ALSA {args.alsa_device}"
+            else:
                 import sounddevice as sd
 
-                sd.check_input_settings(
-                    device=args.input_device, channels=1, dtype="float32",
-                    samplerate=int(wake_bundle["audio"]["sample_rate"]),
-                )
                 device = sd.query_devices(args.input_device, kind="input")["name"]
-            else:
-                device = f"ALSA {args.alsa_device}"
+            acknowledgement = self.settings.get("wake_acknowledgement", {})
+            if acknowledgement.get("enabled"):
+                output_device, _ = resolve_alsa_device(
+                    "playback", acknowledgement.get("alsa_device", "auto")
+                )
+                validate_alsa_device("playback", output_device)
+                self.wake_chime.alsa_device = output_device
+            if self.settings.get("music", {}).get("playback_enabled", False):
+                import sounddevice as sd
+
+                sd.check_output_settings(
+                    device=self.settings["music"].get("output_device"), channels=1,
+                    dtype="float32", samplerate=self.audio_player.sample_rate,
+                )
             pipeline = build_streaming_pipeline(
                 args,
                 wake_model,

@@ -12,8 +12,8 @@ from me2.contracts import finite, integer
 @dataclass(frozen=True)
 class RuntimeSettings:
     threads: int = 2
-    audio_backend: str = "sounddevice"
-    alsa_device: str = "default"
+    audio_backend: str = "auto"
+    alsa_device: str = "auto"
     stream_chunk_ms: float = 100.0
     wake_hop_ms: float = 250.0
     pre_roll_ms: float = 250.0
@@ -26,8 +26,8 @@ class RuntimeSettings:
     queue_chunks: int = 32
 
     def __post_init__(self) -> None:
-        if self.audio_backend not in {"sounddevice", "arecord"}:
-            raise ValueError("audio_backend must be 'sounddevice' or 'arecord'")
+        if self.audio_backend not in {"auto", "sounddevice", "arecord"}:
+            raise ValueError("audio_backend must be auto, sounddevice, or arecord")
         if not isinstance(self.alsa_device, str) or not self.alsa_device.strip():
             raise ValueError("alsa_device must be a non-empty ALSA device name")
         integer("threads", self.threads, 1, 64)

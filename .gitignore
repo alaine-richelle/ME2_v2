@@ -18,5 +18,8 @@ wake-word/data/generated/
 !wake-word/models/*.pkl
 logs/*.log
 results/tmp/
+results/microphone-check-*.wav
+results/pipewire-microphone-check-*.wav
+results/alsa-microphone-check-*.wav
 .DS_Store
 dashboard-state/

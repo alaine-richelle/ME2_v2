@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import logging
+import math
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -22,6 +24,7 @@ from me2.audio import (
     prepare_audio,
     prepare_audio_sequence,
 )
+from me2.audio_devices import AudioDeviceError, select_capture_input, validate_alsa_device
 from me2.bundle import load_bundle, predict_command, predict_waveform
 from me2.io_utils import file_sha256
 from me2.logging_utils import config_hash, configure_logging, log_event
@@ -95,7 +98,28 @@ def _wake_result(model, bundle: dict, waveform: np.ndarray) -> tuple[bool, str, 
     return detected, label, wake_probability, elapsed_ms
 
 
-def _capture(duration_seconds: float, sample_rate: int, input_device: str | int | None = None) -> np.ndarray:
+def _capture(
+    duration_seconds: float,
+    sample_rate: int,
+    input_device: str | int | None = None,
+    *,
+    audio_backend: str = "sounddevice",
+    alsa_device: str = "auto",
+) -> np.ndarray:
+    if audio_backend == "arecord":
+        frames = round(duration_seconds * sample_rate)
+        capture_seconds = max(1, math.ceil(duration_seconds))
+        try:
+            result = subprocess.run(
+                ["arecord", "-q", "-D", alsa_device, "-t", "raw", "-f", "S16_LE",
+                 "-r", str(sample_rate), "-c", "1", "-d", str(capture_seconds), "-"],
+                capture_output=True, check=False, timeout=capture_seconds + 5,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise RuntimeError("Microphone capture failed: capture_device_unavailable") from error
+        if result.returncode or len(result.stdout) < frames * 2:
+            raise RuntimeError("Microphone capture failed: capture_device_unavailable")
+        return np.frombuffer(result.stdout[:frames * 2], dtype="<i2").astype(np.float32) / 32768.0
     try:
         import sounddevice as sd
     except ImportError as error:
@@ -118,6 +142,21 @@ def _capture(duration_seconds: float, sample_rate: int, input_device: str | int 
     finally:
         sd.stop()
     return recording[:, 0]
+
+
+def _select_capture_for_args(args: argparse.Namespace, sample_rate: int) -> None:
+    selection = select_capture_input(
+        args.audio_backend,
+        input_device=args.input_device,
+        alsa_device=args.alsa_device,
+        sample_rate=sample_rate,
+    )
+    args.audio_backend = selection.backend
+    args.input_device = selection.input_device
+    args.alsa_device = selection.alsa_device or args.alsa_device
+    if args.audio_backend == "arecord":
+        validate_alsa_device("capture", args.alsa_device)
+    LOGGER.info("Selected microphone backend=%s source=%s", selection.backend, selection.selection_source)
 
 
 def _predict_vcm(
@@ -178,8 +217,12 @@ def _run_wake(args: argparse.Namespace) -> None:
     print("[LISTENING] Waiting for wake word...")
     duration = float(bundle["audio"]["duration_seconds"])
     rate = int(bundle["audio"]["sample_rate"])
+    _select_capture_for_args(args, rate)
     while True:
-        waveform = _capture(duration, rate, args.input_device)
+        waveform = _capture(
+            duration, rate, args.input_device,
+            audio_backend=args.audio_backend, alsa_device=args.alsa_device,
+        )
         waveform = prepare_audio(waveform, rate, AudioConfig(**bundle["audio"]))
         detected, label, score, elapsed = _wake_result(model, bundle, waveform)
         log_event(LOGGER, "wake_result", wake_detected=detected, score=score, total_ms=elapsed)
@@ -194,11 +237,14 @@ def _run_vcm(args: argparse.Namespace) -> None:
     if args.audio:
         waveform, sample_length = _load_vcm_wav(bundle, args.audio)
     else:
+        _select_capture_for_args(args, int(bundle["audio"]["sample_rate"]))
         print("[LISTENING] Waiting for command...")
         waveform = _capture(
             float(bundle["audio"]["duration_seconds"]),
             int(bundle["audio"]["sample_rate"]),
             args.input_device,
+            audio_backend=args.audio_backend,
+            alsa_device=args.alsa_device,
         )
         waveform, sample_length = _prepare_vcm_audio(
             bundle, waveform, int(bundle["audio"]["sample_rate"])
@@ -292,6 +338,7 @@ def _run_continuous_interactive(
     vcm_model,
     vcm_bundle: dict,
 ) -> None:
+    _select_capture_for_args(args, int(wake_bundle["audio"]["sample_rate"]))
     def on_wake(label, score, elapsed, detected, status) -> None:
         del label, score, elapsed, detected
         if status["mode"] == "both_failed":
@@ -572,14 +619,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input-device", help="Microphone device name or index (default: system input)")
     parser.add_argument(
         "--audio-backend",
-        choices=("sounddevice", "arecord"),
+        choices=("auto", "sounddevice", "arecord"),
         default=RuntimeSettings().audio_backend,
-        help="Microphone capture backend; arecord uses direct ALSA PCM",
+        help="Microphone backend; auto prefers shared system input then direct ALSA fallback",
     )
     parser.add_argument(
         "--alsa-device",
         default=RuntimeSettings().alsa_device,
-        help="ALSA PCM device for --audio-backend arecord (for example plughw:0,0)",
+        help=("ALSA PCM device for --audio-backend arecord "
+              "(for example plughw:CARD=Device,DEV=0; avoid unstable numeric card IDs)"),
     )
     parser.add_argument("--config", type=Path, help="Versioned runtime JSON; explicit CLI flags win")
     parser.add_argument("--threads", type=int, default=RuntimeSettings().threads)
@@ -706,7 +754,8 @@ def main() -> None:
     except Exception as error:
         if logging_ready:
             LOGGER.exception("Inference failed")
-        print(f"Inference failed ({type(error).__name__}); inspect safe logs and run me2-health.",
+        reason = str(error) if isinstance(error, AudioDeviceError) else type(error).__name__
+        print(f"Inference failed ({reason}); inspect safe logs and run me2-health.",
               file=sys.stderr)
         raise SystemExit(1) from error
     finally:

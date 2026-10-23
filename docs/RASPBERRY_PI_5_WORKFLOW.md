@@ -14,6 +14,48 @@ The dashboard is implemented in `src/me2/dashboard.py` and
 installed `me2-dashboard` command. It has no frontend build step, external
 fonts, CDN assets, or additional web framework dependency.
 
+## 0. Verify the pulled source revision before every Pi trial
+
+Every reboot, USB re-enumeration, and audio test must run from the reviewed
+revision supplied with the test handoff. Do not test a dirty worktree or a
+locally edited copy. From the Pi checkout, set the branch and expected commit
+from that handoff:
+
+```sh
+cd /home/me2/ME2_v2
+ME2_BRANCH='master'
+ME2_EXPECTED_SHA='REPORTED_COMMIT_SHA'
+
+git status --short
+git branch --show-current
+git remote get-url origin
+git fetch --prune origin
+git pull --ff-only origin "$ME2_BRANCH"
+git rev-parse HEAD
+test "$(git rev-parse HEAD)" = "$ME2_EXPECTED_SHA"
+```
+
+Expected output is an empty `git status --short`, the intended branch name,
+the reviewed credential-free GitHub remote, a successful fast-forward or
+`Already up to date.`, and a final full SHA matching `ME2_EXPECTED_SHA`. Stop
+and report instead of testing if the worktree is dirty, the branch differs,
+the remote is unavailable or unexpected, `pull --ff-only` reports a conflict,
+or the final SHA does not match. Do not resolve conflicts, reset, force-push,
+or substitute a local archive during a Pi validation session.
+
+Sync the already approved inference environment after the source identity is
+verified. Prefer the pinned/wheelhouse installation procedure in the current
+release handoff when one is supplied; otherwise the project runtime extra is:
+
+```sh
+.venv/bin/python -m pip install -e '.[microphone]'
+.venv/bin/python -m pip check
+```
+
+Expected output ends with `No broken requirements found.` Stop on an install,
+wheel, import, or dependency-resolution failure. Record the exact environment
+only after this revision and dependency sync succeed.
+
 ## 1. Finish training and choose a release
 
 **Current status, 2026-10-06:** no wake artifact has passed deployment review.
@@ -183,42 +225,119 @@ the release. Inference startup does not download models or datasets.
 
 ## 6. Identify and verify the microphone
 
-On the Pi:
+On the Pi, start with the repository's discovery helper. It only lists ALSA
+devices and processes that currently hold audio nodes; it does not open a
+capture stream or save audio:
 
 ```sh
-arecord -l
-.venv/bin/python -m sounddevice
+scripts/pi5_audio_capture_check.sh --inspect
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.health \
+  --config config/runtime.pi5.natural-pause.json --devices --playback-devices
 ```
 
-Choose an input-capable device from `sounddevice`'s list. Its indices are
-PortAudio indices, not ALSA card numbers. Prefer a unique stable device name
-in `config/dashboard.json`; numeric indices can change after reconnects.
-The API supports device enumeration and input-format checks. [S5]
+Choose a **named** capture PCM shown by `arecord -L`, such as
+`plughw:CARD=Device,DEV=0`. Do not assume `plughw:0,0`: numeric card IDs can
+change across boots or USB ports. The corresponding `arecord -l` entry must
+be a capture device, and `/proc/asound/pcm` must include `capture 1`.
 
-Replace `YOUR INPUT DEVICE NAME` in this **Pi** check:
+The Pi profiles now use `audio_backend: "auto"` and `alsa_device: "auto"`.
+At runtime, ME2 first validates the shared system/default microphone through
+PortAudio (normally PipeWire/PulseAudio-managed). If that path is unavailable,
+it enumerates ALSA capture devices and selects the one unambiguous candidate
+as a named `plughw:CARD=...,DEV=...` PCM. It never persists a numeric card
+number. With two matching devices, it fails with `ambiguous_capture_device`;
+set `alsa_device` to `name:UNIQUE_NAME_FRAGMENT` or an explicit named ALSA
+PCM. `default` intentionally uses the shared ALSA default; `arecord` remains
+the explicit direct-hardware fallback.
+
+Check that the selected PCM can provide the bundle's required format without
+saving audio:
 
 ```sh
-.venv/bin/python - <<'PY'
-import sounddevice as sd
-import soundfile as sf
-
-device = "YOUR INPUT DEVICE NAME"
-sd.check_input_settings(device=device, channels=1, dtype="float32", samplerate=16000)
-print(sd.query_devices(device, kind="input"))
-audio = sd.rec(3 * 16000, samplerate=16000, channels=1, dtype="float32", device=device)
-sd.wait()
-sf.write("fixtures/microphone-check.wav", audio, 16000)
-print("Saved fixtures/microphone-check.wav")
-PY
+scripts/pi5_audio_capture_check.sh --probe \
+  --device 'plughw:CARD=Device,DEV=0'
 ```
 
-Listen to that recording, locally or after copying it to the workstation.
-Check speech level, noise, clipping and channel selection. The implemented
-live stream requests **16 kHz mono** for the present bundles. It does not
-resample a native 48 kHz microphone stream in real time. If this exact format
-is unsupported, select/configure an ALSA conversion device and verify it, or
-add a tested resampling capture adapter before proceeding. File inference
-does support resampling.
+The current bundles require **16 kHz mono** input. `plughw` is normally
+preferable because it can convert a USB microphone's native format. The live
+stream does not resample a native 48 kHz microphone stream itself. File
+inference does support resampling.
+
+Only after separate operator approval, make one bounded, local capture for
+level/channel validation. The helper requires the approval variable, writes
+only under `results/`, refuses to overwrite a file, prints technical signal
+metrics only, and the generated WAV path is Git-ignored:
+
+```sh
+ME2_AUDIO_CAPTURE_APPROVED=1 scripts/pi5_audio_capture_check.sh \
+  --record --device 'plughw:CARD=Device,DEV=0' \
+  --output "results/microphone-check-${ME2_RUN_ID:-manual}.wav"
+```
+
+Expected output reports `sample_rate: 16000`, `channels: 1`, a duration near
+eight seconds, and nonzero RMS while speaking. Peak values near `1.0` indicate
+clipping. Delete the recording when validation is complete; do not commit or
+copy it into a test fixture.
+
+If direct ALSA capture returns `Device or resource busy`, inspect the holder
+before changing any service:
+
+```sh
+sudo fuser -v /dev/snd/*
+sudo lsof /dev/snd/*
+systemctl --user --type=service --state=running | grep -Ei 'pipewire|wireplumber|pulse'
+```
+
+An existing ME2/`arecord` process can be stopped only after its PID and command
+line have been confirmed. A desktop Pi commonly has PipeWire holding the USB
+PCM. First, when `pw-record` is installed, validate PipeWire capture without
+disrupting desktop audio. Obtain the USB source node ID from `wpctl status`;
+the bounded command may return status `124` because `timeout` intentionally
+ends it. Validate the resulting WAV without printing its contents:
+
+```sh
+command -v pw-record
+wpctl status
+ME2_AUDIO_CAPTURE_APPROVED=1 timeout --signal=INT --kill-after=2s 10s \
+  pw-record --target SOURCE_NODE_ID --rate 16000 --channels 1 \
+  "results/pipewire-microphone-check-${ME2_RUN_ID:-manual}.wav"
+scripts/pi5_audio_capture_check.sh --validate \
+  --input "results/pipewire-microphone-check-${ME2_RUN_ID:-manual}.wav"
+```
+
+This verifies the physical microphone and PipeWire source, but it does not
+make ME2's direct `arecord` backend share the device. Alternatively, try the
+advertised shared ALSA endpoint, for example `dsnoop:CARD=Device,DEV=0`, with
+the same probe or approved-record command. If direct `plughw` capture is
+specifically required, stop **only** the identified per-user
+PipeWire/WirePlumber units, retry the bounded check, and restore them
+immediately:
+
+```sh
+systemctl --user stop wireplumber.service
+systemctl --user stop pipewire-pulse.service
+systemctl --user stop pipewire.service
+
+# Run the approved direct-ALSA check here.
+
+systemctl --user start pipewire.service
+systemctl --user start wireplumber.service
+systemctl --user start pipewire-pulse.service
+```
+
+This temporarily disrupts desktop audio. Do not indiscriminately kill audio
+services. If socket activation restarts PipeWire, inspect and, only for the
+short test, stop `pipewire.socket` and `pipewire-pulse.socket`; start both
+again before returning the Pi to normal use. A Pi 5 has no built-in analog
+microphone capture input: the USB microphone/audio interface or installed I2S
+capture hardware must appear in ALSA before ME2 can use it.
+
+Playback is selected separately. The optional wake chime defaults to disabled;
+when enabled with `alsa_device: "auto"`, the dashboard enumerates playback
+devices and validates exactly one candidate before inference. Multiple output
+candidates fail with `ambiguous_playback_device`; configure a stable
+`name:UNIQUE_NAME_FRAGMENT` selector instead. This avoids selecting an HDMI
+output merely because it has the lowest card number.
 
 Keep the microphone clear of the cooling fan and speakers. Do not run the
 CLI and the dashboard microphone worker simultaneously.

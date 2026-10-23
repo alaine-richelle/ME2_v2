@@ -17,6 +17,7 @@ import numpy as np
 import psutil
 import torch
 
+from me2.audio_devices import AudioDeviceError, list_alsa_devices, resolve_alsa_device
 from me2.bundle import load_bundle, predict_command, predict_waveform
 from me2.contracts import integer
 from me2.io_utils import atomic_json, file_sha256
@@ -110,6 +111,29 @@ def inspect_input_devices(
     device, sample_rate: int, *, audio_backend="sounddevice", alsa_device="default"
 ) -> dict:
     """Enumerate the configured input backend without opening a capture stream."""
+    if audio_backend == "auto":
+        try:
+            report = inspect_input_devices(
+                device, sample_rate, audio_backend="sounddevice", alsa_device=alsa_device
+            )
+            report["requested_audio_backend"] = "auto"
+            report["selection_source"] = "shared_default"
+            return report
+        except Exception:  # noqa: BLE001 -- auto fallback deliberately normalizes host audio errors.
+            try:
+                selected, source = resolve_alsa_device("capture", alsa_device)
+            except AudioDeviceError as error:
+                return {
+                    "input_devices": [], "audio_backend": "auto",
+                    "device_error": f"{error.code}_capture_device",
+                }
+            report = inspect_input_devices(
+                None, sample_rate, audio_backend="arecord", alsa_device=selected
+            )
+            report["requested_audio_backend"] = "auto"
+            report["selection_source"] = source
+            report["alsa_device"] = selected
+            return report
     if audio_backend == "arecord":
         executable = shutil.which("arecord")
         if executable is None:
@@ -171,6 +195,21 @@ def probe_input_devices(
     return json.loads(child.stdout)
 
 
+def inspect_output_devices(alsa_device="auto") -> dict:
+    """Enumerate a stable playback choice without playing a sound."""
+    try:
+        selected, source = resolve_alsa_device("playback", alsa_device)
+        devices = [item.as_dict() for item in list_alsa_devices("playback")]
+    except AudioDeviceError as error:
+        return {"output_devices": [], "playback_device_error": error.code}
+    return {
+        "output_devices": devices,
+        "playback_device": selected,
+        "playback_selection_source": source,
+        "playback_format_check": "not_run_no_playback",
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", type=Path, action="append", default=[])
@@ -180,8 +219,9 @@ def main() -> None:
     parser.add_argument("--require-pi5", action="store_true")
     parser.add_argument("--require-approved-wake", action="store_true")
     parser.add_argument("--devices", action="store_true", help="Inspect input devices; no capture")
+    parser.add_argument("--playback-devices", action="store_true", help="Inspect output devices; no playback")
     parser.add_argument("--input-device")
-    parser.add_argument("--audio-backend", choices=("sounddevice", "arecord"))
+    parser.add_argument("--audio-backend", choices=("auto", "sounddevice", "arecord"))
     parser.add_argument("--alsa-device")
     parser.add_argument("--sample-rate", type=int, default=16000)
     parser.add_argument("--output", type=Path)
@@ -220,8 +260,8 @@ def main() -> None:
             )
             audio_backend = audio_backend or defaults.get("audio_backend", "sounddevice")
             alsa_device = alsa_device or defaults.get("alsa_device", "default")
-        audio_backend = audio_backend or "sounddevice"
-        alsa_device = alsa_device or "default"
+        audio_backend = audio_backend or "auto"
+        alsa_device = alsa_device or "auto"
         report["audio_backend"] = audio_backend
         if args.sha256 and len(args.model) != 1:
             raise ValueError("checksum_requires_exactly_one_artifact")
@@ -237,6 +277,10 @@ def main() -> None:
             ))
             if report.get("device_error"):
                 raise RuntimeError(report["device_error"])
+        if args.playback_devices:
+            report.update(inspect_output_devices(alsa_device))
+            if report.get("playback_device_error"):
+                raise RuntimeError(report["playback_device_error"])
         report["rss_bytes"] = psutil.Process().memory_info().rss
         report["status"] = "passed_operator_health_not_deployment_approval"
     except Exception as error:  # noqa: BLE001 -- CLI boundary records failure and exits nonzero.
