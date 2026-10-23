@@ -42,6 +42,23 @@ Create an external `manifest.json` under
 `me2-wake-corpus-consent --manifest MANIFEST` before recording; it requires at
 least three independent, partition-disjoint consented speakers.
 
+For an existing real-recording corpus, do not add raw WAVs or its detailed
+manifest to Git. First produce a separate external derived manifest under the
+same evidence root. It must contain its source-manifest SHA-256, a consented
+opaque speaker roster, and per-record opaque IDs, external paths, hashes,
+labels, review statuses, original partition, and proposed train/validation/
+held-out partition. Run:
+
+```sh
+me2-wake-ingestion-audit --manifest EXTERNAL_MANIFEST --output EXTERNAL_REPORT
+```
+
+The audit permits only granted-consent speakers, accepted-review records,
+16 kHz mono PCM-16 WAVs, matching hashes, and speaker-disjoint partitions. It
+prints and writes aggregate counts only. A passing audit merely permits a
+future training proposal; it does not authorize training, calibration, model
+promotion, or replacement.
+
 ## Pi regression matrix
 
 For muted playback then approved normal-speaker trials, record only aggregate
