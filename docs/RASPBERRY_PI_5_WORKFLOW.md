@@ -480,6 +480,97 @@ Expected output is a structured accepted or rejected command result and a
 decoder score, without a device error. A fixture/model/runtime failure is a
 Step 7 failure, not evidence about the microphone session.
 
+### Physical reboot and USB re-enumeration validation
+
+The following checks are **Pi-operator-only**. Local unit tests can prove that
+selection uses a stable card identity rather than a numeric card observation,
+but cannot prove USB hardware, PipeWire, reboot, microphone gain, or speaker
+behavior. Use the known baseline revision
+`b5923ca5f5517c355aaf9fc2bc2fcc372b897c43` or a later reviewed handoff
+revision, and run the revision gate before every condition:
+
+```sh
+cd /home/rpiadmin/ME2_v2
+ME2_EXPECTED_SHA='b5923ca5f5517c355aaf9fc2bc2fcc372b897c43'
+ME2_COMMAND_WAV='/home/rpiadmin/me2-approved-fixtures/test_sample.wav'
+
+if test -n "$(git status --porcelain)"; then
+  echo 'STOP: worktree is dirty.' >&2
+  exit 1
+fi
+git fetch --prune origin
+git pull --ff-only origin master
+test "$(git rev-parse HEAD)" = "$ME2_EXPECTED_SHA"
+if ! test -r "$ME2_COMMAND_WAV"; then
+  echo 'STOP: approved command fixture is missing or unreadable.' >&2
+  exit 1
+fi
+```
+
+Before each condition, ensure no prior ME2 or direct capture process remains.
+PipeWire/WirePlumber ownership is normal for shared-default mode; do not kill
+those services merely because they appear in this inspection:
+
+```sh
+pgrep -af 'me2\.app|arecord' || true
+sudo fuser -v /dev/snd/* || true
+```
+
+Stop the condition if a previous `me2.app` or `arecord` process is still
+active. Record numeric ALSA card values only as observations; never promote
+`plughw:N,N` into configuration. The automatic runtime selects shared default
+audio first, then one unambiguous named ALSA candidate. Use `name:FRAGMENT`
+only when the fragment uniquely identifies the intended device.
+
+For every condition, create a new run ID and execute this baseline sequence:
+
+```sh
+ME2_RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
+scripts/pi5_audio_capture_check.sh --inspect
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.health \
+  --require-pi5 --config config/runtime.pi5.natural-pause.json \
+  --devices --output "results/pi5-input-${ME2_RUN_ID}.json"
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.health \
+  --playback-devices --output "results/pi5-output-${ME2_RUN_ID}.json"
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
+  --interactive --config config/runtime.pi5.natural-pause.json \
+  --session-seconds 30 --allow-unverified-wake-model \
+  --log-file "logs/pi5-reenumeration-${ME2_RUN_ID}.jsonl"
+```
+
+Expected safe patterns are `aarch64`/Pi health success, an automatic
+`shared_default` or `named_alsa` capture selection, no queue/callback loss,
+and aggregate-only wake/capture diagnostics. A successful file VCM result is
+separate from a complete live wake-to-endpoint-to-decode result; require an
+actual endpoint and `command_result` before claiming live completion.
+
+Perform the physical conditions in this order:
+
+| Condition | Physical action before the baseline sequence | Pass criteria | Stop/failure action |
+| --- | --- | --- | --- |
+| Baseline | Leave microphone and speaker connected. | Capture health succeeds; record observed card labels only. | Repair missing/busy/ambiguous device first. |
+| Reboot | Run `sudo reboot`, reconnect, then run the revision gate and baseline sequence. | Same stable selection outcome or documented shared default; no config edit. | Stop on dirty tree, wrong SHA, or unavailable device. |
+| Microphone moved | Stop ME2, move only the USB microphone to another port, wait for enumeration. | Input health and supervised session work without numeric configuration. | Reconnect/check cable; use unique `name:` selector only if ambiguity is reported. |
+| Speaker moved | Stop ME2, move only the USB speaker/output, wait for enumeration. | Playback health identifies one output or safely reports ambiguity. | Keep chime/music disabled until a unique output selector is reviewed. |
+| Both moved | Stop ME2, move both devices, wait for enumeration. | Input and playback checks each reach their documented safe state; no stale capture process. | Treat any changed/missing/ambiguous result as a new condition, not a pass. |
+
+Only after a condition's supervised session has no fatal stream/device issue
+and reaches endpointing or an actionable documented rejection, run Step 7:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
+  --vcm --config config/runtime.pi5.natural-pause.json \
+  --audio "$ME2_COMMAND_WAV" --threads 2 \
+  --log-file "logs/pi5-reenumeration-step7-${ME2_RUN_ID}.jsonl"
+```
+
+Step 7 passes only when its fixture decision matches the independently
+reviewed expected outcome and it exits without a runtime/device error. It does
+not replace the live endpoint/decode criterion above.
+
 ## 7. Check models before integrating the UI
 
 On the Pi, always pass both model paths explicitly for CLI replay:

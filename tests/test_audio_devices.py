@@ -45,6 +45,45 @@ def test_alsa_name_selector_survives_card_renumbering(monkeypatch):
     )
 
 
+def test_alsa_auto_selection_is_identical_after_numeric_card_renumbering(monkeypatch):
+    import me2.audio_devices as devices
+
+    monkeypatch.setattr(devices.shutil, "which", lambda _: "/usr/bin/arecord")
+    before = lambda *args, **kwargs: _listing(
+        "card 2: USBMic [C-Media USB Audio], device 0: USB Audio [USB Audio]"
+    )
+    after = lambda *args, **kwargs: _listing(
+        "card 7: USBMic [C-Media USB Audio], device 0: USB Audio [USB Audio]"
+    )
+    assert resolve_alsa_device("capture", "auto", runner=before)[0] == (
+        "plughw:CARD=USBMic,DEV=0"
+    )
+    assert resolve_alsa_device("capture", "auto", runner=after)[0] == (
+        "plughw:CARD=USBMic,DEV=0"
+    )
+
+
+def test_alsa_selection_fails_closed_when_device_is_missing(monkeypatch):
+    import me2.audio_devices as devices
+
+    monkeypatch.setattr(devices.shutil, "which", lambda _: "/usr/bin/arecord")
+    runner = lambda *args, **kwargs: _listing("no soundcards found")
+    with pytest.raises(AudioDeviceError, match="no_capture_device"):
+        resolve_alsa_device("capture", "auto", runner=runner)
+
+
+def test_alsa_auto_refuses_ambiguous_playback_devices(monkeypatch):
+    import me2.audio_devices as devices
+
+    monkeypatch.setattr(devices.shutil, "which", lambda _: "/usr/bin/aplay")
+    runner = lambda *args, **kwargs: _listing(
+        "card 0: HDMI [vc4-hdmi-0], device 0: HDMI 0 [HDMI 0]",
+        "card 1: Device [USB Audio Device], device 0: USB Audio [USB Audio]",
+    )
+    with pytest.raises(AudioDeviceError, match="ambiguous_playback_device"):
+        resolve_alsa_device("playback", "auto", runner=runner)
+
+
 def test_alsa_auto_refuses_ambiguous_identical_capture_devices(monkeypatch):
     import me2.audio_devices as devices
 
