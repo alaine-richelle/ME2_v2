@@ -56,6 +56,22 @@ Expected output ends with `No broken requirements found.` Stop on an install,
 wheel, import, or dependency-resolution failure. Record the exact environment
 only after this revision and dependency sync succeed.
 
+For the approved Pi VCM replay, keep the reviewed WAV outside the repository
+and provide it only through this local variable. The runtime log records the
+decision and timing, not WAV contents; do not copy, commit, or print the
+fixture path beyond this operator session:
+
+```sh
+ME2_COMMAND_WAV='/home/rpiadmin/me2-approved-fixtures/test_sample.wav'
+if ! test -r "$ME2_COMMAND_WAV"; then
+  echo 'STOP: approved command fixture is missing or unreadable.' >&2
+  exit 1
+fi
+```
+
+Expected output is silent with exit status zero. Stop if the fixture check
+fails; do not substitute a repository sample or an unreviewed recording.
+
 ## 1. Finish training and choose a release
 
 **Current status, 2026-10-06:** no wake artifact has passed deployment review.
@@ -176,10 +192,13 @@ approved models exist, transfer those instead and update both model paths in
 CLI `--wake-model` and `--vcm-model` overrides are relative to the shell's
 working directory.
 
-Also copy independently reviewed WAVs as `fixtures/wake.wav` and
-`fixtures/command.wav`. Include command-without-wake and out-of-scope clips
-for the later validation. Do not transfer the workstation's `.venv`, training
-datasets, legacy pickles, or experimental model collection.
+For this approved Pi procedure, copy only the independently reviewed wake WAV
+as `fixtures/wake.wav`. Keep the approved command WAV at the separately
+controlled external path defined by `ME2_COMMAND_WAV` in section 0; do not
+copy it into the repository. Keep command-without-wake and out-of-scope clips
+in their separately controlled test location. Do not transfer the
+workstation's `.venv`, training datasets, legacy pickles, or experimental
+model collection.
 
 Record hashes for the exact selected bundles on the workstation (macOS):
 
@@ -351,7 +370,7 @@ On the Pi, always pass both model paths explicitly for CLI replay:
   --wake-model wake-word/models/wake_word_v5_regularized_seed43.me2 \
   --vcm-model vcm/models/vcm_ctc_model.me2 \
   --wake-audio fixtures/wake.wav \
-  --command-audio fixtures/command.wav
+  --command-audio "$ME2_COMMAND_WAV"
 ```
 
 This two-file check verifies loading and a simple wake gate. It is not a
@@ -364,7 +383,7 @@ Benchmark both artifacts on the actual Pi:
 .venv/bin/python -m me2.benchmark fixtures/wake.wav \
   --model wake-word/models/wake_word_v5_regularized_seed43.me2 \
   --iterations 200 --threads 2 --output results/pi5_wake_benchmark.json
-.venv/bin/python -m me2.benchmark fixtures/command.wav \
+.venv/bin/python -m me2.benchmark "$ME2_COMMAND_WAV" \
   --model vcm/models/vcm_ctc_model.me2 \
   --iterations 200 --threads 2 --output results/pi5_vcm_benchmark.json
 vcgencmd measure_temp
