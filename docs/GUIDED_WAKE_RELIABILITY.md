@@ -33,6 +33,15 @@ requires documented wake recall, negative-session false-trigger, endpoint, and
 connected-command targets on the same candidate/baseline policy. Fine-tune VCM
 only if evaluation of correctly segmented commands demonstrates a need.
 
+Create an external `manifest.json` under
+`/home/rpiadmin/me2-validation-evidence/wake-corpus/` with only
+`schema_version` and `speakers`. Each speaker entry requires opaque
+`speaker_id` (`spk-...`), `consent_status: "granted"`, `consent_time`,
+`recording_condition`, `device_profile`, and one `partition` (`train`,
+`validation`, or `held_out`). No names or raw identifiers are permitted. Run
+`me2-wake-corpus-consent --manifest MANIFEST` before recording; it requires at
+least three independent, partition-disjoint consented speakers.
+
 ## Pi regression matrix
 
 For muted playback then approved normal-speaker trials, record only aggregate
