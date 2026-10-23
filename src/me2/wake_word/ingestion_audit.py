@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,8 @@ from me2.wake_word.data import CANONICAL_WAKE_LABEL, CLASSES
 PRIVATE_ROOT = Path("/home/rpiadmin/me2-validation-evidence/wake-corpus").resolve()
 _PARTITIONS = {"train", "validation", "held_out"}
 _SPEAKER_PREFIX = "spk-"
+_OPAQUE_SPEAKER_ID = re.compile(r"spk-[a-z0-9]{6,32}")
+_OPAQUE_RECORDING_ID = re.compile(r"(?:rec|src)-[a-z0-9]{6,64}")
 _REQUIRED_SPEAKER = {
     "speaker_id",
     "consent_status",
@@ -67,6 +70,10 @@ def _require_string(record: dict[str, Any], field: str) -> str:
     return value
 
 
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+
+
 def _validate_speakers(speakers: Any) -> dict[str, str]:
     if not isinstance(speakers, list) or len(speakers) < 3:
         raise ValueError("at least three consented speakers are required")
@@ -75,7 +82,7 @@ def _validate_speakers(speakers: Any) -> dict[str, str]:
         if not isinstance(speaker, dict) or set(speaker) != _REQUIRED_SPEAKER:
             raise ValueError("speaker entries must contain only required consent/provenance fields")
         identifier = _require_string(speaker, "speaker_id")
-        if not identifier.startswith(_SPEAKER_PREFIX) or identifier in assignments:
+        if not _OPAQUE_SPEAKER_ID.fullmatch(identifier) or identifier in assignments:
             raise ValueError("speaker_id must be a unique opaque spk- identifier")
         if speaker["consent_status"] != "granted":
             raise ValueError("every included speaker requires granted consent")
@@ -99,7 +106,7 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
     if manifest["schema_version"] != 1 or not isinstance(manifest["corpus_id"], str):
         raise ValueError("manifest must have schema_version=1 and corpus_id")
     source_hash = _require_string(manifest, "source_manifest_sha256")
-    if len(source_hash) != 64 or any(char not in "0123456789abcdef" for char in source_hash):
+    if not _is_sha256(source_hash):
         raise ValueError("source_manifest_sha256 must be a lowercase SHA-256 digest")
     assignments = _validate_speakers(manifest["speakers"])
     records = manifest["records"]
@@ -117,6 +124,8 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
             raise ValueError("record entries must contain only the approved ingestion fields")
         recording_id = _require_string(record, "recording_id")
         source_id = _require_string(record, "source_recording_id")
+        if not _OPAQUE_RECORDING_ID.fullmatch(recording_id) or not _OPAQUE_RECORDING_ID.fullmatch(source_id):
+            issues.append("non_opaque_recording_identifier")
         if recording_id in ids or source_id in source_ids:
             issues.append("duplicate_recording_identifier")
         ids.add(recording_id)
@@ -127,6 +136,8 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
             issues.append("speaker_partition_mismatch")
         if partition not in _PARTITIONS:
             issues.append("unsupported_partition")
+        if record["source_partition"] not in _PARTITIONS:
+            issues.append("unsupported_source_partition")
         label = record["label"]
         if label not in CLASSES:
             issues.append("unsupported_label")
@@ -135,11 +146,11 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
         if label == CANONICAL_WAKE_LABEL and record["connected_delivery_status"] != "accepted":
             issues.append("unapproved_complete_wake")
         checksum = _require_string(record, "sha256")
-        if len(checksum) != 64 or any(char not in "0123456789abcdef" for char in checksum):
+        if not _is_sha256(checksum):
             issues.append("invalid_record_checksum")
             continue
         audio_path = _private_path(Path(_require_string(record, "path")))
-        if not audio_path.is_file():
+        if audio_path.suffix.casefold() != ".wav" or not audio_path.is_file():
             issues.append("missing_audio")
             continue
         try:
@@ -147,7 +158,12 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
         except RuntimeError:
             issues.append("invalid_audio")
             continue
-        if info.samplerate != 16_000 or info.channels != 1 or info.subtype != "PCM_16":
+        if (
+            info.samplerate != 16_000
+            or info.channels != 1
+            or info.subtype != "PCM_16"
+            or info.frames <= 0
+        ):
             issues.append("unsupported_audio_format")
         if _sha256(audio_path) != checksum:
             issues.append("checksum_mismatch")
@@ -166,7 +182,6 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
     valid = not issues
     return {
         "audit_schema_version": 1,
-        "corpus_id": manifest["corpus_id"],
         "records": len(records),
         "speakers": len(assignments),
         "partitions": {name: counts[("partition", name)] for name in sorted(_PARTITIONS)},
@@ -184,6 +199,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     output = _private_path(args.output)
+    manifest = _private_path(args.manifest)
+    if output == manifest or output.exists() or output.suffix.casefold() != ".json":
+        raise ValueError("output must be a new .json file distinct from the manifest")
     report = audit_manifest(args.manifest)
     output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, sort_keys=True))

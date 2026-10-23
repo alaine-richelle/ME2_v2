@@ -11,8 +11,8 @@ from me2.wake_word import ingestion_audit
 def _record(path, *, index, speaker, partition, label):
     sf.write(path, np.full(16_000, 0.1 + index * 0.01), 16_000, subtype="PCM_16")
     return {
-        "recording_id": f"record-{index}",
-        "source_recording_id": f"source-{index}",
+        "recording_id": f"rec-{index + 100000}",
+        "source_recording_id": f"src-{index + 100000}",
         "path": str(path),
         "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         "speaker_id": speaker,
@@ -57,7 +57,7 @@ def test_external_ingestion_audit_reports_only_aggregate_counts(tmp_path, monkey
     assert report["valid_for_training_proposal"]
     assert report["partitions"] == {"held_out": 1, "train": 1, "validation": 1}
     assert "path" not in json.dumps(report)
-    assert "record-" not in json.dumps(report)
+    assert "rec-" not in json.dumps(report)
 
 
 def test_external_ingestion_audit_rejects_partition_leakage(tmp_path, monkeypatch):
@@ -69,6 +69,42 @@ def test_external_ingestion_audit_rejects_partition_leakage(tmp_path, monkeypatc
     report = ingestion_audit.audit_manifest(path)
     assert not report["valid_for_training_proposal"]
     assert "speaker_partition_mismatch" in report["issues"]
+
+
+def test_external_ingestion_audit_rejects_non_partitioned_source_provenance(tmp_path, monkeypatch):
+    monkeypatch.setattr(ingestion_audit, "PRIVATE_ROOT", tmp_path.resolve())
+    manifest = _manifest(tmp_path)
+    manifest["records"][0]["source_partition"] = "unassigned"
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    report = ingestion_audit.audit_manifest(path)
+    assert not report["valid_for_training_proposal"]
+    assert "unsupported_source_partition" in report["issues"]
+
+
+def test_external_ingestion_audit_rejects_non_opaque_recording_ids(tmp_path, monkeypatch):
+    monkeypatch.setattr(ingestion_audit, "PRIVATE_ROOT", tmp_path.resolve())
+    manifest = _manifest(tmp_path)
+    manifest["records"][0]["recording_id"] = "alice-wake-01"
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    report = ingestion_audit.audit_manifest(path)
+    assert not report["valid_for_training_proposal"]
+    assert "non_opaque_recording_identifier" in report["issues"]
+
+
+def test_external_ingestion_audit_writes_a_new_aggregate_report(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(ingestion_audit, "PRIVATE_ROOT", tmp_path.resolve())
+    manifest = _manifest(tmp_path)
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    output = tmp_path / "audit-report.json"
+    ingestion_audit.main(["--manifest", str(path), "--output", str(output)])
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["valid_for_training_proposal"]
+    assert "path" not in capsys.readouterr().out
+    with pytest.raises(ValueError, match="new .json"):
+        ingestion_audit.main(["--manifest", str(path), "--output", str(output)])
 
 
 def test_external_ingestion_audit_refuses_non_external_manifest(tmp_path):

@@ -54,8 +54,10 @@ me2-wake-ingestion-audit --manifest EXTERNAL_MANIFEST --output EXTERNAL_REPORT
 ```
 
 The audit permits only granted-consent speakers, accepted-review records,
-16 kHz mono PCM-16 WAVs, matching hashes, and speaker-disjoint partitions. It
-prints and writes aggregate counts only. A passing audit merely permits a
+opaque `rec-...`/`src-...` record IDs, declared source and proposed partitions,
+nonempty 16 kHz mono PCM-16 WAVs, matching hashes, and speaker-disjoint
+partitions. The output must be a new external `.json` file; it prints and
+writes aggregate counts only. A passing audit merely permits a
 future training proposal; it does not authorize training, calibration, model
 promotion, or replacement.
 
