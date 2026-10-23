@@ -40,6 +40,7 @@ me2-wake-evaluate = "me2.wake_word.evaluate:main"
 me2-wake-private-calibrate = "me2.wake_word.private_calibration:main"
 me2-wake-corpus-consent = "me2.wake_word.corpus_consent:main"
 me2-wake-ingestion-audit = "me2.wake_word.ingestion_audit:main"
+me2-wake-training-proposal = "me2.wake_word.training_proposal:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

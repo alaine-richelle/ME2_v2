@@ -172,6 +172,7 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
         covered_speakers.add(speaker)
         counts[("partition", partition)] += 1
         counts[("label", label)] += 1
+        counts[("partition_label", partition, label)] += 1
         counts[("kind", record["kind"])] += 1
 
     cross_partition_duplicates = sum(len(partitions) > 1 for partitions in hashes.values())
@@ -186,8 +187,20 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
         "records": len(records),
         "speakers": len(assignments),
         "partitions": {name: counts[("partition", name)] for name in sorted(_PARTITIONS)},
-        "labels": dict(sorted((name, count) for (_, name), count in counts.items() if _ == "label")),
-        "kinds": dict(sorted((name, count) for (_, name), count in counts.items() if _ == "kind")),
+        "labels": dict(
+            sorted((key[1], count) for key, count in counts.items() if key[0] == "label")
+        ),
+        "labels_by_partition": {
+            partition: {
+                label: counts[("partition_label", partition, label)]
+                for label in CLASSES
+                if counts[("partition_label", partition, label)]
+            }
+            for partition in sorted(_PARTITIONS)
+        },
+        "kinds": dict(
+            sorted((key[1], count) for key, count in counts.items() if key[0] == "kind")
+        ),
         "cross_partition_duplicate_groups": cross_partition_duplicates,
         "valid_for_training_proposal": valid,
         "issues": sorted(set(issues)),

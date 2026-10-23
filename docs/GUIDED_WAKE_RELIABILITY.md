@@ -64,6 +64,19 @@ audit merely permits a
 future training proposal; it does not authorize training, calibration, model
 promotion, or replacement.
 
+After a passing audit, review its aggregate label coverage for the intended
+label mode before preparing a private training manifest:
+
+```sh
+me2-wake-training-proposal --audit-report EXTERNAL_REPORT \
+  --label-mode five_class --output EXTERNAL_PROPOSAL
+```
+
+The proposal requires every frozen partition to contain all five labels for
+`five_class` (or both wake/non-wake classes for `binary`). It only confirms
+readiness to prepare a private manifest; its `training_authorized` field is
+always false until a human explicitly approves a candidate run.
+
 ## Pi regression matrix
 
 For muted playback then approved normal-speaker trials, record only aggregate

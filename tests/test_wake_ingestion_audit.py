@@ -28,8 +28,9 @@ def _record(path, *, index, speaker, partition, label):
 def _manifest(root):
     speakers = []
     records = []
-    for index, partition in enumerate(("train", "validation", "calibration", "test")):
-        speaker = f"spk-{index + 123456}"
+    record_index = 0
+    for speaker_index, partition in enumerate(("train", "validation", "calibration", "test")):
+        speaker = f"spk-{speaker_index + 123456}"
         speakers.append({
             "speaker_id": speaker,
             "consent_status": "granted",
@@ -38,7 +39,17 @@ def _manifest(root):
             "device_profile": "pi-usb-microphone",
             "partition": partition,
         })
-        records.append(_record(root / f"{index}.wav", index=index, speaker=speaker, partition=partition, label="ateko" if index == 0 else "background"))
+        for label in ("ateko", "background", "a", "te", "ko"):
+            records.append(
+                _record(
+                    root / f"{record_index}-{label}.wav",
+                    index=record_index,
+                    speaker=speaker,
+                    partition=partition,
+                    label=label,
+                )
+            )
+            record_index += 1
     return {
         "schema_version": 2,
         "corpus_id": "wake-pilot-v6-derived",
@@ -55,7 +66,10 @@ def test_external_ingestion_audit_reports_only_aggregate_counts(tmp_path, monkey
     path.write_text(json.dumps(manifest), encoding="utf-8")
     report = ingestion_audit.audit_manifest(path)
     assert report["valid_for_training_proposal"]
-    assert report["partitions"] == {"calibration": 1, "test": 1, "train": 1, "validation": 1}
+    assert report["partitions"] == {"calibration": 5, "test": 5, "train": 5, "validation": 5}
+    assert report["labels_by_partition"]["train"] == {
+        "a": 1, "ateko": 1, "background": 1, "ko": 1, "te": 1
+    }
     assert "path" not in json.dumps(report)
     assert "rec-" not in json.dumps(report)
 
@@ -63,7 +77,7 @@ def test_external_ingestion_audit_reports_only_aggregate_counts(tmp_path, monkey
 def test_external_ingestion_audit_rejects_partition_leakage(tmp_path, monkeypatch):
     monkeypatch.setattr(ingestion_audit, "PRIVATE_ROOT", tmp_path.resolve())
     manifest = _manifest(tmp_path)
-    manifest["records"][1]["speaker_id"] = manifest["speakers"][0]["speaker_id"]
+    manifest["records"][5]["speaker_id"] = manifest["speakers"][0]["speaker_id"]
     path = tmp_path / "manifest.json"
     path.write_text(json.dumps(manifest), encoding="utf-8")
     report = ingestion_audit.audit_manifest(path)
