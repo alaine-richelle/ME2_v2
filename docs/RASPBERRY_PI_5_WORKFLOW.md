@@ -491,7 +491,8 @@ revision, and run the revision gate before every condition:
 
 ```sh
 cd /home/rpiadmin/ME2_v2
-ME2_EXPECTED_SHA='b5923ca5f5517c355aaf9fc2bc2fcc372b897c43'
+ME2_BASELINE_SHA='b5923ca5f5517c355aaf9fc2bc2fcc372b897c43'
+ME2_EXPECTED_SHA='REPORTED_REVIEWED_HANDOFF_SHA'
 ME2_COMMAND_WAV='/home/rpiadmin/me2-approved-fixtures/test_sample.wav'
 
 if test -n "$(git status --porcelain)"; then
@@ -500,6 +501,7 @@ if test -n "$(git status --porcelain)"; then
 fi
 git fetch --prune origin
 git pull --ff-only origin master
+git merge-base --is-ancestor "$ME2_BASELINE_SHA" HEAD
 test "$(git rev-parse HEAD)" = "$ME2_EXPECTED_SHA"
 if ! test -r "$ME2_COMMAND_WAV"; then
   echo 'STOP: approved command fixture is missing or unreadable.' >&2
