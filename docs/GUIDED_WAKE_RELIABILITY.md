@@ -77,6 +77,50 @@ The proposal requires every frozen partition to contain all five labels for
 readiness to prepare a private manifest; its `training_authorized` field is
 always false until a human explicitly approves a candidate run.
 
+### Evidence-host operator sequence
+
+Run the following only on the authorized evidence host, substituting the
+already-approved private files for the placeholders. Keep command output and
+all resulting JSON in the external evidence store; do not redirect it into the
+repository, normal logs, tickets, or chat.
+
+```sh
+# 1. Validate the consent roster before any corpus processing.
+me2-wake-corpus-consent --manifest EXTERNAL_CONSENT_MANIFEST
+
+# Expected safe output: schema_version 2, recording_enabled true, four
+# aggregate partitions (train, validation, calibration, test), and speaker_count >= 4.
+# STOP if the command exits non-zero or any listed condition is absent.
+
+# 2. Validate the derived corpus and write a new aggregate-only report.
+me2-wake-ingestion-audit \
+  --manifest EXTERNAL_DERIVED_MANIFEST \
+  --output EXTERNAL_AUDIT_REPORT
+
+# Expected safe output: audit_schema_version 2,
+# valid_for_training_proposal true, issues [], four nonzero partition counts,
+# and aggregate labels_by_partition only.
+# STOP if the command exits non-zero, valid_for_training_proposal is false,
+# issues is nonempty, a partition is empty, or the report contains a path,
+# speaker identifier, recording identifier, transcript, or raw metadata.
+
+# 3. Confirm aggregate label coverage without preparing or training a model.
+me2-wake-training-proposal \
+  --audit-report EXTERNAL_AUDIT_REPORT \
+  --label-mode five_class \
+  --output EXTERNAL_TRAINING_PROPOSAL
+
+# Expected safe output: proposal_schema_version 1,
+# ready_for_private_manifest_preparation true, and training_authorized false.
+# STOP if the command exits non-zero, readiness is false, authorization is
+# true, a required label is absent from any partition, or any output is not aggregate-only.
+```
+
+Do not run a training, calibration, evaluation, manifest-preparation, or model
+promotion command at this stage. The next action is a human review of the two
+aggregate reports and explicit written authorization for a separate private
+manifest-preparation proposal.
+
 ## Pi regression matrix
 
 For muted playback then approved normal-speaker trials, record only aggregate

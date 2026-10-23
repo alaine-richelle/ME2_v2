@@ -33,3 +33,36 @@ def test_training_proposal_refuses_missing_partition_label_coverage(tmp_path, mo
     report_path.write_text(json.dumps(report), encoding="utf-8")
     with pytest.raises(ValueError, match="lacks required label coverage"):
         training_proposal.review_audit_report(report_path, "five_class")
+
+
+def test_training_proposal_cli_writes_only_non_authorizing_aggregate_output(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.setattr(ingestion_audit, "PRIVATE_ROOT", tmp_path.resolve())
+    monkeypatch.setattr(training_proposal, "_private_path", ingestion_audit._private_path)
+    report_path = _audit_report(tmp_path)
+    output = tmp_path / "training-proposal.json"
+    training_proposal.main(
+        [
+            "--audit-report",
+            str(report_path),
+            "--label-mode",
+            "five_class",
+            "--output",
+            str(output),
+        ]
+    )
+    proposal = json.loads(output.read_text(encoding="utf-8"))
+    assert not proposal["training_authorized"]
+    assert "path" not in capsys.readouterr().out
+    with pytest.raises(ValueError, match="new .json"):
+        training_proposal.main(
+            [
+                "--audit-report",
+                str(report_path),
+                "--label-mode",
+                "five_class",
+                "--output",
+                str(output),
+            ]
+        )
