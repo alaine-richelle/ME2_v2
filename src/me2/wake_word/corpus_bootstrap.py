@@ -1,11 +1,16 @@
 """Create non-private templates for a consented external wake corpus."""
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 from typing import Any
 
-from me2.wake_word.corpus_consent import PRIVATE_ROOT, SCHEMA_VERSION, TRAINING_PARTITIONS
+from me2.wake_word.corpus_consent import (
+    PRIVATE_ROOT,
+    SCHEMA_VERSION,
+    TRAINING_PARTITIONS,
+)
 
 _TEMPLATE_DIRECTORY = "templates"
 _TEMPLATES: dict[str, dict[str, Any]] = {
@@ -123,8 +128,37 @@ def bootstrap(root: Path = PRIVATE_ROOT) -> dict[str, Any]:
     }
 
 
-def main() -> None:
-    print(json.dumps(bootstrap(), sort_keys=True))
+def verify_templates(root: Path = PRIVATE_ROOT) -> dict[str, Any]:
+    """Verify only the static bootstrap schemas without reporting their contents."""
+    resolved = root.expanduser().resolve()
+    if resolved != PRIVATE_ROOT:
+        raise ValueError("bootstrap root must be the approved external evidence root")
+    template_directory = resolved / _TEMPLATE_DIRECTORY
+    verified = 0
+    for name, expected in _TEMPLATES.items():
+        target = template_directory / name
+        if not target.is_file():
+            raise ValueError("required bootstrap template is missing")
+        try:
+            observed = json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError("required bootstrap template is invalid") from error
+        if observed != expected:
+            raise ValueError("required bootstrap template does not match the approved schema")
+        verified += 1
+    return {
+        "bootstrap_schema_version": 1,
+        "templates_verified": verified,
+        "templates_valid": True,
+    }
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--verify", action="store_true")
+    args = parser.parse_args(argv)
+    report = verify_templates() if args.verify else bootstrap()
+    print(json.dumps(report, sort_keys=True))
 
 
 if __name__ == "__main__":

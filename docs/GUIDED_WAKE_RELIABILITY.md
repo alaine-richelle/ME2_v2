@@ -98,6 +98,7 @@ git merge-base --is-ancestor 02a13b2f400178121c1e88d8086028f21328c318 HEAD
 # installs no dev or train extras and does not touch models or evidence data.
 .venv/bin/python -m pip install -e .
 .venv/bin/me2-wake-corpus-bootstrap
+.venv/bin/me2-wake-corpus-bootstrap --verify
 .venv/bin/me2-wake-corpus-consent --help
 .venv/bin/me2-wake-ingestion-audit --help
 
@@ -148,6 +149,9 @@ On an empty evidence root, `me2-wake-corpus-bootstrap` is the first safe
 command. It creates only a `templates` directory containing static JSON Schema
 documents and prints aggregate file/directory counts. It never creates a real
 manifest, consent grant, speaker ID, recording, checksum, label, or report.
+Run it once more with `--verify`; a valid result reports only
+`templates_verified: 2` and `templates_valid: true`. Do not inspect or copy
+template contents into ordinary logs.
 Do not invoke the consent or ingestion validators again until a human has
 registered real consent and a real derived manifest exists.
 

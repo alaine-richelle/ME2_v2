@@ -75,6 +75,7 @@ git pull --ff-only
 git merge-base --is-ancestor 02a13b2f400178121c1e88d8086028f21328c318 HEAD
 .venv/bin/python -m pip install -e .
 .venv/bin/me2-wake-corpus-bootstrap
+.venv/bin/me2-wake-corpus-bootstrap --verify
 .venv/bin/me2-wake-corpus-consent --help
 .venv/bin/me2-wake-ingestion-audit --help
 
@@ -118,7 +119,8 @@ evidence root.
 
 When the evidence root is empty, run only the bootstrap command, inspect its
 aggregate inventory, and stop. It creates static schemas but no real consent
-or corpus manifest. Human consent registration for four independent opaque
+or corpus manifest. Then run `me2-wake-corpus-bootstrap --verify`; proceed
+only when it reports two valid templates. Human consent registration for four independent opaque
 speakers is the next gate; recording and derived-manifest creation follow only
 after that registration.
 
