@@ -3,8 +3,9 @@ import sys
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
-from me2.dashboard_audio import DashboardAudioPlayer, WakeChimePlayer
+from me2.dashboard_audio import DashboardAudioPlayer, WakeChimePlayer, feedback_tone
 
 
 def test_generated_sample_and_ringtone_are_finite_and_bounded():
@@ -115,3 +116,11 @@ def test_wake_chime_failure_is_reported_without_raising(monkeypatch):
     )
     player._play()
     assert completed == [("failed", "CalledProcessError")]
+
+
+def test_feedback_tones_are_distinct_and_error_is_safe():
+    assert feedback_tone("wake_accepted") == 880
+    assert feedback_tone("command_accepted") == 1046
+    assert feedback_tone("rejection_or_error") == 440
+    with pytest.raises(ValueError):
+        feedback_tone("unknown")

@@ -31,7 +31,7 @@ from me2.app import (
 )
 from me2.app import build_parser as inference_parser
 from me2.audio_devices import resolve_alsa_device, select_capture_input, validate_alsa_device
-from me2.dashboard_audio import DashboardAudioPlayer, WakeChimePlayer
+from me2.dashboard_audio import DashboardAudioPlayer, WakeChimePlayer, feedback_tone
 from me2.logging_utils import configure_logging, log_event
 from me2.streaming import (
     PipelineEvent,
@@ -396,8 +396,17 @@ class Dashboard:
                 "queued" if not self.demo and self.wake_chime.enabled else "disabled"
             ),
         }
+        self.wake_chime.frequency_hz = feedback_tone("wake_accepted")
         if not self.demo and self.wake_chime.enabled and not self.wake_chime.request():
             self.data["wake_acknowledgement"]["audio_status"] = "unavailable"
+
+    def _request_feedback_tone(self, kind: str) -> None:
+        """Best-effort local tone; inference and fail-closed dispatch never depend on it."""
+        if self.demo or not self.wake_chime.enabled:
+            return
+        self.wake_chime.frequency_hz = feedback_tone(kind)
+        if not self.wake_chime.request():
+            log_event(LOGGER, "feedback_tone_unavailable", reason="feedback_tone_unavailable")
 
     @staticmethod
     def validate_mappings(mappings: dict) -> dict:
@@ -570,6 +579,9 @@ class Dashboard:
                     self.data["counts"][key] += 1
                     action = self.dispatch(result)
                 self.data["last_action"] = action
+                self._request_feedback_tone(
+                    "command_accepted" if result.accepted and result.actionable_intent else "rejection_or_error"
+                )
                 record.update(
                     intent=result.actionable_intent, action=action,
                     action_status=self.data["last_action_status"],
@@ -807,7 +819,7 @@ class Dashboard:
                     "speech_rms_threshold", "noise_floor_calibration_ms",
                     "noise_floor_multiplier", "speech_hysteresis_ratio",
                     "clipping_warning_fraction", "clipping_reject_fraction",
-                    "maximum_command_ms", "queue_chunks",
+                    "maximum_command_ms", "queue_chunks", "post_wake_guard_ms",
                 }:
                     raise ValueError(f"Unknown streaming setting: {key}")
                 setattr(args, key, value)

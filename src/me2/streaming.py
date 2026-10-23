@@ -51,6 +51,7 @@ class StreamingConfig:
     speech_hysteresis_ratio: float = 0.7
     clipping_warning_fraction: float = 0.02
     clipping_reject_fraction: float = 1.0
+    post_wake_guard_samples: int = 0
     queue_chunks: int = 32
 
     def __post_init__(self) -> None:
@@ -72,6 +73,7 @@ class StreamingConfig:
         integer("queue_chunks", self.queue_chunks, 1, 128)
         integer("pre_roll_samples", self.pre_roll_samples, 0,
                 min(self.wake_window_samples, self.maximum_command_samples - 1))
+        integer("post_wake_guard_samples", self.post_wake_guard_samples, 0, self.sample_rate * 2)
         if self.minimum_command_samples >= self.maximum_command_samples:
             raise ValueError("minimum command duration must be below maximum duration")
         finite("speech_rms_threshold", self.speech_rms_threshold, 1e-6, 1.0)
@@ -136,6 +138,7 @@ class StreamingPipeline:
         self._capture_rms_min: float | None = None
         self._capture_rms_max = 0.0
         self._capture_quality_warning = False
+        self._post_wake_guard_remaining = 0
         self.utterance_id: str | None = None
 
     def feed(self, chunk: np.ndarray) -> list[PipelineEvent]:
@@ -192,6 +195,10 @@ class StreamingPipeline:
                     self._capture_rms_min = None
                     self._capture_rms_max = 0.0
                     self._capture_quality_warning = False
+                    # Keep pre-roll from before the acknowledgement, but ignore a
+                    # short bounded interval after wake so a local chime cannot be
+                    # mistaken for command speech.
+                    self._post_wake_guard_remaining = self.config.post_wake_guard_samples
                     events.append(
                         self._event(
                             self.state, self.sample_index, "wake_detected"
@@ -200,6 +207,12 @@ class StreamingPipeline:
             return events
 
         if self.state == PipelineState.CAPTURING_COMMAND:
+            if self._post_wake_guard_remaining:
+                skipped = min(samples.size, self._post_wake_guard_remaining)
+                self._post_wake_guard_remaining -= skipped
+                if skipped == samples.size:
+                    return events
+                samples = samples[skipped:]
             rms = float(np.sqrt(np.mean(np.square(samples), dtype=np.float64)))
             peak = float(np.max(np.abs(samples)))
             clipped = int(np.count_nonzero(np.abs(samples) >= .999))

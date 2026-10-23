@@ -28,6 +28,7 @@ class RuntimeSettings:
     speech_hysteresis_ratio: float = 0.7
     clipping_warning_fraction: float = 0.02
     clipping_reject_fraction: float = 1.0
+    post_wake_guard_ms: float = 150.0
     queue_chunks: int = 32
 
     def __post_init__(self) -> None:

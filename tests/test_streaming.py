@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from me2.app import _guided_pause, replay_combined_wavs
 from me2.streaming import (
     PipelineState,
     StreamingConfig,
@@ -212,6 +213,32 @@ def test_capture_rejects_excessive_clipping_with_aggregate_diagnostics():
     assert rejected.diagnostics["clipping_fraction"] == 1.0
     assert rejected.diagnostics["capture_quality_warning"]
     assert not decoded
+
+
+def test_post_wake_guard_discards_only_new_samples_and_preserves_pre_roll():
+    captured = []
+    config = StreamingConfig(**{**_config().__dict__, "post_wake_guard_samples": 100})
+    pipeline = StreamingPipeline(config, lambda _window: True, lambda audio: captured.append(audio) or _accepted())
+    pipeline.feed(np.ones(400, dtype=np.float32))
+    pipeline.feed(np.ones(100, dtype=np.float32))  # guard; not command audio
+    replay_chunks(pipeline, [np.ones(100, dtype=np.float32) * .5, np.ones(100, dtype=np.float32) * .5,
+                             np.zeros(100, dtype=np.float32), np.zeros(100, dtype=np.float32)])
+    assert captured
+    assert np.max(captured[0][:100]) == 1.0  # existing pre-roll is retained
+    assert np.max(captured[0][100:200]) == .5
+
+
+def test_combined_replay_uses_streaming_state_machine_and_guided_pause_can_stop():
+    pipeline = StreamingPipeline(_config(), lambda _window: True, lambda _audio: _accepted())
+    events = replay_combined_wavs(
+        pipeline, np.ones(400, dtype=np.float32), np.concatenate([
+            np.ones(200, dtype=np.float32) * .5, np.zeros(200, dtype=np.float32),
+        ]),
+        pause_samples=0,
+    )
+    assert any(event.result and event.result.accepted for event in events)
+    with pytest.raises(KeyboardInterrupt):
+        _guided_pause("start", prompt=lambda _message: "stop")
 
 
 def test_adaptive_noise_floor_hysteresis_ends_clean_short_command():

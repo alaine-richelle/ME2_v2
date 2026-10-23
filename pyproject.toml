@@ -37,6 +37,7 @@ me2-wake-record = "me2.wake_word.record:main"
 me2-wake-train = "me2.wake_word.train:main"
 me2-wake-calibrate = "me2.wake_word.calibrate:main"
 me2-wake-evaluate = "me2.wake_word.evaluate:main"
+me2-wake-private-calibrate = "me2.wake_word.private_calibration:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

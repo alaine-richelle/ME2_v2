@@ -9,6 +9,12 @@ from collections.abc import Callable
 
 import numpy as np
 
+FEEDBACK_FREQUENCIES = {
+    "wake_accepted": 880,
+    "command_accepted": 1046,
+    "rejection_or_error": 440,
+}
+
 
 class WakeChimePlayer:
     """Play one short generated acknowledgement tone through ALSA, asynchronously."""
@@ -97,6 +103,14 @@ class WakeChimePlayer:
     def _notify(self, status: str, error_type: str | None) -> None:
         if self.on_complete is not None:
             self.on_complete(status, error_type)
+
+
+def feedback_tone(kind: str) -> int:
+    """Return the fixed, distinguishable local-feedback tone for a safe event."""
+    try:
+        return FEEDBACK_FREQUENCIES[kind]
+    except KeyError as error:
+        raise ValueError("unsupported feedback tone") from error
 
 
 class DashboardAudioPlayer:

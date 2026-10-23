@@ -261,6 +261,8 @@ def _run_interactive(args: argparse.Namespace) -> None:
     if microphone and args.command_audio:
         raise ValueError("--command-audio requires --wake-audio for file-based pipeline testing")
     if microphone:
+        if args.guided_terminal:
+            raise ValueError("--guided-terminal requires approved --wake-audio and --command-audio fixtures")
         _require_live_wake_readiness(
             wake_bundle,
             allow_unverified=args.allow_unverified_wake_model,
@@ -274,9 +276,16 @@ def _run_interactive(args: argparse.Namespace) -> None:
         )
         return
 
+    if args.combined_replay:
+        if args.command_audio is None:
+            raise ValueError("--combined-replay requires --command-audio")
+        return _run_combined_replay(args, wake_model, wake_bundle, vcm_model, vcm_bundle)
+
     while True:
         print("[LISTENING] Waiting for wake word...")
         if args.wake_audio:
+            if args.guided_terminal:
+                return _run_guided_terminal(args, wake_model, wake_bundle, vcm_model, vcm_bundle)
             wake_waveform = load_wav(args.wake_audio, AudioConfig(**wake_bundle["audio"]))
         else:
             wake_waveform = _capture(
@@ -329,6 +338,62 @@ def _run_interactive(args: argparse.Namespace) -> None:
         log_event(LOGGER, "listening_resumed", utterance_id=utterance_id)
         if args.wake_audio:
             return
+
+
+def _guided_pause(stage: str, prompt=input) -> None:
+    """Test-only human checkpoint; never used by unattended microphone runtime."""
+    response = prompt(f"[GUIDED] {stage}. Press Enter to continue: ")
+    if response.strip().casefold() in {"q", "quit", "stop"}:
+        raise KeyboardInterrupt
+
+
+def _run_guided_terminal(args, wake_model, wake_bundle, vcm_model, vcm_bundle, *, prompt=input) -> None:
+    """Replay approved fixtures with explicit operator-visible phase checkpoints."""
+    if args.wake_audio is None or args.command_audio is None:
+        raise ValueError("--guided-terminal requires both --wake-audio and --command-audio")
+    for stage in ("start", "wake initialization", "waiting/read wake"):
+        _guided_pause(stage, prompt)
+    wake = load_wav(args.wake_audio, AudioConfig(**wake_bundle["audio"]))
+    detected, _, _, _ = _wake_result(wake_model, wake_bundle, wake)
+    if not detected:
+        _guided_pause("end (wake rejected)", prompt)
+        return None
+    for stage in ("wake detected", "acknowledgment chime", "command initialization", "command read"):
+        _guided_pause(stage, prompt)
+    command, length = _load_vcm_wav(vcm_bundle, args.command_audio)
+    result, _ = _predict_vcm(vcm_model, vcm_bundle, command, sample_length=length)
+    _guided_pause("command detected" if result.accepted else "command rejected", prompt)
+    if result.accepted:
+        _guided_pause("execution", prompt)
+        _guided_pause("confirmation", prompt)
+    _guided_pause("end", prompt)
+    return result
+
+
+def replay_combined_wavs(pipeline: StreamingPipeline, wake: np.ndarray, command: np.ndarray, *, pause_samples: int) -> list[PipelineEvent]:
+    """Feed approved wake/pause/command audio through the actual streaming state machine."""
+    combined = np.concatenate([wake, np.zeros(pause_samples, dtype=np.float32), command])
+    chunks = (combined[offset:offset + pipeline.config.chunk_samples]
+              for offset in range(0, combined.size, pipeline.config.chunk_samples))
+    events: list[PipelineEvent] = []
+    for chunk in chunks:
+        events.extend(pipeline.feed(chunk))
+    return events
+
+
+def _run_combined_replay(args, wake_model, wake_bundle, vcm_model, vcm_bundle):
+    pipeline = build_streaming_pipeline(args, wake_model, wake_bundle, vcm_model, vcm_bundle)
+    rate = int(wake_bundle["audio"]["sample_rate"])
+    wake = load_wav(args.wake_audio, AudioConfig(**wake_bundle["audio"]))
+    command, _ = _load_vcm_wav(vcm_bundle, args.command_audio)
+    events = replay_combined_wavs(
+        pipeline, wake, command, pause_samples=round(rate * args.combined_pause_ms / 1000),
+    )
+    result = next((event.result for event in events if event.result is not None), None)
+    if result is None:
+        raise RuntimeError("combined_replay_did_not_reach_command_result")
+    _print_vcm_result(result, debug_sensitive=args.debug_sensitive)
+    return result
 
 
 def _run_continuous_interactive(
@@ -438,6 +503,7 @@ def build_streaming_pipeline(
         speech_hysteresis_ratio=args.speech_hysteresis_ratio,
         clipping_warning_fraction=args.clipping_warning_fraction,
         clipping_reject_fraction=args.clipping_reject_fraction,
+        post_wake_guard_samples=round(sample_rate * args.post_wake_guard_ms / 1000.0),
         queue_chunks=args.queue_chunks,
     )
     streaming = wake_bundle.get("streaming_policy", {})
@@ -627,6 +693,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--audio", type=Path, help="WAV input for an individual component")
     parser.add_argument("--wake-audio", type=Path, help="Wake-word WAV for full-pipeline testing")
     parser.add_argument("--command-audio", type=Path, help="Command WAV after a successful wake gate")
+    parser.add_argument("--guided-terminal", action="store_true",
+                        help="Test-only fixture replay with explicit terminal phase confirmations")
+    parser.add_argument("--combined-replay", action="store_true",
+                        help="Run approved wake/pause/command WAVs through the streaming state machine")
+    parser.add_argument("--combined-pause-ms", type=float, default=300.0)
     parser.add_argument("--input-device", help="Microphone device name or index (default: system input)")
     parser.add_argument(
         "--audio-backend",
@@ -662,6 +733,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--speech-hysteresis-ratio", type=float, default=0.7)
     parser.add_argument("--clipping-warning-fraction", type=float, default=0.02)
     parser.add_argument("--clipping-reject-fraction", type=float, default=0.10)
+    parser.add_argument("--post-wake-guard-ms", type=float, default=150.0,
+                        help="Discard only post-wake samples while local feedback tone finishes")
     parser.add_argument(
         "--allow-unverified-wake-model",
         action="store_true",
