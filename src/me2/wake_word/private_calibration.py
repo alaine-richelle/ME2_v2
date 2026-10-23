@@ -65,7 +65,9 @@ def main(argv=None) -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     output = _private_path(args.output)
-    model, bundle = load_bundle(args.model, expected_task="wake_word")
+    model, bundle = load_bundle(args.model)
+    if bundle.get("task") != "wake_word":
+        raise ValueError("private calibration requires a wake_word model")
     report = score_samples(model, bundle, args.sample)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

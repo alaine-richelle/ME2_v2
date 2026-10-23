@@ -22,3 +22,13 @@ def test_private_calibration_requires_five_valid_samples_and_four_detections(tmp
 def test_private_calibration_refuses_non_private_paths(tmp_path):
     with np.testing.assert_raises(ValueError):
         private_calibration._private_path(tmp_path / "outside.wav")
+
+
+def test_private_calibration_rejects_non_wake_bundle(monkeypatch, tmp_path):
+    monkeypatch.setattr(private_calibration, "PRIVATE_ROOT", tmp_path.resolve())
+    monkeypatch.setattr(private_calibration, "load_bundle", lambda _path: (object(), {"task": "vcm"}))
+    with np.testing.assert_raises_regex(ValueError, "wake_word"):
+        private_calibration.main([
+            "--model", "ignored.me2", "--sample", str(tmp_path / "a.wav"),
+            "--output", str(tmp_path / "summary.json"),
+        ])
