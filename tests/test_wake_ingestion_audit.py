@@ -28,7 +28,7 @@ def _record(path, *, index, speaker, partition, label):
 def _manifest(root):
     speakers = []
     records = []
-    for index, partition in enumerate(("train", "validation", "held_out")):
+    for index, partition in enumerate(("train", "validation", "calibration", "test")):
         speaker = f"spk-{index + 123456}"
         speakers.append({
             "speaker_id": speaker,
@@ -40,7 +40,7 @@ def _manifest(root):
         })
         records.append(_record(root / f"{index}.wav", index=index, speaker=speaker, partition=partition, label="ateko" if index == 0 else "background"))
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "corpus_id": "wake-pilot-v6-derived",
         "source_manifest_sha256": "a" * 64,
         "speakers": speakers,
@@ -55,7 +55,7 @@ def test_external_ingestion_audit_reports_only_aggregate_counts(tmp_path, monkey
     path.write_text(json.dumps(manifest), encoding="utf-8")
     report = ingestion_audit.audit_manifest(path)
     assert report["valid_for_training_proposal"]
-    assert report["partitions"] == {"held_out": 1, "train": 1, "validation": 1}
+    assert report["partitions"] == {"calibration": 1, "test": 1, "train": 1, "validation": 1}
     assert "path" not in json.dumps(report)
     assert "rec-" not in json.dumps(report)
 

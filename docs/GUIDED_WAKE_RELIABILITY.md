@@ -35,19 +35,21 @@ only if evaluation of correctly segmented commands demonstrates a need.
 
 Create an external `manifest.json` under
 `/home/rpiadmin/me2-validation-evidence/wake-corpus/` with only
-`schema_version` and `speakers`. Each speaker entry requires opaque
+`schema_version: 2` and `speakers`. Each speaker entry requires opaque
 `speaker_id` (`spk-...`), `consent_status: "granted"`, `consent_time`,
 `recording_condition`, `device_profile`, and one `partition` (`train`,
-`validation`, or `held_out`). No names or raw identifiers are permitted. Run
-`me2-wake-corpus-consent --manifest MANIFEST` before recording; it requires at
-least three independent, partition-disjoint consented speakers.
+`validation`, `calibration`, or `test`). No names or raw identifiers are
+permitted. Run `me2-wake-corpus-consent --manifest MANIFEST` before recording;
+it requires at least four independent, partition-disjoint consented speakers.
 
 For an existing real-recording corpus, do not add raw WAVs or its detailed
 manifest to Git. First produce a separate external derived manifest under the
 same evidence root. It must contain its source-manifest SHA-256, a consented
 opaque speaker roster, and per-record opaque IDs, external paths, hashes,
 labels, review statuses, original partition, and proposed train/validation/
-held-out partition. Run:
+calibration/test partition. Its `schema_version` must be `2`; the proposed
+partition is final for the candidate and may not be reassigned during training.
+Run:
 
 ```sh
 me2-wake-ingestion-audit --manifest EXTERNAL_MANIFEST --output EXTERNAL_REPORT
@@ -56,8 +58,9 @@ me2-wake-ingestion-audit --manifest EXTERNAL_MANIFEST --output EXTERNAL_REPORT
 The audit permits only granted-consent speakers, accepted-review records,
 opaque `rec-...`/`src-...` record IDs, declared source and proposed partitions,
 nonempty 16 kHz mono PCM-16 WAVs, matching hashes, and speaker-disjoint
-partitions. The output must be a new external `.json` file; it prints and
-writes aggregate counts only. A passing audit merely permits a
+train/validation/calibration/test partitions. The output must be a new
+external `.json` file; it prints and writes aggregate counts only. A passing
+audit merely permits a
 future training proposal; it does not authorize training, calibration, model
 promotion, or replacement.
 

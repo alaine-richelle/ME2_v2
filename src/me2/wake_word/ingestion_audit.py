@@ -11,10 +11,11 @@ from typing import Any
 
 import soundfile as sf
 
+from me2.wake_word.corpus_consent import SCHEMA_VERSION, TRAINING_PARTITIONS
 from me2.wake_word.data import CANONICAL_WAKE_LABEL, CLASSES
 
 PRIVATE_ROOT = Path("/home/rpiadmin/me2-validation-evidence/wake-corpus").resolve()
-_PARTITIONS = {"train", "validation", "held_out"}
+_PARTITIONS = TRAINING_PARTITIONS
 _SPEAKER_PREFIX = "spk-"
 _OPAQUE_SPEAKER_ID = re.compile(r"spk-[a-z0-9]{6,32}")
 _OPAQUE_RECORDING_ID = re.compile(r"(?:rec|src)-[a-z0-9]{6,64}")
@@ -75,8 +76,8 @@ def _is_sha256(value: str) -> bool:
 
 
 def _validate_speakers(speakers: Any) -> dict[str, str]:
-    if not isinstance(speakers, list) or len(speakers) < 3:
-        raise ValueError("at least three consented speakers are required")
+    if not isinstance(speakers, list) or len(speakers) < len(_PARTITIONS):
+        raise ValueError("at least four consented speakers are required")
     assignments: dict[str, str] = {}
     for speaker in speakers:
         if not isinstance(speaker, dict) or set(speaker) != _REQUIRED_SPEAKER:
@@ -90,10 +91,10 @@ def _validate_speakers(speakers: Any) -> dict[str, str]:
             _require_string(speaker, field)
         partition = speaker["partition"]
         if partition not in _PARTITIONS:
-            raise ValueError("speaker partition must be train, validation, or held_out")
+            raise ValueError("speaker partition must be train, validation, calibration, or test")
         assignments[identifier] = partition
     if set(assignments.values()) != _PARTITIONS:
-        raise ValueError("train, validation, and held_out must each have a speaker")
+        raise ValueError("train, validation, calibration, and test must each have a speaker")
     return assignments
 
 
@@ -103,8 +104,8 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
     manifest = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict) or set(manifest) != _REQUIRED_MANIFEST:
         raise ValueError("manifest has an unsupported schema")
-    if manifest["schema_version"] != 1 or not isinstance(manifest["corpus_id"], str):
-        raise ValueError("manifest must have schema_version=1 and corpus_id")
+    if manifest["schema_version"] != SCHEMA_VERSION or not isinstance(manifest["corpus_id"], str):
+        raise ValueError("manifest must have schema_version=2 and corpus_id")
     source_hash = _require_string(manifest, "source_manifest_sha256")
     if not _is_sha256(source_hash):
         raise ValueError("source_manifest_sha256 must be a lowercase SHA-256 digest")
@@ -181,7 +182,7 @@ def audit_manifest(manifest_path: Path) -> dict[str, Any]:
         issues.append("speaker_without_records")
     valid = not issues
     return {
-        "audit_schema_version": 1,
+        "audit_schema_version": 2,
         "records": len(records),
         "speakers": len(assignments),
         "partitions": {name: counts[("partition", name)] for name in sorted(_PARTITIONS)},

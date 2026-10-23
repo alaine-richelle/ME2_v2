@@ -8,15 +8,16 @@ from pathlib import Path
 
 PRIVATE_ROOT = Path("/home/rpiadmin/me2-validation-evidence/wake-corpus").resolve()
 _SPEAKER = re.compile(r"^spk-[a-z0-9]{6,32}$")
-_PARTITIONS = {"train", "validation", "held_out"}
+SCHEMA_VERSION = 2
+TRAINING_PARTITIONS = frozenset({"train", "validation", "calibration", "test"})
 
 
 def validate_manifest(manifest: dict) -> dict:
-    if set(manifest) != {"schema_version", "speakers"} or manifest["schema_version"] != 1:
-        raise ValueError("manifest must contain schema_version=1 and speakers")
+    if set(manifest) != {"schema_version", "speakers"} or manifest["schema_version"] != SCHEMA_VERSION:
+        raise ValueError("manifest must contain schema_version=2 and speakers")
     speakers = manifest["speakers"]
-    if not isinstance(speakers, list) or len(speakers) < 3:
-        raise ValueError("at least three consented independent speakers are required")
+    if not isinstance(speakers, list) or len(speakers) < len(TRAINING_PARTITIONS):
+        raise ValueError("at least four consented independent speakers are required")
     seen, partitions = set(), set()
     required = {"speaker_id", "consent_status", "consent_time", "recording_condition", "device_profile", "partition"}
     for entry in speakers:
@@ -27,12 +28,12 @@ def validate_manifest(manifest: dict) -> dict:
             raise ValueError("speaker_id must be unique opaque spk- identifier")
         if entry["consent_status"] != "granted" or not all(isinstance(entry[key], str) and entry[key] for key in required - {"partition"}):
             raise ValueError("every speaker requires granted consent and non-empty provenance fields")
-        if entry["partition"] not in _PARTITIONS:
+        if entry["partition"] not in TRAINING_PARTITIONS:
             raise ValueError("invalid speaker partition")
         seen.add(identifier); partitions.add(entry["partition"])
-    if partitions != _PARTITIONS:
-        raise ValueError("train, validation, and held_out must each have a distinct speaker")
-    return {"schema_version": 1, "speaker_count": len(seen), "partitions": sorted(partitions), "recording_enabled": True}
+    if partitions != TRAINING_PARTITIONS:
+        raise ValueError("train, validation, calibration, and test must each have a distinct speaker")
+    return {"schema_version": SCHEMA_VERSION, "speaker_count": len(seen), "partitions": sorted(partitions), "recording_enabled": True}
 
 
 def main(argv=None) -> None:
