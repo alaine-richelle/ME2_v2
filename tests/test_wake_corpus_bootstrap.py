@@ -1,6 +1,7 @@
 import json
 
-from me2.wake_word import corpus_bootstrap
+from me2.wake_word import corpus_bootstrap, ingestion_audit
+from me2.wake_word.corpus_consent import SCHEMA_VERSION, TRAINING_PARTITIONS
 
 
 def test_bootstrap_creates_static_templates_and_only_aggregate_inventory(tmp_path, monkeypatch):
@@ -23,3 +24,20 @@ def test_bootstrap_preserves_existing_templates(tmp_path, monkeypatch):
     report = corpus_bootstrap.bootstrap(tmp_path)
     assert report["templates_created"] == 0
     assert report["templates_already_present"] == 2
+
+
+def test_bootstrap_schema_templates_match_the_fail_closed_contract(tmp_path, monkeypatch):
+    monkeypatch.setattr(corpus_bootstrap, "PRIVATE_ROOT", tmp_path.resolve())
+    corpus_bootstrap.bootstrap(tmp_path)
+    template_directory = tmp_path / "templates"
+    consent = json.loads((template_directory / "consent-manifest.schema.json").read_text())
+    derived = json.loads((template_directory / "derived-manifest.schema.json").read_text())
+
+    assert consent["properties"]["schema_version"]["const"] == SCHEMA_VERSION
+    assert consent["properties"]["speakers"]["minItems"] == len(TRAINING_PARTITIONS)
+    assert consent["properties"]["speakers"]["items"]["additionalProperties"] is False
+    assert consent["properties"]["speakers"]["items"]["properties"]["partition"]["enum"] == sorted(
+        TRAINING_PARTITIONS
+    )
+    assert derived["properties"]["schema_version"]["const"] == SCHEMA_VERSION
+    assert set(derived["properties"]["records"]["items"]["required"]) == ingestion_audit._REQUIRED_RECORD
