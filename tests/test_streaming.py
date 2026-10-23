@@ -1,6 +1,9 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
+from me2 import app
 from me2.app import _guided_pause, replay_combined_wavs
 from me2.streaming import (
     PipelineState,
@@ -239,6 +242,26 @@ def test_combined_replay_uses_streaming_state_machine_and_guided_pause_can_stop(
     assert any(event.result and event.result.accepted for event in events)
     with pytest.raises(KeyboardInterrupt):
         _guided_pause("start", prompt=lambda _message: "stop")
+
+
+def test_guided_terminal_replay_pauses_at_every_accepted_phase(monkeypatch):
+    prompts = []
+    accepted = _accepted()
+    monkeypatch.setattr(app, "load_wav", lambda *_args: np.zeros(10, dtype=np.float32))
+    monkeypatch.setattr(app, "_wake_result", lambda *_args: (True, "ateko", .9, 1.0))
+    monkeypatch.setattr(app, "_load_vcm_wav", lambda *_args: (np.zeros(10, dtype=np.float32), 10))
+    monkeypatch.setattr(app, "_predict_vcm", lambda *_args, **_kwargs: (accepted, 1.0))
+    args = SimpleNamespace(wake_audio="wake.wav", command_audio="command.wav")
+    result = app._run_guided_terminal(
+        args, object(), {"audio": {}}, object(), {"audio": {}},
+        prompt=lambda message: prompts.append(message) or "",
+    )
+    assert result is accepted
+    assert [message.split("] ", 1)[1].split(". Press", 1)[0] for message in prompts] == [
+        "start", "wake initialization", "waiting/read wake", "wake detected",
+        "acknowledgment chime", "command initialization", "command read",
+        "command detected", "execution", "confirmation", "end",
+    ]
 
 
 def test_adaptive_noise_floor_hysteresis_ends_clean_short_command():
