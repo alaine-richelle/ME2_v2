@@ -26,6 +26,7 @@ class WakeEventDetector:
     def __init__(self, policy: WakeSmoothingPolicy) -> None:
         self.policy = policy
         self._hits: deque[bool] = deque(maxlen=policy.smoothing_window)
+        self._last_diagnostics: dict[str, int | float | bool | str] = {}
 
     def update(self, predicted_label: str, wake_probability: float) -> bool:
         hit = (
@@ -33,10 +34,33 @@ class WakeEventDetector:
             and wake_probability >= self.policy.threshold
         )
         self._hits.append(hit)
-        if sum(self._hits) < self.policy.required_hits:
+        hit_count = sum(self._hits)
+        detected = hit_count >= self.policy.required_hits
+        if predicted_label != "ateko":
+            reason = "wake_predicted_non_ateko"
+        elif wake_probability < self.policy.threshold:
+            reason = "wake_score_below_threshold"
+        elif not detected:
+            reason = "wake_persistence_pending"
+        else:
+            reason = "wake_persistence_satisfied"
+        self._last_diagnostics = {
+            "wake_effective_threshold": self.policy.threshold,
+            "wake_persistence_rule": "n_of_m",
+            "wake_smoothing_window": self.policy.smoothing_window,
+            "wake_required_hits": self.policy.required_hits,
+            "wake_observed_hits": hit_count,
+            "wake_current_hit": hit,
+            "wake_nontrigger_reason": reason,
+        }
+        if not detected:
             return False
         self.reset()
         return True
+
+    def diagnostics(self) -> dict[str, int | float | bool | str]:
+        """Return decision-only metadata; no acoustic samples are retained."""
+        return dict(self._last_diagnostics)
 
     def reset(self) -> None:
         self._hits.clear()

@@ -13,6 +13,11 @@
     "maximum_command_ms": 5000,
     "cooldown_ms": 1000,
     "speech_rms_threshold": 0.008,
+    "noise_floor_calibration_ms": 1000,
+    "noise_floor_multiplier": 2.5,
+    "speech_hysteresis_ratio": 0.7,
+    "clipping_warning_fraction": 0.02,
+    "clipping_reject_fraction": 0.10,
     "queue_chunks": 32
   },
   "paths": {

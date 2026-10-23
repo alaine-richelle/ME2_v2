@@ -56,6 +56,14 @@ _DIAGNOSTIC_FIELDS = {
     "wake_primary_label", "wake_primary_score", "wake_primary_model_ms",
     "wake_primary_detected", "wake_fallback_label", "wake_fallback_score",
     "wake_fallback_model_ms", "wake_fallback_detected", "wake_fallback_disagreement",
+    "wake_effective_threshold", "wake_persistence_rule", "wake_smoothing_window",
+    "wake_required_hits", "wake_observed_hits", "wake_current_hit",
+    "wake_nontrigger_reason", "wake_debounce_state", "wake_cooldown_remaining_ms",
+    "noise_floor_rms", "noise_floor_calibration_ms", "noise_floor_multiplier",
+    "speech_hysteresis_ratio", "speech_onset_threshold", "speech_release_threshold",
+    "capture_total_samples", "capture_clipped_samples", "clipping_fraction",
+    "clipping_warning_fraction", "clipping_reject_fraction", "capture_peak",
+    "capture_rms_min", "capture_rms_max", "capture_quality_warning",
 }
 
 

@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from me2.streaming import (
     PipelineState,
@@ -7,6 +8,7 @@ from me2.streaming import (
     replay_chunks,
 )
 from me2.vcm.ctc import CommandResult
+from me2.wake_word.detector import WakeEventDetector, WakeSmoothingPolicy
 
 
 def _config() -> StreamingConfig:
@@ -124,8 +126,8 @@ def test_continuous_replay_rejects_overlong_command_without_decoding():
             np.zeros(100, dtype=np.float32),
             np.zeros(100, dtype=np.float32),
             np.zeros(100, dtype=np.float32),
-            np.ones(100, dtype=np.float32),
-            *[np.ones(100, dtype=np.float32) for _ in range(8)],
+            np.ones(100, dtype=np.float32) * .6,
+            *[np.ones(100, dtype=np.float32) * .5 for _ in range(8)],
         ],
     )
     outcomes = [
@@ -174,3 +176,64 @@ def test_decoder_failure_becomes_non_actionable_rejection_and_cooldown():
     assert result.rejection_reason == "command_decoder_error"
     assert pipeline.state == PipelineState.COOLDOWN
     assert pipeline.feed(np.zeros(100, dtype=np.float32)) == []
+
+
+def test_wake_persistence_diagnostics_explain_non_trigger_then_trigger():
+    detector = WakeEventDetector(WakeSmoothingPolicy(.7, smoothing_window=3, required_hits=2))
+    assert not detector.update("ateko", .93)
+    pending = detector.diagnostics()
+    assert pending["wake_nontrigger_reason"] == "wake_persistence_pending"
+    assert pending["wake_effective_threshold"] == .7
+    assert pending["wake_observed_hits"] == 1
+    assert detector.update("ateko", .8)
+    detected = detector.diagnostics()
+    assert detected["wake_nontrigger_reason"] == "wake_persistence_satisfied"
+    assert detected["wake_persistence_rule"] == "n_of_m"
+
+
+def test_capture_rejects_excessive_clipping_with_aggregate_diagnostics():
+    decoded = False
+
+    def predict(_waveform):
+        nonlocal decoded
+        decoded = True
+        return _accepted()
+
+    config = StreamingConfig(**{
+        **_config().__dict__, "clipping_warning_fraction": .02,
+        "clipping_reject_fraction": .05,
+    })
+    pipeline = StreamingPipeline(config, lambda _window: True, predict)
+    pipeline.feed(np.ones(400, dtype=np.float32))
+    events = pipeline.feed(np.ones(100, dtype=np.float32))
+    rejected = next(event.result for event in events if event.result is not None)
+    assert rejected.rejection_reason == "command_clipping_excessive"
+    assert rejected.diagnostics["capture_clipped_samples"] == 100
+    assert rejected.diagnostics["clipping_fraction"] == 1.0
+    assert rejected.diagnostics["capture_quality_warning"]
+    assert not decoded
+
+
+def test_adaptive_noise_floor_hysteresis_ends_clean_short_command():
+    captured = []
+    config = StreamingConfig(**{
+        **_config().__dict__, "noise_floor_calibration_samples": 100,
+        "noise_floor_multiplier": 2.5, "speech_hysteresis_ratio": .7,
+    })
+    pipeline = StreamingPipeline(
+        config, lambda _window: True,
+        lambda waveform: captured.append(waveform) or _accepted(),
+    )
+    pipeline.feed(np.ones(400, dtype=np.float32))
+    events = replay_chunks(pipeline, [
+        np.full(100, .03, dtype=np.float32),
+        np.full(100, .2, dtype=np.float32),
+        np.full(100, .2, dtype=np.float32),
+        np.full(100, .06, dtype=np.float32),
+        np.full(100, .06, dtype=np.float32),
+    ])
+    accepted = next(event.result for event in events if event.result is not None)
+    assert accepted.accepted
+    assert accepted.diagnostics["noise_floor_rms"] == pytest.approx(.03)
+    assert accepted.diagnostics["speech_hysteresis_ratio"] == .7
+    assert len(captured) == 1

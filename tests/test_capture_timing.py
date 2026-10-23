@@ -70,6 +70,26 @@ def test_pause_clock_does_not_consume_speech_budget(pause):
     assert captured[0].size == 250 + 4600 + 800
 
 
+def test_default_five_second_cap_accepts_exact_limit_then_endpoint_silence():
+    p, captured = fixture()
+    events = replay_chunks(p, chunks(5000, .1) + chunks(800))
+    accepted = next(event.result for event in events if event.result is not None)
+    assert accepted.accepted
+    assert accepted.diagnostics["maximum_command_ms"] == 5000
+    assert accepted.diagnostics["speech_span_ms"] == 5000
+    assert len(captured) == 1
+
+
+def test_longer_cap_requires_explicit_streaming_configuration():
+    p, captured = fixture(maximum_command_samples=6000)
+    events = replay_chunks(p, chunks(5100, .1) + chunks(800))
+    accepted = next(event.result for event in events if event.result is not None)
+    assert accepted.accepted
+    assert accepted.diagnostics["maximum_command_ms"] == 6000
+    assert accepted.diagnostics["speech_span_ms"] == 5100
+    assert len(captured) == 1
+
+
 def test_onset_timeout_exactly_after_wake_and_wait_buffer_is_bounded():
     p, captures = fixture()
     assert replay_chunks(p, chunks(2900)) == []
@@ -250,6 +270,10 @@ def test_wake_window_telemetry_includes_frontend_and_preserves_model_timing(monk
     assert diagnostics["wake_model_ms"] == .25
     assert diagnostics["wake_pipeline_ms"] == wake_event["total_ms"]
     assert wake_event["total_ms"] >= diagnostics["frontend_ms"]
+    assert diagnostics["wake_effective_threshold"] == .7
+    assert diagnostics["wake_persistence_rule"] == "n_of_m"
+    assert diagnostics["wake_nontrigger_reason"] == "wake_predicted_non_ateko"
+    assert diagnostics["wake_debounce_state"] == "listening"
     assert callback[0][2] == .25  # Dashboard's historical field remains model inference time.
 
 

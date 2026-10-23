@@ -431,6 +431,13 @@ def build_streaming_pipeline(
         maximum_command_samples=maximum_command_samples,
         cooldown_samples=round(sample_rate * args.cooldown_ms / 1000.0),
         speech_rms_threshold=args.speech_rms_threshold,
+        noise_floor_calibration_samples=round(
+            sample_rate * args.noise_floor_calibration_ms / 1000.0
+        ),
+        noise_floor_multiplier=args.noise_floor_multiplier,
+        speech_hysteresis_ratio=args.speech_hysteresis_ratio,
+        clipping_warning_fraction=args.clipping_warning_fraction,
+        clipping_reject_fraction=args.clipping_reject_fraction,
         queue_chunks=args.queue_chunks,
     )
     streaming = wake_bundle.get("streaming_policy", {})
@@ -507,6 +514,8 @@ def build_streaming_pipeline(
                 primary_smoothed = bool(primary_detector and primary_detector.update(
                     primary_label, primary_score
                 ))
+                if primary_detector is not None:
+                    diagnostics.update(primary_detector.diagnostics())
                 wake_status.update(mode="primary", primary_status="ready", primary_failure=None)
             except Exception as error:  # noqa: BLE001 -- fault-only fallback is intentional.
                 primary_fault = True
@@ -556,6 +565,8 @@ def build_streaming_pipeline(
             wake_fallback_score=fallback_score,
             wake_fallback_model_ms=fallback_elapsed,
             wake_fallback_detected=fallback_smoothed,
+            wake_debounce_state="listening",
+            wake_cooldown_remaining_ms=0.0,
         )
         pipeline_ms = (time.perf_counter() - pipeline_started) * 1000.0
         diagnostics.update(
@@ -646,6 +657,11 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Stop a continuous microphone session after this many seconds; 0 is indefinite")
     parser.add_argument("--cooldown-ms", type=float, default=1_000.0)
     parser.add_argument("--speech-rms-threshold", type=float, default=0.008)
+    parser.add_argument("--noise-floor-calibration-ms", type=float, default=1_000.0)
+    parser.add_argument("--noise-floor-multiplier", type=float, default=2.5)
+    parser.add_argument("--speech-hysteresis-ratio", type=float, default=0.7)
+    parser.add_argument("--clipping-warning-fraction", type=float, default=0.02)
+    parser.add_argument("--clipping-reject-fraction", type=float, default=0.10)
     parser.add_argument(
         "--allow-unverified-wake-model",
         action="store_true",
@@ -682,6 +698,8 @@ def _print_vcm_result(result, *, debug_sensitive=False) -> None:
         elif result.rejection_reason == "command_too_long":
             print(f"[CAPTURE] Command duration exceeded {details.get('maximum_command_ms')} ms; "
                   "audio discarded without decoding or cropping.")
+        elif result.rejection_reason == "command_clipping_excessive":
+            print("[CAPTURE] Excessive microphone clipping; reduce input gain or increase distance.")
         if details:
             print(f"[DIAGNOSTIC] {details.get('diagnostic_category', 'unknown')}; "
                   f"valid features/output: {details.get('valid_feature_frames')}/"

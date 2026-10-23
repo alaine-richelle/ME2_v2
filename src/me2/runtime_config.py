@@ -23,6 +23,11 @@ class RuntimeSettings:
     maximum_command_ms: float = 0.0  # zero inherits the artifact limit
     cooldown_ms: float = 1000.0
     speech_rms_threshold: float = 0.008
+    noise_floor_calibration_ms: float = 1000.0
+    noise_floor_multiplier: float = 2.5
+    speech_hysteresis_ratio: float = 0.7
+    clipping_warning_fraction: float = 0.02
+    clipping_reject_fraction: float = 1.0
     queue_chunks: int = 32
 
     def __post_init__(self) -> None:
@@ -36,6 +41,12 @@ class RuntimeSettings:
             if name.endswith("_ms"):
                 finite(name, value, 0 if name in {"pre_roll_ms", "maximum_command_ms"} else 1, 60_000)
         finite("speech_rms_threshold", self.speech_rms_threshold, 1e-6, 1.0)
+        finite("noise_floor_multiplier", self.noise_floor_multiplier, 1.0, 100.0)
+        finite("speech_hysteresis_ratio", self.speech_hysteresis_ratio, 0.01, 1.0)
+        finite("clipping_warning_fraction", self.clipping_warning_fraction, 0.0, 1.0)
+        finite("clipping_reject_fraction", self.clipping_reject_fraction, 0.0, 1.0)
+        if self.clipping_warning_fraction > self.clipping_reject_fraction:
+            raise ValueError("clipping warning fraction must not exceed reject fraction")
         if self.maximum_command_ms and self.minimum_speech_ms >= self.maximum_command_ms:
             raise ValueError("minimum speech must be shorter than the maximum command")
 

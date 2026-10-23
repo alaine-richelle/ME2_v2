@@ -46,6 +46,11 @@ class StreamingConfig:
     maximum_command_samples: int = 80_000
     cooldown_samples: int = 16_000
     speech_rms_threshold: float = 0.008
+    noise_floor_calibration_samples: int = 16_000
+    noise_floor_multiplier: float = 2.5
+    speech_hysteresis_ratio: float = 0.7
+    clipping_warning_fraction: float = 0.02
+    clipping_reject_fraction: float = 1.0
     queue_chunks: int = 32
 
     def __post_init__(self) -> None:
@@ -59,6 +64,7 @@ class StreamingConfig:
             self.endpoint_silence_samples,
             self.maximum_command_samples,
             self.cooldown_samples,
+            self.noise_floor_calibration_samples,
             self.queue_chunks,
         )
         for value in positive:
@@ -69,6 +75,12 @@ class StreamingConfig:
         if self.minimum_command_samples >= self.maximum_command_samples:
             raise ValueError("minimum command duration must be below maximum duration")
         finite("speech_rms_threshold", self.speech_rms_threshold, 1e-6, 1.0)
+        finite("noise_floor_multiplier", self.noise_floor_multiplier, 1.0, 100.0)
+        finite("speech_hysteresis_ratio", self.speech_hysteresis_ratio, 0.01, 1.0)
+        finite("clipping_warning_fraction", self.clipping_warning_fraction, 0.0, 1.0)
+        finite("clipping_reject_fraction", self.clipping_reject_fraction, 0.0, 1.0)
+        if self.clipping_warning_fraction > self.clipping_reject_fraction:
+            raise ValueError("clipping warning fraction must not exceed reject fraction")
 
 
 @dataclass(frozen=True)
@@ -116,6 +128,14 @@ class StreamingPipeline:
         self._speech_start_index: int | None = None
         self._pre_onset_dropped_samples = 0
         self._pre_onset_dropped_energy = 0.0
+        self._noise_floor_values: list[float] = []
+        self._noise_floor_samples = 0
+        self._capture_total_samples = 0
+        self._capture_clipped_samples = 0
+        self._capture_peak = 0.0
+        self._capture_rms_min: float | None = None
+        self._capture_rms_max = 0.0
+        self._capture_quality_warning = False
         self.utterance_id: str | None = None
 
     def feed(self, chunk: np.ndarray) -> list[PipelineEvent]:
@@ -164,6 +184,14 @@ class StreamingPipeline:
                     self._speech_start_index = None
                     self._pre_onset_dropped_samples = 0
                     self._pre_onset_dropped_energy = 0.0
+                    self._noise_floor_values = []
+                    self._noise_floor_samples = 0
+                    self._capture_total_samples = 0
+                    self._capture_clipped_samples = 0
+                    self._capture_peak = 0.0
+                    self._capture_rms_min = None
+                    self._capture_rms_max = 0.0
+                    self._capture_quality_warning = False
                     events.append(
                         self._event(
                             self.state, self.sample_index, "wake_detected"
@@ -173,14 +201,60 @@ class StreamingPipeline:
 
         if self.state == PipelineState.CAPTURING_COMMAND:
             rms = float(np.sqrt(np.mean(np.square(samples), dtype=np.float64)))
-            active = rms >= self.config.speech_rms_threshold
+            peak = float(np.max(np.abs(samples)))
+            clipped = int(np.count_nonzero(np.abs(samples) >= .999))
+            self._capture_total_samples += samples.size
+            self._capture_clipped_samples += clipped
+            self._capture_peak = max(self._capture_peak, peak)
+            self._capture_rms_min = rms if self._capture_rms_min is None else min(self._capture_rms_min, rms)
+            self._capture_rms_max = max(self._capture_rms_max, rms)
+            if (
+                not self._speech_seen
+                and self._noise_floor_samples < self.config.noise_floor_calibration_samples
+                and rms < self.config.speech_rms_threshold * self.config.noise_floor_multiplier
+            ):
+                self._noise_floor_values.append(rms)
+                self._noise_floor_samples += samples.size
+            noise_floor = float(np.median(self._noise_floor_values)) if self._noise_floor_values else 0.0
+            onset_threshold = max(
+                self.config.speech_rms_threshold,
+                noise_floor * self.config.noise_floor_multiplier,
+            )
+            release_threshold = max(
+                self.config.speech_rms_threshold * self.config.speech_hysteresis_ratio,
+                onset_threshold * self.config.speech_hysteresis_ratio,
+            )
+            active = rms >= (release_threshold if self._speech_seen else onset_threshold)
+            clipping_fraction = self._capture_clipped_samples / max(1, self._capture_total_samples)
+            if (
+                not self._capture_quality_warning
+                and clipping_fraction >= self.config.clipping_warning_fraction
+                and self._capture_clipped_samples
+            ):
+                self._capture_quality_warning = True
+                log_event(
+                    LOGGER, "capture_quality_warning", level=logging.WARNING,
+                    utterance_id=self.utterance_id, sample_index=self.sample_index,
+                    diagnostics={
+                        "diagnostic_category": "capture_clipping_warning",
+                        "clipping_fraction": clipping_fraction,
+                        "clipping_warning_fraction": self.config.clipping_warning_fraction,
+                        "clipped_samples": self._capture_clipped_samples,
+                        "capture_peak": self._capture_peak,
+                        "capture_rms_max": self._capture_rms_max,
+                        "next_action": "reduce_microphone_gain_or_increase_distance",
+                    },
+                )
             log_event(
                 LOGGER, "capture_activity", utterance_id=self.utterance_id,
                 sample_index=self.sample_index, sample_rate=self.config.sample_rate,
                 diagnostics={
-                    "chunk_rms": rms, "chunk_peak": float(np.max(np.abs(samples))),
-                    "clipped_samples": int(np.count_nonzero(np.abs(samples) >= .999)),
+                    "chunk_rms": rms, "chunk_peak": peak,
+                    "clipped_samples": clipped,
                     "speech_active": active,
+                    "noise_floor_rms": noise_floor,
+                    "speech_onset_threshold": onset_threshold,
+                    "speech_release_threshold": release_threshold,
                 },
             )
             if not self._speech_seen:
@@ -218,7 +292,9 @@ class StreamingPipeline:
             # Duration includes internal pauses, but excludes pre-onset waiting
             # and the final silence used to confirm an endpoint. Keep all
             # samples, including pre-roll and quiet endings, for preprocessing.
-            if self._speech_span_samples > self.config.maximum_command_samples:
+            if clipping_fraction > self.config.clipping_reject_fraction:
+                events.extend(self._reject_capture("command_clipping_excessive"))
+            elif self._speech_span_samples > self.config.maximum_command_samples:
                 events.extend(self._reject_capture("command_too_long"))
             elif self._trailing_silence >= self.config.endpoint_silence_samples:
                 if self._speech_samples < self.config.minimum_command_samples:
@@ -283,6 +359,25 @@ class StreamingPipeline:
             "pre_onset_dropped_rms": (
                 self._pre_onset_dropped_energy / max(1, self._pre_onset_dropped_samples)
             ) ** .5,
+            "noise_floor_rms": (
+                float(np.median(self._noise_floor_values)) if self._noise_floor_values else 0.0
+            ),
+            "noise_floor_calibration_ms": self._noise_floor_samples * scale,
+            "noise_floor_multiplier": self.config.noise_floor_multiplier,
+            "speech_hysteresis_ratio": self.config.speech_hysteresis_ratio,
+            "capture_total_samples": self._capture_total_samples,
+            "capture_clipped_samples": self._capture_clipped_samples,
+            "clipping_fraction": self._capture_clipped_samples / max(1, self._capture_total_samples),
+            "clipping_warning_fraction": self.config.clipping_warning_fraction,
+            "clipping_reject_fraction": self.config.clipping_reject_fraction,
+            "capture_peak": self._capture_peak,
+            "capture_rms_min": self._capture_rms_min or 0.0,
+            "capture_rms_max": self._capture_rms_max,
+            "capture_quality_warning": self._capture_quality_warning,
+            "wake_debounce_state": (
+                "cooldown" if self.state == PipelineState.COOLDOWN else "not_in_cooldown"
+            ),
+            "wake_cooldown_remaining_ms": self._cooldown_remaining * scale,
         }
 
     def recover(self) -> PipelineEvent:
@@ -302,6 +397,14 @@ class StreamingPipeline:
         self._speech_start_index = None
         self._pre_onset_dropped_samples = 0
         self._pre_onset_dropped_energy = 0.0
+        self._noise_floor_values = []
+        self._noise_floor_samples = 0
+        self._capture_total_samples = 0
+        self._capture_clipped_samples = 0
+        self._capture_peak = 0.0
+        self._capture_rms_min = None
+        self._capture_rms_max = 0.0
+        self._capture_quality_warning = False
         return self._event(self.state, self.sample_index, "stream_recovered")
 
     def _decode_capture(self) -> list[PipelineEvent]:
@@ -380,6 +483,7 @@ class StreamingPipeline:
                     "command_onset_timeout": "inspect_onset_wait_and_speech_level",
                     "command_too_long": "use_shorter_supported_phrase_or_validated_longer_artifact",
                     "command_too_short": "speak_a_complete_command",
+                    "command_clipping_excessive": "reduce_microphone_gain_or_increase_distance",
                 }.get(reason, "inspect_capture_events"),
                 **(diagnostics or {}),
             },

@@ -804,7 +804,10 @@ class Dashboard:
                 if not hasattr(args, key) or key not in {
                     "stream_chunk_ms", "wake_hop_ms", "pre_roll_ms", "onset_timeout_ms",
                     "minimum_speech_ms", "endpoint_silence_ms", "cooldown_ms",
-                    "speech_rms_threshold", "maximum_command_ms", "queue_chunks",
+                    "speech_rms_threshold", "noise_floor_calibration_ms",
+                    "noise_floor_multiplier", "speech_hysteresis_ratio",
+                    "clipping_warning_fraction", "clipping_reject_fraction",
+                    "maximum_command_ms", "queue_chunks",
                 }:
                     raise ValueError(f"Unknown streaming setting: {key}")
                 setattr(args, key, value)

@@ -361,6 +361,53 @@ output merely because it has the lowest card number.
 Keep the microphone clear of the cooling fan and speakers. Do not run the
 CLI and the dashboard microphone worker simultaneously.
 
+### Supervised microphone-session quality checks
+
+The Pi natural-pause profile keeps a **5,000 ms** command-speech-span cap.
+This is the default safety boundary; it is not raised automatically. An
+explicit `maximum_command_ms` value may only be used when the loaded command
+artifact has a separately validated duration at least that large, and the
+corresponding near-limit regression has passed. The normal CLI rejects a
+requested value exceeding the artifact duration before opening capture.
+
+The runtime logs aggregate-only wake and capture diagnostics. It never logs
+raw audio or command text at normal verbosity. For each wake window, retain
+the effective threshold, `n_of_m` persistence policy, observed hit count,
+and non-trigger reason. For a capture, retain only RMS/peak ranges, clipping
+count/fraction, adaptive noise-floor values, speech/trailing-silence timings,
+and the final rejection reason. The adaptive noise floor and hysteresis are
+endpointing aids, **not echo cancellation**. Mute acknowledgement/music
+playback for the first quality trial; any playback/echo trial is a separate
+condition and must not be presented as AEC evidence.
+
+Run fresh, bounded sessions for each condition below, using a new run ID and
+the verified source revision each time:
+
+| Condition | Operator setup | Pass observations |
+| --- | --- | --- |
+| Muted playback | Dashboard chime/music disabled; speak at normal distance. | Wake decision is explainable; short command ends after configured silence; no queue/callback fault. |
+| Normal playback | Use only separately approved local playback volume. | Record whether endpoint/rejection behavior changes; do not claim echo cancellation. |
+| Background noise/distance | Record room condition and approximate distance, without retaining raw audio. | Report wake recall, command accuracy, endpoint errors, and rejection reasons separately from quiet results. |
+| Gain check | Begin with OS/microphone gain low enough to avoid clipping. | `clipping_fraction` stays below warning threshold; reduce gain or increase distance if warned. |
+
+The profile warns at `clipping_warning_fraction=0.02` and rejects a capture at
+`clipping_reject_fraction=0.10`. A clipping warning/rejection requires gain,
+placement, or playback-volume correction before claiming a recognition result.
+The default VAD settings calibrate a bounded low-energy noise floor for 1,000
+ms, use a 2.5× onset multiplier, and a 0.7 release hysteresis ratio. Treat a
+missing calibration or sustained high-energy playback as a test condition, not
+as successful endpointing.
+
+For reports, define **wake recall** as correctly triggered eligible wakes over
+annotated eligible wake attempts; **wake false accepts** as wake events on
+annotated non-wake audio; **endpoint error** as a manually annotated early,
+late, missing, or overlong endpoint divided by completed command attempts;
+**rejection reasons** as counts/rates by runtime reason such as
+`command_too_long`, `command_clipping_excessive`, and decoder rejection; and
+**command accuracy** as correct actionable intent over annotated in-scope
+command attempts. Do not convert short, unannotated live sessions into false
+acceptance-rate or accuracy claims.
+
 ## 7. Check models before integrating the UI
 
 On the Pi, always pass both model paths explicitly for CLI replay:
