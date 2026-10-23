@@ -408,6 +408,78 @@ late, missing, or overlong endpoint divided by completed command attempts;
 command attempts. Do not convert short, unannotated live sessions into false
 acceptance-rate or accuracy claims.
 
+### Retry gate before Step 7 model validation
+
+Before retrying a supervised microphone session, pull the implementation
+revision supplied in the operator handoff. Every retry, reboot, and USB-port
+test must use that exact reviewed revision:
+
+```sh
+cd /home/rpiadmin/ME2_v2
+ME2_BRANCH='master'
+ME2_EXPECTED_SHA='REPORTED_IMPLEMENTATION_COMMIT_SHA'
+
+if test -n "$(git status --porcelain)"; then
+  echo 'STOP: worktree is dirty; preserve or resolve local work before testing.' >&2
+  exit 1
+fi
+git fetch --prune origin
+git pull --ff-only origin "$ME2_BRANCH"
+test "$(git rev-parse HEAD)" = "$ME2_EXPECTED_SHA"
+```
+
+Expected output is a successful fast-forward or `Already up to date.` followed
+by a zero exit status. Stop before microphone use if the worktree is dirty,
+the remote cannot be reached, `pull --ff-only` conflicts, or `HEAD` differs
+from the supplied SHA. Do not reset, force-push, or substitute a local source
+copy during a supervised validation session.
+
+With the revision verified and a fresh run ID, run one bounded, recognition-
+only session. Normal structured logs contain aggregate diagnostics only; do
+not add `--debug-sensitive`:
+
+```sh
+ME2_RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
+  --interactive --config config/runtime.pi5.natural-pause.json \
+  --session-seconds 30 --allow-unverified-wake-model \
+  --log-file "logs/pi5-supervised-retry-${ME2_RUN_ID}.jsonl"
+```
+
+Expected safe output begins with `[LISTENING_FOR_WAKE]`. The JSONL log records
+the selected audio backend/device, per-window `wake_nontrigger_reason`, wake
+threshold/persistence fields, aggregate `clipping_fraction`, RMS/peak range,
+noise-floor/hysteresis values, endpoint timing, and an accepted or rejected
+outcome. It must not contain raw audio or decoded transcript fields at normal
+verbosity.
+
+Pass this retry gate only when there is no fatal device/stream fault, clipping
+is below `clipping_reject_fraction`, and the run reaches a successful wake and
+endpoint **or** returns an actionable documented rejection such as
+`command_too_long` or `command_clipping_excessive`. A device fault, queue or
+callback loss, unexplained endpoint failure, or unsupported/ambiguous audio
+device is a failed/inconclusive gate: stop before Step 7 and correct the
+relevant gain, distance, playback, device, or configuration condition.
+
+On a retry-gate pass, continue to **Step 7** with the supplied-WAV component
+check below. It does not open the microphone and therefore separates model
+loading/decoding from the live-audio result:
+
+```sh
+if ! test -r "$ME2_COMMAND_WAV"; then
+  echo 'STOP: approved command fixture is missing or unreadable.' >&2
+  exit 1
+fi
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venv/bin/python -m me2.app \
+  --vcm --config config/runtime.pi5.natural-pause.json \
+  --audio "$ME2_COMMAND_WAV" --threads 2 \
+  --log-file "logs/pi5-vcm-step7-${ME2_RUN_ID}.jsonl"
+```
+
+Expected output is a structured accepted or rejected command result and a
+decoder score, without a device error. A fixture/model/runtime failure is a
+Step 7 failure, not evidence about the microphone session.
+
 ## 7. Check models before integrating the UI
 
 On the Pi, always pass both model paths explicitly for CLI replay:
