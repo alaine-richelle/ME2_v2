@@ -158,13 +158,13 @@ def test_runtime_config_precedence_and_path_resolution(tmp_path):
         "schema_version": 1,
         "runtime": {
             "threads": 1, "pre_roll_ms": 300,
-            "audio_backend": "arecord", "alsa_device": "plughw:0,0",
+            "audio_backend": "arecord", "alsa_device": "name:USB Audio",
         },
         "paths": {"vcm_model": "candidate.me2"},
     }))
     args = parse_args(["--vcm", "--config", str(path), "--threads", "3"])
     assert args.threads == 3 and args.pre_roll_ms == 300
-    assert args.audio_backend == "arecord" and args.alsa_device == "plughw:0,0"
+    assert args.audio_backend == "arecord" and args.alsa_device == "name:USB Audio"
     assert args.vcm_model == tmp_path / "candidate.me2"
     with pytest.raises(ValueError):
         RuntimeSettings(speech_rms_threshold=float("nan"))
@@ -172,6 +172,8 @@ def test_runtime_config_precedence_and_path_resolution(tmp_path):
         RuntimeSettings(audio_backend="pulse")
     with pytest.raises(ValueError, match="alsa_device"):
         RuntimeSettings(audio_backend="arecord", alsa_device=" ")
+    with pytest.raises(ValueError, match="numeric ALSA"):
+        RuntimeSettings(audio_backend="arecord", alsa_device="plughw:0,0")
     path.write_text('{"schema_version":1,"runtime":{"threadz":2}}')
     with pytest.raises(SystemExit):
         parse_args(["--vcm", "--config", str(path)])

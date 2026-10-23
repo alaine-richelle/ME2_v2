@@ -87,6 +87,7 @@ DEMO_SLOTS = {
 }
 SLOT_REQUIRED = frozenset(DEMO_SLOTS)
 _ALSA_DEVICE = re.compile(r"^[A-Za-z0-9_.:,=-]{1,120}$")
+_NUMERIC_ALSA_SELECTOR = re.compile(r"(?:plughw|hw):\d+,\d+", re.IGNORECASE)
 _ACK_MESSAGE = "Yes? Listening for your command."
 
 
@@ -191,7 +192,8 @@ def load_settings(path: Path) -> dict:
         raise ValueError("audio_backend must be auto, sounddevice, or arecord")
     config["audio_backend"] = audio_backend
     alsa_device = config.get("alsa_device", "default")
-    if not isinstance(alsa_device, str) or not _ALSA_DEVICE.fullmatch(alsa_device):
+    if (not isinstance(alsa_device, str) or not _ALSA_DEVICE.fullmatch(alsa_device)
+            or _NUMERIC_ALSA_SELECTOR.search(alsa_device)):
         raise ValueError("alsa_device must be a supported ALSA device identifier")
     config["alsa_device"] = alsa_device
     acknowledgement = config.setdefault("wake_acknowledgement", {})
@@ -220,6 +222,7 @@ def load_settings(path: Path) -> dict:
     if (
         not isinstance(acknowledgement["alsa_device"], str)
         or not _ALSA_DEVICE.fullmatch(acknowledgement["alsa_device"])
+        or _NUMERIC_ALSA_SELECTOR.search(acknowledgement["alsa_device"])
     ):
         raise ValueError(
             "wake_acknowledgement.alsa_device must be a supported ALSA device identifier"

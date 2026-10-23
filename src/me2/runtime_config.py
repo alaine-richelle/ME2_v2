@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from me2.contracts import finite, integer
+
+_NUMERIC_ALSA_SELECTOR = re.compile(r"(?:plughw|hw):\d+,\d+", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -36,6 +39,8 @@ class RuntimeSettings:
             raise ValueError("audio_backend must be auto, sounddevice, or arecord")
         if not isinstance(self.alsa_device, str) or not self.alsa_device.strip():
             raise ValueError("alsa_device must be a non-empty ALSA device name")
+        if _NUMERIC_ALSA_SELECTOR.search(self.alsa_device):
+            raise ValueError("alsa_device must not persist a numeric ALSA card/device selector")
         integer("threads", self.threads, 1, 64)
         integer("queue_chunks", self.queue_chunks, 1, 128)
         for name, value in asdict(self).items():

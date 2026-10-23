@@ -634,6 +634,7 @@ def test_config_paths_are_relative_to_config_file(tmp_path):
 @pytest.mark.parametrize("acknowledgement", [
     {"backend": "sounddevice"},
     {"alsa_device": "bad device name"},
+    {"alsa_device": "plughw:0,0"},
     {"duration_ms": 501},
     {"frequency_hz": 199},
     {"volume": 0.51},
