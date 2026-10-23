@@ -79,21 +79,38 @@ always false until a human explicitly approves a candidate run.
 
 ### Evidence-host operator sequence
 
-Run the following only on the authorized evidence host, substituting the
-already-approved private files for the placeholders. Keep command output and
-all resulting JSON in the external evidence store; do not redirect it into the
+Run the following on the authorized evidence host: the `rpiadmin` Pi account
+that exposes the approved evidence root. The tools enforce that root in code,
+so an arbitrary local checkout cannot audit the corpus. The `me2-wake-*` names
+are project console scripts and do not exist until the current project checkout
+has been installed into its virtual environment. Keep command output and all
+resulting JSON in the external evidence store; do not redirect it into the
 repository, normal logs, tickets, or chat.
 
 ```sh
-# 1. Validate the consent roster before any corpus processing.
-me2-wake-corpus-consent --manifest EXTERNAL_CONSENT_MANIFEST
+# Confirm the clean checkout is at the reviewed revision, then fast-forward it.
+git status --short --branch
+git rev-parse HEAD
+git pull --ff-only
+git merge-base --is-ancestor 02a13b2f400178121c1e88d8086028f21328c318 HEAD
+
+# Refresh console-script wrappers and source from this checkout only. This
+# installs no dev or train extras and does not touch models or evidence data.
+.venv/bin/python -m pip install -e .
+.venv/bin/me2-wake-corpus-consent --help
+.venv/bin/me2-wake-ingestion-audit --help
+
+# 1. Validate the consent roster before any corpus processing. The module form
+# is the fallback if a shell cannot resolve a console-script wrapper.
+.venv/bin/python -m me2.wake_word.corpus_consent \
+  --manifest EXTERNAL_CONSENT_MANIFEST
 
 # Expected safe output: schema_version 2, recording_enabled true, four
 # aggregate partitions (train, validation, calibration, test), and speaker_count >= 4.
 # STOP if the command exits non-zero or any listed condition is absent.
 
 # 2. Validate the derived corpus and write a new aggregate-only report.
-me2-wake-ingestion-audit \
+.venv/bin/python -m me2.wake_word.ingestion_audit \
   --manifest EXTERNAL_DERIVED_MANIFEST \
   --output EXTERNAL_AUDIT_REPORT
 
@@ -105,7 +122,7 @@ me2-wake-ingestion-audit \
 # speaker identifier, recording identifier, transcript, or raw metadata.
 
 # 3. Confirm aggregate label coverage without preparing or training a model.
-me2-wake-training-proposal \
+.venv/bin/python -m me2.wake_word.training_proposal \
   --audit-report EXTERNAL_AUDIT_REPORT \
   --label-mode five_class \
   --output EXTERNAL_TRAINING_PROPOSAL
@@ -116,10 +133,15 @@ me2-wake-training-proposal \
 # true, a required label is absent from any partition, or any output is not aggregate-only.
 ```
 
-Do not run a training, calibration, evaluation, manifest-preparation, or model
-promotion command at this stage. The next action is a human review of the two
-aggregate reports and explicit written authorization for a separate private
-manifest-preparation proposal.
+The ancestry command exits zero only when the checkout contains the reviewed
+corpus-audit/proposal implementation. Stop if the checkout is dirty, the
+fast-forward or ancestry check fails, editable installation fails, either
+`--help` command is unavailable, or the inputs are outside the approved
+evidence root. A local repository host without that root runs only repository
+tests and lint; it must not attempt a corpus audit. Do not run a training, calibration, evaluation,
+manifest-preparation, or model-promotion command at this stage. The next action
+is a human review of the two aggregate reports and explicit written
+authorization for a separate private-manifest-preparation proposal.
 
 ## Pi regression matrix
 

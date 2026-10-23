@@ -64,19 +64,31 @@ changes, any command exits nonzero, or the branch/commit is not the reviewed
 revision. These checks do not access a microphone, authenticate a Pi, inspect
 private evidence, or prove live recognition.
 
-### B. Evidence host — required corpus gates
+### B. Evidence host/Pi account — required corpus gates
 
 ```sh
-# 1. Consent roster: four disjoint planned speakers.
-me2-wake-corpus-consent --manifest EXTERNAL_CONSENT_MANIFEST
+# These corpus tools run on the rpiadmin Pi account because their code enforces
+# the approved evidence root there; they are not local-repository commands.
+git status --short --branch
+git rev-parse HEAD
+git pull --ff-only
+git merge-base --is-ancestor 02a13b2f400178121c1e88d8086028f21328c318 HEAD
+.venv/bin/python -m pip install -e .
+.venv/bin/me2-wake-corpus-consent --help
+.venv/bin/me2-wake-ingestion-audit --help
+
+# 1. Consent roster: four disjoint planned speakers. Module form is the
+# fallback when a shell cannot resolve a console-script wrapper.
+.venv/bin/python -m me2.wake_word.corpus_consent \
+  --manifest EXTERNAL_CONSENT_MANIFEST
 
 # 2. Derived-manifest and audio integrity/leakage audit.
-me2-wake-ingestion-audit \
+.venv/bin/python -m me2.wake_word.ingestion_audit \
   --manifest EXTERNAL_DERIVED_MANIFEST \
   --output EXTERNAL_AUDIT_REPORT
 
 # 3. Aggregate label-coverage proposal; this does not train.
-me2-wake-training-proposal \
+.venv/bin/python -m me2.wake_word.training_proposal \
   --audit-report EXTERNAL_AUDIT_REPORT \
   --label-mode five_class \
   --output EXTERNAL_TRAINING_PROPOSAL
@@ -98,13 +110,18 @@ audit issue, empty partition, duplicate/leakage finding, or non-aggregate
 field appears; label coverage is incomplete; or the proposal authorizes
 training. Retain only the two aggregate JSON reports externally. Do not run a
 manifest-preparation or training command after this sequence without separate
-written authorization.
+written authorization. Stop before the consent command if the checkout is
+dirty, the fast-forward/ancestry check fails, editable installation fails,
+either `--help` command is unavailable, or the inputs are outside the approved
+evidence root.
 
 ### C. Pi — deterministic component checks after the evidence review and a reviewed deployment
 
 These commands require a separately approved Pi session and a checked-out,
 reviewed repository revision. They must not be used as a substitute for the
-evidence-host gates above.
+corpus gates above. The same Pi account is the evidence host for the
+root-enforced corpus audit; after that audit, Pi work returns to runtime/audio
+and hardware validation.
 
 ```sh
 # 4. Verify the Pi and configured runtime without opening a microphone.
