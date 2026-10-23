@@ -97,6 +97,7 @@ git merge-base --is-ancestor 02a13b2f400178121c1e88d8086028f21328c318 HEAD
 # Refresh console-script wrappers and source from this checkout only. This
 # installs no dev or train extras and does not touch models or evidence data.
 .venv/bin/python -m pip install -e .
+.venv/bin/me2-wake-corpus-bootstrap
 .venv/bin/me2-wake-corpus-consent --help
 .venv/bin/me2-wake-ingestion-audit --help
 
@@ -142,6 +143,25 @@ tests and lint; it must not attempt a corpus audit. Do not run a training, calib
 manifest-preparation, or model-promotion command at this stage. The next action
 is a human review of the two aggregate reports and explicit written
 authorization for a separate private-manifest-preparation proposal.
+
+On an empty evidence root, `me2-wake-corpus-bootstrap` is the first safe
+command. It creates only a `templates` directory containing static JSON Schema
+documents and prints aggregate file/directory counts. It never creates a real
+manifest, consent grant, speaker ID, recording, checksum, label, or report.
+Do not invoke the consent or ingestion validators again until a human has
+registered real consent and a real derived manifest exists.
+
+### Human consent and collection gate
+
+Each independent participant must be registered before recording, using an
+opaque `spk-` identifier, a granted-consent status, consent time, recording
+condition, device profile, and exactly one frozen partition. The required
+partitions are `train`, `validation`, `calibration`, and `test`, each with at
+least one independent speaker. Do not collect names, contact details,
+transcripts, or raw identifiers in the manifest. After consent registration,
+record and review the approved corpus externally, then create the derived
+manifest with opaque `rec-`/`src-` IDs, hashes, labels, review states, and the
+frozen source/proposed partitions. Only then rerun the ingestion audit.
 
 ## Pi regression matrix
 

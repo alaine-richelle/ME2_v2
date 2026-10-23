@@ -74,6 +74,7 @@ git rev-parse HEAD
 git pull --ff-only
 git merge-base --is-ancestor 02a13b2f400178121c1e88d8086028f21328c318 HEAD
 .venv/bin/python -m pip install -e .
+.venv/bin/me2-wake-corpus-bootstrap
 .venv/bin/me2-wake-corpus-consent --help
 .venv/bin/me2-wake-ingestion-audit --help
 
@@ -114,6 +115,12 @@ written authorization. Stop before the consent command if the checkout is
 dirty, the fast-forward/ancestry check fails, editable installation fails,
 either `--help` command is unavailable, or the inputs are outside the approved
 evidence root.
+
+When the evidence root is empty, run only the bootstrap command, inspect its
+aggregate inventory, and stop. It creates static schemas but no real consent
+or corpus manifest. Human consent registration for four independent opaque
+speakers is the next gate; recording and derived-manifest creation follow only
+after that registration.
 
 ### C. Pi — deterministic component checks after the evidence review and a reviewed deployment
 
