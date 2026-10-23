@@ -124,3 +124,10 @@ def test_feedback_tones_are_distinct_and_error_is_safe():
     assert feedback_tone("rejection_or_error") == 440
     with pytest.raises(ValueError):
         feedback_tone("unknown")
+
+
+def test_requested_feedback_frequency_is_rendered_per_tone():
+    player = WakeChimePlayer(
+        enabled=True, alsa_device="default", duration_ms=40, frequency_hz=880, volume=.1,
+    )
+    assert player._render_pcm(880) != player._render_pcm(440)

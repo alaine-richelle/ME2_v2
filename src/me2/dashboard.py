@@ -399,16 +399,16 @@ class Dashboard:
                 "queued" if not self.demo and self.wake_chime.enabled else "disabled"
             ),
         }
-        self.wake_chime.frequency_hz = feedback_tone("wake_accepted")
-        if not self.demo and self.wake_chime.enabled and not self.wake_chime.request():
+        if not self.demo and self.wake_chime.enabled and not self.wake_chime.request(
+            frequency_hz=feedback_tone("wake_accepted")
+        ):
             self.data["wake_acknowledgement"]["audio_status"] = "unavailable"
 
     def _request_feedback_tone(self, kind: str) -> None:
         """Best-effort local tone; inference and fail-closed dispatch never depend on it."""
         if self.demo or not self.wake_chime.enabled:
             return
-        self.wake_chime.frequency_hz = feedback_tone(kind)
-        if not self.wake_chime.request():
+        if not self.wake_chime.request(frequency_hz=feedback_tone(kind)):
             log_event(LOGGER, "feedback_tone_unavailable", reason="feedback_tone_unavailable")
 
     @staticmethod

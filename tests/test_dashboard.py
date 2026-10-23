@@ -386,7 +386,7 @@ def _wake_event(utterance_id="wake-1"):
 def test_wake_acknowledgement_lifecycle_and_primary_chime_request(live_dashboard):
     requests = []
     live_dashboard.wake_chime.enabled = True
-    live_dashboard.wake_chime.request = lambda: requests.append("requested") or True
+    live_dashboard.wake_chime.request = lambda **_kwargs: requests.append("requested") or True
     live_dashboard.on_wake("ateko", 0.91, 4.0, True, _wake_policy())
     live_dashboard.on_event(_wake_event())
     acknowledgement = live_dashboard.snapshot()["wake_acknowledgement"]
@@ -424,7 +424,7 @@ def test_disabled_chime_keeps_the_visual_acknowledgement(live_dashboard):
 def test_wake_acknowledgement_rejects_non_active_wake_paths(live_dashboard, policy):
     requests = []
     live_dashboard.wake_chime.enabled = True
-    live_dashboard.wake_chime.request = lambda: requests.append("requested") or True
+    live_dashboard.wake_chime.request = lambda **_kwargs: requests.append("requested") or True
     live_dashboard.on_wake("unavailable", 0.0, 0.0, False, policy)
     live_dashboard.on_event(_wake_event("not-an-accepted-wake"))
     assert live_dashboard.snapshot()["wake_acknowledgement"]["visible"] is False
@@ -434,7 +434,7 @@ def test_wake_acknowledgement_rejects_non_active_wake_paths(live_dashboard, poli
 def test_healthy_non_wake_never_chimes(dashboard):
     requests = []
     dashboard.wake_chime.enabled = True
-    dashboard.wake_chime.request = lambda: requests.append("requested") or True
+    dashboard.wake_chime.request = lambda **_kwargs: requests.append("requested") or True
     dashboard.on_wake("background", 0.1, 2.0, False, _wake_policy())
     assert dashboard.snapshot()["wake_acknowledgement"]["visible"] is False
     assert requests == []
@@ -443,7 +443,7 @@ def test_healthy_non_wake_never_chimes(dashboard):
 def test_duplicate_wake_and_chime_failure_do_not_mutate_dashboard_action_state(live_dashboard):
     requests = []
     live_dashboard.wake_chime.enabled = True
-    live_dashboard.wake_chime.request = lambda: requests.append("requested") or True
+    live_dashboard.wake_chime.request = lambda **_kwargs: requests.append("requested") or True
     live_dashboard.on_wake("ateko", 0.91, 4.0, True, _wake_policy())
     event = _wake_event("same-wake")
     live_dashboard.on_event(event)

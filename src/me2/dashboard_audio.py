@@ -40,7 +40,7 @@ class WakeChimePlayer:
         self._lock = threading.Lock()
         self._active = False
 
-    def request(self) -> bool:
+    def request(self, *, frequency_hz: int | None = None) -> bool:
         """Queue one chime, returning false if disabled or one is already active."""
         if not self.enabled:
             return False
@@ -48,9 +48,10 @@ class WakeChimePlayer:
             if self._active:
                 return False
             self._active = True
+            selected_frequency = self.frequency_hz if frequency_hz is None else frequency_hz
         try:
             threading.Thread(
-                target=self._play, name="me2-wake-chime", daemon=True
+                target=self._play, args=(selected_frequency,), name="me2-wake-chime", daemon=True
             ).start()
         except RuntimeError:
             with self._lock:
@@ -59,16 +60,17 @@ class WakeChimePlayer:
             return False
         return True
 
-    def _render_pcm(self) -> bytes:
+    def _render_pcm(self, frequency_hz: int | None = None) -> bytes:
         count = round(self.sample_rate * self.duration_ms / 1000)
         times = np.arange(count, dtype=np.float32) / self.sample_rate
         envelope = np.minimum(1.0, times / 0.006) * np.minimum(
             1.0, (self.duration_ms / 1000 - times) / 0.012
         )
-        waveform = self.volume * np.sin(2 * np.pi * self.frequency_hz * times) * envelope
+        frequency = self.frequency_hz if frequency_hz is None else frequency_hz
+        waveform = self.volume * np.sin(2 * np.pi * frequency * times) * envelope
         return np.round(np.clip(waveform, -1.0, 1.0) * 32767).astype("<i2").tobytes()
 
-    def _play(self) -> None:
+    def _play(self, frequency_hz: int | None = None) -> None:
         status, error_type = "played", None
         try:
             subprocess.run(
@@ -87,7 +89,7 @@ class WakeChimePlayer:
                     "1",
                     "-",
                 ],
-                input=self._render_pcm(),
+                input=self._render_pcm(frequency_hz),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 check=True,
