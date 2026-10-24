@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "vcm_model": "../vcm/models/vcm_ctc_model.me2",
+  "mappings_file": "../dashboard-state/vcm-mappings.json",
+  "input_device": null,
+  "cooldown_seconds": 1.0
+}

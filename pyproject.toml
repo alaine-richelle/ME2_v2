@@ -23,6 +23,7 @@ microphone = ["sounddevice>=0.4.6"]
 [project.scripts]
 me2 = "me2.app:main"
 me2-dashboard = "me2.dashboard:main"
+me2-vcm-dashboard = "me2.vcm_dashboard:main"
 me2-vcm-data = "me2.vcm.data:main"
 me2-vcm-audit = "me2.vcm.audit:main"
 me2-benchmark = "me2.benchmark:main"
@@ -47,7 +48,7 @@ me2-wake-training-proposal = "me2.wake_word.training_proposal:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-me2 = ["dashboard_static/*"]
+me2 = ["dashboard_static/*", "vcm_dashboard_static/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
