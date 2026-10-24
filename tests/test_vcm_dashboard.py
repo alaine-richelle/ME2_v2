@@ -1,4 +1,7 @@
+import base64
 import time
+
+import numpy as np
 
 from me2.vcm_dashboard import INTENTS, VoiceCommandDashboard, load_settings
 
@@ -38,3 +41,13 @@ def test_command_only_config_resolves_only_vcm_paths(tmp_path):
     settings = load_settings(path)
     assert settings["vcm_model"] == tmp_path / "model.me2"
     assert "wake_model" not in settings
+
+
+def test_live_browser_pcm_is_bounded_and_queued_after_start(tmp_path):
+    dashboard = VoiceCommandDashboard({"mappings_file": tmp_path / "mappings.json"}, demo=False)
+    dashboard.data["running"] = True
+    samples = np.array([0.1, -0.1, 0.0], dtype="<f4")
+    dashboard.ingest_audio(base64.b64encode(samples.tobytes()).decode(), 48_000)
+    queued, sample_rate = dashboard.audio_requests.get_nowait()
+    assert sample_rate == 48_000
+    assert np.array_equal(queued, samples)

@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import copy
 import dataclasses
 import hashlib
-import importlib
 import json
 import logging
 import queue
@@ -22,6 +22,7 @@ import numpy as np
 import psutil
 import torch
 
+from me2.audio import AudioConfig, prepare_audio_sequence
 from me2.bundle import load_bundle, predict_command
 from me2.logging_utils import configure_logging, log_event
 from me2.vcm.ctc import CommandResult, coerce_grammar_entries
@@ -67,9 +68,12 @@ def _load_vcm_model(path: Path):
     return model, bundle
 
 
-def _predict_command(model, bundle: dict, waveform: np.ndarray):
+def _predict_command(model, bundle: dict, waveform: np.ndarray, sample_rate: int):
     started = time.perf_counter()
-    result = predict_command(model, bundle, waveform, sample_length=waveform.size)
+    prepared, sample_length = prepare_audio_sequence(
+        waveform, sample_rate, AudioConfig(**bundle["audio"])
+    )
+    result = predict_command(model, bundle, prepared, sample_length=sample_length)
     return result, (time.perf_counter() - started) * 1000.0
 
 
@@ -84,6 +88,7 @@ class VoiceCommandDashboard:
         path = settings["mappings_file"]
         if path.exists(): self.mappings = self.validate_mappings(json.loads(path.read_text(encoding="utf-8")))
         self.demo_requests: queue.Queue[dict] = queue.Queue(maxsize=1)
+        self.audio_requests: queue.Queue[tuple[np.ndarray, int]] = queue.Queue(maxsize=32)
         self.process, self.metrics_at, self.metrics = psutil.Process(), 0.0, {}
         self.process.cpu_percent()
         self.data = {"mode": "demo" if demo else "microphone", "state": "STOPPED", "running": False, "stopping": False, "error": None, "notice": "Synthetic demo · no microphone or model predictions" if demo else "Microphone is off. Start listening to load the voice-command model.", "device": settings.get("input_device"), "rms": 0.0, "models": {}, "grammar": [], "supported_intents": list(INTENTS) if demo else [], "last_result": None, "last_action": None, "last_action_status": None, "counts": {"accepted": 0, "rejected": 0}}
@@ -126,6 +131,30 @@ class VoiceCommandDashboard:
         if not self.demo or not self.data["running"] or intent not in INTENTS or type(accepted) is not bool: raise ValueError("Start demo listening and choose a known intent")
         self.demo_requests.put_nowait({"intent": intent, "accepted": accepted})
 
+    def ingest_audio(self, encoded_pcm: str, sample_rate: int) -> None:
+        """Accept bounded browser-captured mono Float32 PCM after Start."""
+        if self.demo:
+            raise ValueError("Browser microphone capture is unavailable in demo mode")
+        if not self.data["running"] or self.data["stopping"]:
+            raise ValueError("Start listening before sending microphone audio")
+        if type(sample_rate) is not int or not 8_000 <= sample_rate <= 96_000:
+            raise ValueError("Browser microphone sample rate is unsupported")
+        if not isinstance(encoded_pcm, str) or len(encoded_pcm) > 48_000:
+            raise ValueError("Browser microphone packet is invalid or too large")
+        try:
+            raw = base64.b64decode(encoded_pcm, validate=True)
+        except ValueError as error:
+            raise ValueError("Browser microphone packet is not valid base64") from error
+        if not raw or len(raw) % 4 or len(raw) > 32_768:
+            raise ValueError("Browser microphone packet has an invalid PCM length")
+        samples = np.frombuffer(raw, dtype="<f4").copy()
+        if not np.isfinite(samples).all() or np.max(np.abs(samples), initial=0.0) > 1.1:
+            raise ValueError("Browser microphone packet contains invalid samples")
+        try:
+            self.audio_requests.put_nowait((samples, sample_rate))
+        except queue.Full as error:
+            raise ValueError("Browser microphone queue is full; capture is falling behind") from error
+
     def _record(self, message: str, result: CommandResult) -> None:
         with self.lock:
             self.sequence += 1; event = {"id": self.sequence, "at": now(), "message": message, "intent": result.actionable_intent, "action": None}
@@ -147,8 +176,13 @@ class VoiceCommandDashboard:
         try:
             if self.demo: self._run_demo(); return
             self.model, self.bundle = _load_vcm_model(self.settings["vcm_model"])
-            with self.lock: self._set_model_metadata(); self.data.update(state="LISTENING", notice="Live microphone · direct voice-command recognition")
-            self._run_microphone()
+            with self.lock:
+                self._set_model_metadata()
+                self.data.update(
+                    state="LISTENING",
+                    notice="Ready for browser microphone permission and live voice commands.",
+                )
+            self._run_browser_audio()
         except Exception as error:
             LOGGER.exception("Voice-command dashboard failed")
             with self.lock: self.data["error"] = str(error)
@@ -163,30 +197,35 @@ class VoiceCommandDashboard:
             accepted = request["accepted"]
             self._record("command_detected" if accepted else "command_rejected", CommandResult(decoded_text=request["intent"].replace("_", " ") if accepted else "unknown request", intent=request["intent"] if accepted else None, slots={}, variation="", raw_log_score=-1.0, normalized_log_score=-.1, candidate_posterior=.94, margin=.4, accepted=accepted, rejection_reason=None if accepted else "demo_out_of_scope", model_version="synthetic-demo"))
 
-    def _run_microphone(self) -> None:
-        try: sd = importlib.import_module("sounddevice")
-        except ImportError as error: raise RuntimeError("Microphone input requires: pip install -e '.[microphone]'") from error
+    def _run_browser_audio(self) -> None:
         assert self.model is not None and self.bundle is not None
-        sample_rate = int(self.bundle["audio"]["sample_rate"]); window_samples = round(sample_rate * float(self.bundle["audio"]["duration_seconds"])); chunks: queue.Queue[np.ndarray] = queue.Queue(maxsize=4); buffer = np.empty(0, dtype=np.float32)
-        def callback(indata, frames, timing, status):
-            del frames, timing
-            if status: LOGGER.warning("VCM microphone callback status: %s", status)
-            try: chunks.put_nowait(indata[:, 0].copy())
-            except queue.Full: LOGGER.warning("VCM microphone queue full; dropping audio")
-        device = sd.query_devices(self.settings.get("input_device"), kind="input")["name"]
-        with self.lock: self.data["device"] = device
-        with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32", device=self.settings.get("input_device"), blocksize=min(1600, window_samples), callback=callback):
-            while not self.stop_requested.is_set():
-                try: chunk = chunks.get(timeout=.2)
-                except queue.Empty: continue
-                with self.lock: self.data["rms"] = float(np.sqrt(np.mean(np.square(chunk), dtype=np.float64)))
-                buffer = np.concatenate((buffer, chunk))
-                while buffer.size >= window_samples:
-                    waveform, buffer = buffer[:window_samples], buffer[window_samples:]
-                    with self.lock: self.data["state"] = "DECODING"
-                    result, _ = _predict_command(self.model, self.bundle, waveform); self._record("command_detected" if result.accepted else "command_rejected", result)
-                    with self.lock: self.data["state"] = "LISTENING"
-                    if self.stop_requested.wait(self.settings["cooldown_seconds"]): return
+        source_rate = None
+        buffer = np.empty(0, dtype=np.float32)
+        while not self.stop_requested.is_set():
+            try:
+                chunk, rate = self.audio_requests.get(timeout=.2)
+            except queue.Empty:
+                continue
+            if source_rate is None:
+                source_rate = rate
+                with self.lock:
+                    self.data["device"] = f"Browser microphone · {source_rate} Hz"
+            elif source_rate != rate:
+                raise ValueError("Browser microphone sample rate changed during capture")
+            with self.lock:
+                self.data["rms"] = float(np.sqrt(np.mean(np.square(chunk), dtype=np.float64)))
+            buffer = np.concatenate((buffer, chunk))
+            window_samples = round(source_rate * float(self.bundle["audio"]["duration_seconds"]))
+            while buffer.size >= window_samples:
+                waveform, buffer = buffer[:window_samples], buffer[window_samples:]
+                with self.lock:
+                    self.data["state"] = "DECODING"
+                result, _ = _predict_command(self.model, self.bundle, waveform, source_rate)
+                self._record("command_detected" if result.accepted else "command_rejected", result)
+                with self.lock:
+                    self.data["state"] = "LISTENING"
+                if self.stop_requested.wait(self.settings["cooldown_seconds"]):
+                    return
 
 
 def make_server(dashboard: VoiceCommandDashboard, port: int = 8766) -> ThreadingHTTPServer:
@@ -207,11 +246,19 @@ def make_server(dashboard: VoiceCommandDashboard, port: int = 8766) -> Threading
             origin = self.headers.get("Origin")
             if not self.trusted_host() or (origin is not None and origin != f"http://{self.headers.get('Host')}") or not secrets.compare_digest(self.headers.get("X-ME2-Token", ""), dashboard.token): self.reply(403, {"error": "Open this dashboard locally and refresh before retrying"}); return
             try:
-                payload = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
+                length = int(self.headers.get("Content-Length", "0"))
+                if not 0 < length <= 65_536:
+                    raise ValueError("Expected a JSON request of at most 64 KiB")
+                payload = json.loads(self.rfile.read(length))
+                if not isinstance(payload, dict):
+                    raise TypeError("Expected a JSON object")
                 if self.path == "/api/start": dashboard.start()
                 elif self.path == "/api/stop": dashboard.stop()
                 elif self.path == "/api/mappings": dashboard.save_mappings(payload)
                 elif self.path == "/api/demo": dashboard.demo_command(payload.get("intent"), payload.get("accepted"))
+                elif self.path == "/api/audio": dashboard.ingest_audio(
+                    payload.get("pcm"), payload.get("sample_rate")
+                )
                 else: self.reply(404, {"error": "Not found"}); return
                 self.reply(200, {"ok": True})
             except (ValueError, TypeError, json.JSONDecodeError, queue.Full) as error: self.reply(400, {"error": str(error)})
