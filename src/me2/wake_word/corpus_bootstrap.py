@@ -11,6 +11,7 @@ from me2.wake_word.corpus_consent import (
     SCHEMA_VERSION,
     TRAINING_PARTITIONS,
 )
+from me2.wake_word.data import CLASSES
 
 _TEMPLATE_DIRECTORY = "templates"
 _TEMPLATES: dict[str, dict[str, Any]] = {
@@ -52,6 +53,65 @@ _TEMPLATES: dict[str, dict[str, Any]] = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "title": "ME2 external wake derived manifest",
         "type": "object",
+        "$defs": {
+            "speaker": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "speaker_id",
+                    "consent_status",
+                    "consent_time",
+                    "recording_condition",
+                    "device_profile",
+                    "partition",
+                ],
+                "properties": {
+                    "speaker_id": {"type": "string", "pattern": "^spk-[a-z0-9]{6,32}$"},
+                    "consent_status": {"const": "granted"},
+                    "consent_time": {"type": "string", "minLength": 1},
+                    "recording_condition": {"type": "string", "minLength": 1},
+                    "device_profile": {"type": "string", "minLength": 1},
+                    "partition": {"enum": sorted(TRAINING_PARTITIONS)},
+                },
+            },
+            "record": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "recording_id",
+                    "source_recording_id",
+                    "path",
+                    "sha256",
+                    "speaker_id",
+                    "partition",
+                    "source_partition",
+                    "label",
+                    "kind",
+                    "review_status",
+                    "connected_delivery_status",
+                ],
+                "properties": {
+                    "recording_id": {"type": "string", "pattern": "^rec-[a-z0-9]{6,64}$"},
+                    "source_recording_id": {"type": "string", "pattern": "^src-[a-z0-9]{6,64}$"},
+                    "path": {"type": "string", "minLength": 1},
+                    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    "speaker_id": {"type": "string", "pattern": "^spk-[a-z0-9]{6,32}$"},
+                    "partition": {"enum": sorted(TRAINING_PARTITIONS)},
+                    "source_partition": {"enum": sorted(TRAINING_PARTITIONS)},
+                    "label": {"enum": list(CLASSES)},
+                    "kind": {"type": "string", "minLength": 1},
+                    "review_status": {"const": "accepted"},
+                    "connected_delivery_status": {"enum": ["accepted", "not_applicable"]},
+                },
+                "allOf": [
+                    {
+                        "if": {"properties": {"label": {"const": "ateko"}}},
+                        "then": {"properties": {"connected_delivery_status": {"const": "accepted"}}},
+                        "else": {"properties": {"connected_delivery_status": {"const": "not_applicable"}}},
+                    }
+                ],
+            },
+        },
         "required": [
             "schema_version",
             "corpus_id",
@@ -64,27 +124,15 @@ _TEMPLATES: dict[str, dict[str, Any]] = {
             "schema_version": {"const": SCHEMA_VERSION},
             "corpus_id": {"type": "string", "minLength": 1},
             "source_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-            "speakers": {"type": "array", "minItems": len(TRAINING_PARTITIONS)},
+            "speakers": {
+                "type": "array",
+                "minItems": len(TRAINING_PARTITIONS),
+                "items": {"$ref": "#/$defs/speaker"},
+            },
             "records": {
                 "type": "array",
                 "minItems": 1,
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": [
-                        "recording_id",
-                        "source_recording_id",
-                        "path",
-                        "sha256",
-                        "speaker_id",
-                        "partition",
-                        "source_partition",
-                        "label",
-                        "kind",
-                        "review_status",
-                        "connected_delivery_status",
-                    ],
-                },
+                "items": {"$ref": "#/$defs/record"},
             },
         },
     },
@@ -110,11 +158,20 @@ def bootstrap(root: Path = PRIVATE_ROOT) -> dict[str, Any]:
     inventory_before = _inventory(resolved)
     template_directory = resolved / _TEMPLATE_DIRECTORY
     template_directory.mkdir(mode=0o700, exist_ok=True)
-    created = existing = 0
+    created = existing = refreshed = 0
     for name, contents in _TEMPLATES.items():
         target = template_directory / name
         if target.exists():
-            existing += 1
+            try:
+                observed = json.loads(target.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                observed = None
+            if observed == contents:
+                existing += 1
+            else:
+                target.write_text(json.dumps(contents, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                target.chmod(0o600)
+                refreshed += 1
             continue
         target.write_text(json.dumps(contents, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         target.chmod(0o600)
@@ -124,6 +181,7 @@ def bootstrap(root: Path = PRIVATE_ROOT) -> dict[str, Any]:
         "inventory_before": inventory_before,
         "templates_created": created,
         "templates_already_present": existing,
+        "templates_refreshed": refreshed,
         "root_ready_for_human_consent_registration": True,
     }
 

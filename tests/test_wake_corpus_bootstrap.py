@@ -26,6 +26,17 @@ def test_bootstrap_preserves_existing_templates(tmp_path, monkeypatch):
     report = corpus_bootstrap.bootstrap(tmp_path)
     assert report["templates_created"] == 0
     assert report["templates_already_present"] == 2
+    assert report["templates_refreshed"] == 0
+
+
+def test_bootstrap_refreshes_only_a_modified_static_template(tmp_path, monkeypatch):
+    monkeypatch.setattr(corpus_bootstrap, "PRIVATE_ROOT", tmp_path.resolve())
+    corpus_bootstrap.bootstrap(tmp_path)
+    template = tmp_path / "templates" / "consent-manifest.schema.json"
+    template.write_text("{}\n", encoding="utf-8")
+    report = corpus_bootstrap.bootstrap(tmp_path)
+    assert report["templates_created"] == 0
+    assert report["templates_refreshed"] == 1
 
 
 def test_verify_templates_reports_only_aggregate_success(tmp_path, monkeypatch):
@@ -62,4 +73,10 @@ def test_bootstrap_schema_templates_match_the_fail_closed_contract(tmp_path, mon
         TRAINING_PARTITIONS
     )
     assert derived["properties"]["schema_version"]["const"] == SCHEMA_VERSION
-    assert set(derived["properties"]["records"]["items"]["required"]) == ingestion_audit._REQUIRED_RECORD
+    record = derived["$defs"]["record"]
+    assert set(record["required"]) == ingestion_audit._REQUIRED_RECORD
+    assert record["properties"]["review_status"] == {"const": "accepted"}
+    assert record["properties"]["connected_delivery_status"]["enum"] == [
+        "accepted",
+        "not_applicable",
+    ]
